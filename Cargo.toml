@@ -1,0 +1,34 @@
+[package]
+name = "progenitor"
+description = "rule-based growth experiment with hexagonal cells"
+version = "0.1.0"
+authors = ["Martin Renold <martin@log2.ch>"]
+edition = "2018"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/martinxyz/progenitor"
+
+[lib]
+name = "progenitor"
+crate-type = ["cdylib", "rlib"]
+
+# [build]
+# rustflags = ["-C", "target-cpu=native"]
+
+[dependencies]
+rand = "0.7.3"
+rand_pcg = "0.2.1"
+numpy = "0.9.0"
+ndarray = "0.13.1"
+hex2d = "0.2.0"
+
+[dependencies.pyo3]
+version = "0.10.1"
+features = ["extension-module"]
+
+[package.metadata.maturin]
+requires-dist = ["numpy~=1.17.4"]
+
+#[package.metadata.maturin.scripts]
+#get_42 = "my_project:DummyClass.get_42"
+
