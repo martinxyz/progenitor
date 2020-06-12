@@ -1,8 +1,41 @@
 import { BinaryCell } from "progenitor";
 import { memory } from "progenitor/progenitor_bg";
 
+import { SVG } from '@svgdotjs/svg.js'
+import { defineGrid, extendHex } from 'honeycomb-grid'
+
 const c = BinaryCell.new();
 console.log('c.answer():', c.answer());
+
+const svg = SVG().addTo('body').size(300, 300)
+
+const Hex = extendHex({
+  size: 13,
+  render(svg) {
+    const position = this.toPoint()
+    const centerPosition = this.center().add(position)
+
+    svg
+      .polygon(this.corners().map(({ x, y }) => `${x},${y}`))
+      .fill('none')
+      .stroke({ width: 1, color: '#999' })
+      .translate(position.x, position.y)
+
+    /*
+    svg
+      .text(`${this.x},${this.y}`)
+      .font({ size: 12, anchor: 'middle', leading: 1.4, fill: '#69c' })
+      .translate(centerPosition.x, centerPosition.y - fontSize)
+    */
+  }
+})
+const Grid = defineGrid(Hex)
+// Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
+Grid.rectangle({ width: 10, height: 10, onCreate: renderHex })
+
+function renderHex(hex) {
+    hex.render(svg)
+}
 
 /*
 const CELL_SIZE = 5; // px
@@ -11,49 +44,11 @@ const DEAD_COLOR = "#FFFFFF";
 const ALIVE_COLOR = "#000000";
 
 const u = Universe.new();
-const width = u.get_width()
-const height = u.get_height()
 
 const canvas = document.getElementById('canvas');
 canvas.height = (CELL_SIZE + 1) * height + 1;
 canvas.width = (CELL_SIZE + 1) * width + 1;
 const ctx = canvas.getContext('2d');
-
-const renderLoop = () => {
-    // canvas.textContent = u.render()
-    for (let i=0; i<3; i++)
-        u.tick();
-
-    drawGrid();
-    drawCells();
-
-    requestAnimationFrame(renderLoop)
-}
-
-requestAnimationFrame(renderLoop)
-
-const drawGrid = () => {
-    ctx.beginPath();
-    ctx.strokeColor = GRID_COLOR;
-
-    // Vertical lines.
-    for (let i = 0; i <= width; i++) {
-        ctx.moveTo(i * (CELL_SIZE + 1) + 1, 0);
-        ctx.lineTo(i * (CELL_SIZE + 1) + 1, (CELL_SIZE + 1) * height + 1);
-    }
-
-    // Horizontal lines.
-    for (let j = 0; j <= height; j++) {
-        ctx.moveTo(0,                           j * (CELL_SIZE + 1) + 1);
-        ctx.lineTo((CELL_SIZE + 1) * width + 1, j * (CELL_SIZE + 1) + 1);
-    }
-
-    ctx.stroke();
-}
-
-const getIndex = (row, column) => {
-    return row * width + column;
-};
 
 const drawCells = () => {
     let cells = new Uint8Array(memory.buffer, u.cells(), width * height);
