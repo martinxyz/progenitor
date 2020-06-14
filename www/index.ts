@@ -1,24 +1,45 @@
-import { BinaryCell } from "progenitor";
+import { World } from "progenitor";
 import { memory } from "progenitor/progenitor_bg";
 
-import { SVG } from '@svgdotjs/svg.js'
-import { defineGrid, extendHex } from 'honeycomb-grid'
+import { SVG, PointArray } from '@svgdotjs/svg.js'
+import { defineGrid, extendHex, Hex } from 'honeycomb-grid'
 
-const c = BinaryCell.new();
-console.log('c.answer():', c.answer());
+const w = new World();
+console.log('w.answer():', w.update_data());
+console.log('w.tick():', w.tick());
+console.log('w.answer():', w.update_data());
+
+let isDone: boolean = false;
 
 const svg = SVG().addTo('body').size(300, 300)
 
-const Hex = extendHex({
-  size: 13,
-  render(svg) {
-    const position = this.toPoint()
-    const centerPosition = this.center().add(position)
+const Hex = extendHex({ size: 15 })
+
+const Grid = defineGrid(Hex)
+// Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
+Grid.rectangle({ width: 10, height: 10, onCreate: renderHex })
+
+  // render(this: Hex, svg: SVGElement) {
+function renderHex(hex: Hex<{}>) {
+    // hex.render(svg)
+    const position = hex.toPoint()
+    const centerPosition = hex.center().add(position)
+    // console.log(hex.cartesian().x, hex.cartesian().y)
+    // console.log(hex.x, hex.y);
+    
+
+    let corners: number[] = [];
+    hex.corners().forEach(({x, y}) => {
+      corners.push(x)
+      corners.push(y)
+    });
 
     svg
-      .polygon(this.corners().map(({ x, y }) => `${x},${y}`))
-      .fill('none')
-      .stroke({ width: 1, color: '#999' })
+      // .polygon(hex.corners().map(({ x, y }) => `${x},${y}`))
+      // .polygon(hex.corners().map(({ x, y }) => [x, y]))
+      .polygon(corners)
+      .fill((hex.x + hex.y) % 7 == 0 ? '#FAB' : '#393')
+      .stroke({ width: 1, color: '#333' })
       .translate(position.x, position.y)
 
     /*
@@ -27,14 +48,7 @@ const Hex = extendHex({
       .font({ size: 12, anchor: 'middle', leading: 1.4, fill: '#69c' })
       .translate(centerPosition.x, centerPosition.y - fontSize)
     */
-  }
-})
-const Grid = defineGrid(Hex)
-// Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
-Grid.rectangle({ width: 10, height: 10, onCreate: renderHex })
 
-function renderHex(hex) {
-    hex.render(svg)
 }
 
 /*

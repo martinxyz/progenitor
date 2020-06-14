@@ -1,10 +1,10 @@
-// #![allow(dead_code)]
-// #![allow(unused)]
 mod cell;
 mod tile;
 
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]
 mod py_wrap;
+// #[cfg(target_arch = "wasm32")]
+mod wasm_wrap;
 
 pub use tile::{
     Tile,
@@ -39,6 +39,7 @@ impl World {
             types: CellTypes::new()
         }
     }
+
     pub fn tick(&mut self, tick_direction: Direction) {
         let types = &self.types;
         self.cells.mutate_with_radius_1(|cell, neighbours| {
@@ -94,24 +95,3 @@ impl World {
 //     fn get_tile_size() -> i32 { tile::SIZE }
 //     Ok(())
 // }
-
-
-
-use wasm_bindgen::prelude::*;
-#[wasm_bindgen]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct BinaryCell {
-    foo: i32,
-    bar: i32,
-}
-
-#[wasm_bindgen]
-impl BinaryCell {
-    pub fn new() -> BinaryCell {
-        BinaryCell{foo: 3, bar: 42}
-    }
-    pub fn answer(&self) -> i32 {
-        self.bar
-    }
-}
-
