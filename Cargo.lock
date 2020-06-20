@@ -131,6 +131,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "js-sys"
+version = "0.3.40"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce10c23ad2ea25ceca0093bd3192229da4c5b3c0f2de499c1ecac0d98d452177"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -346,6 +355,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "hex2d",
+ "js-sys",
  "ndarray",
  "numpy",
  "pyo3",

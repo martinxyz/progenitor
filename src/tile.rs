@@ -1,7 +1,6 @@
 use crate::cell;
 use cell::Cell;
 use hex2d::{Coordinate, Direction};
-use std::slice::Iter;
 
 const SIZE_LOG2: u32 = 3;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
@@ -57,7 +56,18 @@ impl Tile {
         self.data[Self::get_index(pos.x, pos.y)]
     }
 
-    /// Iterate over all cells, yielding the cell and its 6 neighbours
+    /// Iterator over a rectangle in offset coordinates.
+    pub fn iterate_rectangle(pos: Coordinate, width: i32, height: i32) -> impl Iterator<Item = Coordinate> {
+        (0..height)
+            .map(move |col| (0..width).map(move |row| -> Coordinate {
+                let x = col - (row - (row&1)) / 2;  // XXX this will need unit-tests (with neg pos etc.) if I'm going to keep this
+                let z = row;
+                let y = -x-z;
+                pos + Coordinate::new(x, y)
+            })).flatten()
+    }
+
+    /// Iterate over all cells (in unspecified order), yielding the cell and its 6 neighbours
     pub fn iter_radius_1(&self) -> NeighbourIter {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
         NeighbourIter{
@@ -74,12 +84,12 @@ impl Tile {
         let tile_old = self.clone();
         let iter_old_neighbours = tile_old.iter_radius_1();
         let iter_mut_center = self.data.iter_mut();
-        for (center, (_center_old, neighbours)) in iter_mut_center .zip(iter_old_neighbours) {
+        for (center, (_center_old, neighbours)) in iter_mut_center.zip(iter_old_neighbours) {
             f(center, neighbours)
         }
     }
 
-    pub fn iter_cells(&self) -> Iter<'_, Cell> {
+    pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {
         self.data.iter()
     }
 }

@@ -20,6 +20,7 @@ module.exports = {
     filename: "bootstrap.js",
   },
   mode: "development",
+  devtool: "source-map",
   plugins: [
     new CopyWebpackPlugin(['index.html'])
   ],

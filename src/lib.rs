@@ -13,10 +13,10 @@ pub use tile::{
 use cell::CellTypes;
 pub use cell::{CellType, CellTypeRef, Cell};  // note: Cell should not be pub? at least not its internals
 
-pub use hex2d::{Direction, Coordinate};
+use hex2d::{Direction, Coordinate};
 
 pub struct World {
-    pub cells: Tile,
+    cells: Tile,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
 }
@@ -31,6 +31,25 @@ impl ToIndex for hex2d::Direction {
         self.to_int::<i32>() as usize
     }
 }
+
+/* maybe?
+trait CellChannel {
+    fn extract(c: Cell) -> u8;
+    fn update(c: &mut Cell);
+}
+
+struct CellTypeChannel {}
+
+impl CellChannel for CellTypeChannel {
+    fn extract(c: Cell) -> u8;
+    fn update(c: &mut Cell)
+}
+
+pub enum Channels {
+    Particles,
+    CellTypes,
+}
+*/
 
 impl World {
     pub fn new() -> World {
@@ -71,6 +90,27 @@ impl World {
         //         }
         //     }
         // }
+    }
+
+    pub fn set_cell(&mut self, pos: Coordinate, cell: Cell) {
+        self.cells.set_cell(pos, cell);
+    }
+
+    pub fn get_cell(&self, pos: Coordinate) -> Cell {
+        self.cells.get_cell(pos)
+    }
+
+    pub fn get_cell_types(&self, buf: &mut[u8]) {
+        let mut idx = 0;
+        let it = Tile::iterate_rectangle(Coordinate::new(0, 0 ), SIZE as i32, SIZE as i32);
+        for coord in it {
+            buf[idx] = self.get_cell(coord).get_type().0;
+            idx += 1;
+        }
+    }
+
+    pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {
+        self.cells.iter_cells()
     }
 }
 

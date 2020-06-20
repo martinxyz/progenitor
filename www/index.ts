@@ -1,13 +1,26 @@
-import { World } from "progenitor";
-import { memory } from "progenitor/progenitor_bg";
+import { World, get_size } from "progenitor";
+// import { memory } from "progenitor/progenitor_bg";
 
 import { SVG, PointArray } from '@svgdotjs/svg.js'
 import { defineGrid, extendHex, Hex } from 'honeycomb-grid'
 
+let gridSize = get_size();
+
 const w = new World();
-console.log('w.answer():', w.update_data());
-console.log('w.tick():', w.tick());
-console.log('w.answer():', w.update_data());
+w.make_some_cells();
+// console.log('w.count_cells():', w.count_cells());
+for (let i = 0; i < 3; i++) w.tick();
+
+const data = w.update_data();
+console.log(data);
+
+// const cellsPtr = w.update_data();
+// const data = new Uint8Array(memory.buffer, cellsPtr, gridSize * gridSize);
+
+// var data = new Uint8Array(gridSize * gridSize);
+// for (let i=0; i<gridSize*gridSize; i++) {
+//   data[i] = i % 3 == 0 ? 0 : 1;
+// }
 
 let isDone: boolean = false;
 
@@ -17,16 +30,22 @@ const Hex = extendHex({ size: 15 })
 
 const Grid = defineGrid(Hex)
 // Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
-Grid.rectangle({ width: 10, height: 10, onCreate: renderHex })
+Grid.rectangle({ width: gridSize, height: gridSize, onCreate: renderHex })
 
   // render(this: Hex, svg: SVGElement) {
 function renderHex(hex: Hex<{}>) {
     // hex.render(svg)
     const position = hex.toPoint()
     const centerPosition = hex.center().add(position)
+
+    let {x, y} = hex.cartesian()
+    let idx = y * gridSize + x;
+    let d = data[idx];
+
     // console.log(hex.cartesian().x, hex.cartesian().y)
     // console.log(hex.x, hex.y);
-    
+    // let color = (hex.x + hex.y) % 3 == 0 ? '#FAB' : '#393';
+    let color = (d == 0) ? '#FAB' : '#393';
 
     let corners: number[] = [];
     hex.corners().forEach(({x, y}) => {
@@ -38,7 +57,7 @@ function renderHex(hex: Hex<{}>) {
       // .polygon(hex.corners().map(({ x, y }) => `${x},${y}`))
       // .polygon(hex.corners().map(({ x, y }) => [x, y]))
       .polygon(corners)
-      .fill((hex.x + hex.y) % 7 == 0 ? '#FAB' : '#393')
+      .fill(color)
       .stroke({ width: 1, color: '#333' })
       .translate(position.x, position.y)
 

@@ -1,13 +1,14 @@
 extern crate progenitor;
-use progenitor::{World, CellType, CellTypeRef, Cell, Coordinate, Direction};
+use progenitor::{World, CellType, CellTypeRef, Cell};
+use hex2d::{Coordinate, Direction};
 
 #[test]
 fn initialization_should_be_inert() {
     let mut w = World::new();
     let pos = Coordinate::new(5, 5);
-    assert_eq!(w.cells.get_cell(pos), Cell::empty());
+    assert_eq!(w.get_cell(pos), Cell::empty());
     w.tick(Direction::YZ);
-    assert_eq!(w.cells.get_cell(pos), Cell::empty());
+    assert_eq!(w.get_cell(pos), Cell::empty());
 }
 
 #[test]
@@ -21,13 +22,13 @@ fn simple_self_transformation() {
     let persistent_cell = w.types.add_type(&CellType::default());
     let pos1 = Coordinate::new(5, 5);
     let pos2 = Coordinate::new(5, 6);
-    w.cells.set_cell(pos1, w.types.create_cell(dying_cell));
-    w.cells.set_cell(pos2, w.types.create_cell(persistent_cell));
-    assert_eq!(w.cells.get_cell(pos1).get_type(), dying_cell);
-    assert_eq!(w.cells.get_cell(pos2).get_type(), persistent_cell);
+    w.set_cell(pos1, w.types.create_cell(dying_cell));
+    w.set_cell(pos2, w.types.create_cell(persistent_cell));
+    assert_eq!(w.get_cell(pos1).get_type(), dying_cell);
+    assert_eq!(w.get_cell(pos2).get_type(), persistent_cell);
     w.tick(Direction::YZ);
-    assert_eq!(w.cells.get_cell(pos1), Cell::empty());
-    assert_eq!(w.cells.get_cell(pos2).get_type(), persistent_cell);
+    assert_eq!(w.get_cell(pos1), Cell::empty());
+    assert_eq!(w.get_cell(pos2).get_type(), persistent_cell);
 }
 
 #[test]
@@ -39,9 +40,9 @@ fn simple_growth() {
         ..CellType::default()
     });
     let pos1 = Coordinate::new(5, 5);
-    w.cells.set_cell(pos1, w.types.create_cell(growing_cell));
+    w.set_cell(pos1, w.types.create_cell(growing_cell));
     let count_growing_cells = |w: &World| {
-        w.cells.iter_cells().filter(|c| c.get_type() == growing_cell).count()
+        w.iter_cells().filter(|c| c.get_type() == growing_cell).count()
     };
     assert_eq!(1, count_growing_cells(&w));
     w.tick(Direction::YZ);
