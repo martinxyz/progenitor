@@ -6,6 +6,16 @@ const SIZE_LOG2: u32 = 3;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
+
+// This doesn't exist in hex2d?! Or I didn't find it?
+pub fn offset_to_cube(col: i32, row: i32) -> Coordinate {
+    // taken from redblob - XXX this may need unit-tests (does it work with with negative pos?) if I'm going to keep this
+    let x = col - (row - (row&1)) / 2;
+    let z = row;
+    let y = -x-z;
+    Coordinate::new(x, y)
+}
+
 #[derive(Clone)]
 pub struct Tile {
     // I think we don't technically need the Box, just to make sure it's on the heap.
@@ -42,39 +52,32 @@ impl Tile {
         }
     }
 
-    fn get_index(x: i32, y: i32) -> usize {
-        let x_ = (x as u32) % SIZE;
-        let y_ = (y as u32) % SIZE;
-        (y_ * SIZE + x_) as usize
+    fn get_index(pos: Coordinate) -> usize {
+        // cube to axial
+        let q = (pos.x as u32) % SIZE;
+        let r = (pos.z() as u32) % SIZE;  // this is what I wanted, but... maybe consider wanting something else now?
+        (r * SIZE + q) as usize
     }
 
     pub fn set_cell(&mut self, pos: Coordinate, cell: Cell) {
-        self.data[Self::get_index(pos.x, pos.y)] = cell;
+        self.data[Self::get_index(pos)] = cell;
     }
 
     pub fn get_cell(&self, pos: Coordinate) -> Cell {
-        self.data[Self::get_index(pos.x, pos.y)]
+        self.data[Self::get_index(pos)]
     }
 
     /// Iterator over a rectangle in offset coordinates.
     pub fn iterate_rectangle(pos: Coordinate, width: i32, height: i32) -> impl Iterator<Item = Coordinate> {
-        (0..height)
-            .map(move |col| (0..width).map(move |row| -> Coordinate {
-                let x = col - (row - (row&1)) / 2;  // XXX this will need unit-tests (with neg pos etc.) if I'm going to keep this
-                let z = row;
-                let y = -x-z;
-                pos + Coordinate::new(x, y)
-            })).flatten()
+        (0..height).map(move |row| (0..width).map(move |col| 
+            pos + offset_to_cube(col, row)
+        )).flatten()
     }
 
     /// Iterate over all cells (in unspecified order), yielding the cell and its 6 neighbours
     pub fn iter_radius_1(&self) -> NeighbourIter {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
-        NeighbourIter{
-            tile: &self,
-            x: 0,
-            y: 0,
-        }
+        NeighbourIter{tile: &self, q: 0, r: 0}
     }
 
     /// For convolution-like operations
@@ -96,8 +99,8 @@ impl Tile {
 
 pub struct NeighbourIter<'t> {
     tile: &'t Tile,
-    x: i32,
-    y: i32,
+    q: i32,
+    r: i32,
 }
 
 pub type NeighbourCells = [Cell; 6];
@@ -107,16 +110,20 @@ impl<'t> Iterator for NeighbourIter<'t> {
     fn next(&mut self) -> Option<Self::Item> {
         // there is probably some rust-ish was to avoid doing this...
         // maybe should use an iterator that just yields the indices, separate from the data access?
-        if self.y >= SIZE as i32 {
+        if self.r >= SIZE as i32 {
             return None
         }
-        let (x, y) = (self.x, self.y);
-        self.x += 1;
-        if self.x >= SIZE as i32 {
-            self.y += 1;
-            self.x = 0;
+        let (q, r) = (self.q, self.r);
+        self.q += 1;
+        if self.q >= SIZE as i32 {
+            self.r += 1;
+            self.q = 0;
         }
 
+        // axial to cube
+        let x = q;
+        let z = r;
+        let y = -z -x;
         let center_pos = Coordinate::new(x, y);
         let mut neighbours = [Cell::empty(); 6];
         for i in 0..6 {

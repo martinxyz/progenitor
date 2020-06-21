@@ -1,7 +1,8 @@
 use wasm_bindgen::prelude::*;
 use js_sys::Uint8Array;
 pub use hex2d::{Direction, Coordinate};
-use crate::SIZE;
+use crate::tile::offset_to_cube;
+use crate::{CellType, CellTypeRef, SIZE};
 
 fn set_panic_hook() {
     #[cfg(feature = "console_error_panic_hook")]
@@ -32,19 +33,20 @@ impl World {
     }
 
     pub fn make_some_cells(&mut self) {
-        use crate::{CellType, CellTypeRef, Coordinate};
-        let w = &mut self.inner;
-        let growing_cell = w.types.add_type(&CellType{
+        self.inner.types.add_type(&CellType{
             air_like: false,
             child_type: CellTypeRef(1),  // self-pointer !!! very bad API
             ..CellType::default()
         });
-        let pos1 = Coordinate::new(0, 0);
-        w.cells.set_cell(pos1, w.types.create_cell(growing_cell));
+    }
+    
+    pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
+        let coord = offset_to_cube(col, row);
+        self.inner.set_cell(coord,  self.inner.types.create_cell(CellTypeRef(ct)));
     }
 
-    pub fn tick(&mut self) {
-        self.inner.tick(Direction::XY);
+    pub fn tick(&mut self, direction: i32) {
+        self.inner.tick(Direction::from_int(direction));
     }
 
     pub fn update_data(&mut self) -> Uint8Array {
@@ -52,9 +54,7 @@ impl World {
         self.data = self.inner.cells
             .iter_cells()
             .map(|c| c.get_type().0)
-            .collect();
         */
-
         self.inner.get_cell_types(self.data.as_mut_slice());
 
 

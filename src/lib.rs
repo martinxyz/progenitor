@@ -102,7 +102,8 @@ impl World {
 
     pub fn get_cell_types(&self, buf: &mut[u8]) {
         let mut idx = 0;
-        let it = Tile::iterate_rectangle(Coordinate::new(0, 0 ), SIZE as i32, SIZE as i32);
+        let pos = Coordinate::new(0, 0);
+        let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
         for coord in it {
             buf[idx] = self.get_cell(coord).get_type().0;
             idx += 1;
