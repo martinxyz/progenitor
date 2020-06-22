@@ -2,7 +2,7 @@ use crate::cell;
 use cell::Cell;
 use hex2d::{Coordinate, Direction};
 
-const SIZE_LOG2: u32 = 3;
+const SIZE_LOG2: u32 = 4;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 

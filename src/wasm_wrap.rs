@@ -35,7 +35,12 @@ impl World {
     pub fn make_some_cells(&mut self) {
         self.inner.types.add_type(&CellType{
             air_like: false,
-            child_type: CellTypeRef(1),  // self-pointer !!! very bad API
+            child_type: CellTypeRef(2),  // numeric pointer!!! very bad as an API
+            ..CellType::default()
+        });
+        self.inner.types.add_type(&CellType{
+            air_like: false,
+            child_type: CellTypeRef(1),  // numeric pointer!!! very bad as an API
             ..CellType::default()
         });
     }

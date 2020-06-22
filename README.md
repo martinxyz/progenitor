@@ -1,16 +1,19 @@
 # Progenitor
 
-A testbed for rule-based growth of hexagonal cells.
+This project is:
 
-A 2D cellular automaton with programmable rules, to be evolved. 
-
-An open-ended experiment and playground for some ideas.
+* a testbed for rule-based growth of hexagonal cells
+* a 2D cellular automaton with programmable rules, to be evolved
+* an open-ended experiment and playground for some ideas
+* a mess while I'm figuring out how to use Rust
 
 This is a Rust library with bindings for Python (native module with
 [PyO3](https://pyo3.rs)) and Javascript/Typescript (Webassembly with
 [wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/)).
 
 Named after [progenitor cells](https://en.wikipedia.org/wiki/Progenitor_cell).
+
+Random builds/snapshots at https://log2.ch/progenitor/
 
 # Build and Run
 
@@ -19,6 +22,29 @@ Named after [progenitor cells](https://en.wikipedia.org/wiki/Progenitor_cell).
 Run `cargo build` and `cargo test`.
 
 TODO: how to create an optimized build
+
+## Webassembly Module
+
+Install [wasm-pack](https://rustwasm.github.io/wasm-pack/), e.g. `cargo install wasm-pack`.
+
+```bash
+wasm-pack build
+```
+
+This will create a node package in the *pkg* directory.
+
+## Web Application
+
+After the steps above, build and run the web application:
+
+```bash
+cd www
+npm install
+npm start
+```
+
+Then open [http://localhost:8080](http://localhost:8080) in a browser.
+
 
 ## Python Module
 
@@ -42,23 +68,3 @@ Note: if you are running Python from the toplevel directory this will actually
 import the *progenitor* subdirectory, instead of the package installed into the
 virtualenv. This works because `maturin develop` also copies the compiled Rust
 extension into that directory.
-
-## Webassembly Module
-
-Install [wasm-pack](https://rustwasm.github.io/wasm-pack/), e.g. `cargo install wasm-pack`.
-
-```bash
-wasm-pack build
-```
-
-This will create a node package in the *pkg* directory.
-
-Build and run the web application:
-
-```bash
-cd www
-npm install
-npm start
-```
-
-Then open [http://localhost:8080](http://localhost:8080) in a browser.
