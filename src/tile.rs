@@ -6,13 +6,12 @@ const SIZE_LOG2: u32 = 4;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
-
 // This doesn't exist in hex2d?! Or I didn't find it?
 pub fn offset_to_cube(col: i32, row: i32) -> Coordinate {
     // taken from redblob - XXX this may need unit-tests (does it work with with negative pos?) if I'm going to keep this
-    let x = col - (row - (row&1)) / 2;
+    let x = col - (row - (row & 1)) / 2;
     let z = row;
-    let y = -x-z;
+    let y = -x - z;
     Coordinate::new(x, y)
 }
 
@@ -21,8 +20,7 @@ pub struct Tile {
     // I think we don't technically need the Box, just to make sure it's on the heap.
     // Could also use "Vec", but I guess compile-time size will allow additional optimizations?
     // (At least with g++ and Eigen compile-time size was really helping. Maybe test this theory at some point.)
-    data: Box<[Cell; (SIZE*SIZE) as usize]>,
-
+    data: Box<[Cell; (SIZE * SIZE) as usize]>,
     // old C++ code, with padding for border-conditions:
     // (note: Padding on each tile is probably not even required for performance.
     //        We could use a huge memory block instead of tiles and do loop tiling,
@@ -39,7 +37,6 @@ pub struct Tile {
     //     return data + padding*stride_y + padding*stride_x;
     //  }
     //};
-
 }
 
 // type NeighbourIterMut<'t> = std::iter::Zip<std::slice::IterMut<'t, Cell>, NeighbourIter<'t>>;
@@ -48,14 +45,14 @@ impl Tile {
     pub fn new() -> Tile {
         let cell = Cell::empty();
         Tile {
-            data: Box::new([cell; (SIZE*SIZE) as usize])
+            data: Box::new([cell; (SIZE * SIZE) as usize]),
         }
     }
 
     fn get_index(pos: Coordinate) -> usize {
         // cube to axial
         let q = (pos.x as u32) % SIZE;
-        let r = (pos.z() as u32) % SIZE;  // this is what I wanted, but... maybe consider wanting something else now?
+        let r = (pos.z() as u32) % SIZE; // this is what I wanted, but... maybe consider wanting something else now?
         (r * SIZE + q) as usize
     }
 
@@ -68,21 +65,31 @@ impl Tile {
     }
 
     /// Iterator over a rectangle in offset coordinates.
-    pub fn iterate_rectangle(pos: Coordinate, width: i32, height: i32) -> impl Iterator<Item = Coordinate> {
-        (0..height).map(move |row| (0..width).map(move |col| 
-            pos + offset_to_cube(col, row)
-        )).flatten()
+    pub fn iterate_rectangle(
+        pos: Coordinate,
+        width: i32,
+        height: i32,
+    ) -> impl Iterator<Item = Coordinate> {
+        (0..height)
+            .map(move |row| (0..width).map(move |col| pos + offset_to_cube(col, row)))
+            .flatten()
     }
 
     /// Iterate over all cells (in unspecified order), yielding the cell and its 6 neighbours
     pub fn iter_radius_1(&self) -> NeighbourIter {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
-        NeighbourIter{tile: &self, q: 0, r: 0}
+        NeighbourIter {
+            tile: &self,
+            q: 0,
+            r: 0,
+        }
     }
 
     /// For convolution-like operations
     pub fn mutate_with_radius_1<F>(&mut self, f: F)
-    where F: Fn(&mut Cell, NeighbourCells) {
+    where
+        F: Fn(&mut Cell, NeighbourCells),
+    {
         // note: could be optimized require only a copy of the previous line
         let tile_old = self.clone();
         let iter_old_neighbours = tile_old.iter_radius_1();
@@ -111,7 +118,7 @@ impl<'t> Iterator for NeighbourIter<'t> {
         // there is probably some rust-ish was to avoid doing this...
         // maybe should use an iterator that just yields the indices, separate from the data access?
         if self.r >= SIZE as i32 {
-            return None
+            return None;
         }
         let (q, r) = (self.q, self.r);
         self.q += 1;
@@ -123,7 +130,7 @@ impl<'t> Iterator for NeighbourIter<'t> {
         // axial to cube
         let x = q;
         let z = r;
-        let y = -z -x;
+        let y = -z - x;
         let center_pos = Coordinate::new(x, y);
         let mut neighbours = [Cell::empty(); 6];
         for i in 0..6 {

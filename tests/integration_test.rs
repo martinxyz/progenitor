@@ -1,7 +1,7 @@
 #![feature(test)]
 extern crate progenitor;
-use progenitor::{World, CellType, CellTypeRef, Cell};
 use hex2d::{Coordinate, Direction};
+use progenitor::{Cell, CellType, CellTypeRef, World};
 
 #[test]
 fn initialization_should_be_inert() {
@@ -15,7 +15,7 @@ fn initialization_should_be_inert() {
 #[test]
 fn simple_self_transformation() {
     let mut w = World::new();
-    let dying_cell = w.types.add_type(&CellType{
+    let dying_cell = w.types.add_type(&CellType {
         transform_at_value1: Some(0),
         transform_into: CellTypeRef(0),
         ..CellType::default()
@@ -35,15 +35,17 @@ fn simple_self_transformation() {
 #[test]
 fn simple_growth() {
     let mut w = World::new();
-    let growing_cell = w.types.add_type(&CellType{
+    let growing_cell = w.types.add_type(&CellType {
         air_like: false,
-        child_type: CellTypeRef(1),  // self-pointer !!! very bad API
+        child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     });
     let pos1 = Coordinate::new(5, 5);
     w.set_cell(pos1, w.types.create_cell(growing_cell));
     let count_growing_cells = |w: &World| {
-        w.iter_cells().filter(|c| c.get_type() == growing_cell).count()
+        w.iter_cells()
+            .filter(|c| c.get_type() == growing_cell)
+            .count()
     };
     assert_eq!(1, count_growing_cells(&w));
     w.tick(Direction::YZ);
@@ -61,9 +63,9 @@ use test::Bencher;
 #[bench]
 fn benchtest(b: &mut Bencher) {
     let mut w = World::new();
-    let growing_cell = w.types.add_type(&CellType{
+    let growing_cell = w.types.add_type(&CellType {
         air_like: false,
-        child_type: CellTypeRef(1),  // self-pointer !!! very bad API
+        child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     });
     let pos1 = Coordinate::new(5, 5);

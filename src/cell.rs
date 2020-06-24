@@ -1,11 +1,11 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CellTypeRef(pub u8);  // really... pub pub? Should not expose both CellTypeRef internals and CellType.
+pub struct CellTypeRef(pub u8); // really... pub pub? Should not expose both CellTypeRef internals and CellType.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Represents the state of a cell
 pub struct Cell {
     cell_type: CellTypeRef,
-    pub value1: u8,  // less pub please, representation should probably be internal
+    pub value1: u8, // less pub please, representation should probably be internal
     pub value2: u8,
     particle: bool,
 }
@@ -24,7 +24,10 @@ impl Cell {
         self.particle
     }
     pub fn set_particle(&self, state: bool) -> Self {
-        Self { particle: state, ..*self }
+        Self {
+            particle: state,
+            ..*self
+        }
     }
 
     // hm... ugly do-nothing getter, just to have a stable public API? really?
@@ -47,7 +50,11 @@ impl ValueTransfer {
             Self::Set(v) => v,
             Self::Copy => value,
             Self::Increment => {
-                if value < 255 { value + 1 } else { value }
+                if value < 255 {
+                    value + 1
+                } else {
+                    value
+                }
             }
         }
     }
@@ -63,7 +70,7 @@ pub struct ValueSpec {
 
 pub enum TransformTrigger {
     Never,
-    Value1Equals(u8)
+    Value1Equals(u8),
 }
 
 #[derive(Debug, Clone)]
@@ -73,15 +80,15 @@ pub struct CellType {
     pub transform_at_value1: Option<u8>,
     pub transform_into: CellTypeRef,
     pub child_type: CellTypeRef,
-    pub skip_transaction_p: u8,  // probability (0 = never, 128 = always)
-    pub child_at_parent_location_p: u8,  // probability (0 = never, 128 = always)
+    pub skip_transaction_p: u8, // probability (0 = never, 128 = always)
+    pub child_at_parent_location_p: u8, // probability (0 = never, 128 = always)
     pub air_like: bool,
 }
 
 impl CellType {
-    pub fn default() -> CellType { 
+    pub fn default() -> CellType {
         CellType {
-            value1_spec: ValueSpec{
+            value1_spec: ValueSpec {
                 initial: 0,
                 // tick: ValueTransfer::Copy,
                 // transfer: ValueTransfer::Set(0),
@@ -114,8 +121,8 @@ impl CellTypes {
         let empty_type = CellType::default();
         // let border = CellType {  ...
         CellTypes {
-            types: vec![empty_type]
-        } 
+            types: vec![empty_type],
+        }
     }
 
     // not needed?
@@ -128,7 +135,10 @@ impl CellTypes {
     }
 
     pub fn create_cell(&self, cell_type: CellTypeRef) -> Cell {
-        Cell { cell_type, ..Cell::empty() }
+        Cell {
+            cell_type,
+            ..Cell::empty()
+        }
         // ...more fancy initialization might be configurable in CellType in the future.
     }
 
@@ -153,10 +163,10 @@ impl CellTypes {
                 println!("next: {:?}", next);
                 // todo: value1 transfer, max child cound, etc.
                 let res = Transaction {
-                    split: SplitTransaction::Split{
+                    split: SplitTransaction::Split {
                         child1: cur,
                         child2: self.create_cell(cur_ct.child_type),
-                    }
+                    },
                 };
                 println!("res: {:?}", res);
                 return res;
@@ -181,19 +191,24 @@ impl CellTypes {
         // }
 
         Transaction {
-            split: SplitTransaction::None
+            split: SplitTransaction::None,
         }
     }
 
-    pub fn execute_transactions(&self, prev_to_cur: Transaction, cur: Cell, cur_to_next: Transaction) -> Cell {
+    pub fn execute_transactions(
+        &self,
+        prev_to_cur: Transaction,
+        cur: Cell,
+        cur_to_next: Transaction,
+    ) -> Cell {
         // prev creates child2
-        if let SplitTransaction::Split{child1: _, child2} = prev_to_cur.split {
+        if let SplitTransaction::Split { child1: _, child2 } = prev_to_cur.split {
             assert_eq!(cur_to_next.split, SplitTransaction::None);
             return child2;
         }
 
         // cur creates child1
-        if let SplitTransaction::Split{child1, child2: _} = prev_to_cur.split {
+        if let SplitTransaction::Split { child1, child2: _ } = prev_to_cur.split {
             assert_eq!(cur_to_next.split, SplitTransaction::None);
             return child1;
         }
@@ -202,7 +217,6 @@ impl CellTypes {
         cur
     }
 }
-
 
 #[derive(Debug)]
 pub struct Transaction {
@@ -221,5 +235,5 @@ pub struct Transaction {
 #[derive(Debug, PartialEq)]
 enum SplitTransaction {
     None,
-    Split{child1: Cell, child2: Cell}
+    Split { child1: Cell, child2: Cell },
 }

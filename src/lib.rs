@@ -6,14 +6,11 @@ mod py_wrap;
 // #[cfg(target_arch = "wasm32")]
 mod wasm_wrap;
 
-pub use tile::{
-    Tile,
-    SIZE,
-};
 use cell::CellTypes;
-pub use cell::{CellType, CellTypeRef, Cell};  // note: Cell should not be pub? at least not its internals
+pub use cell::{Cell, CellType, CellTypeRef}; // note: Cell should not be pub? at least not its internals
+pub use tile::{Tile, SIZE};
 
-use hex2d::{Direction, Coordinate};
+use hex2d::{Coordinate, Direction};
 
 pub struct World {
     cells: Tile,
@@ -55,7 +52,7 @@ impl World {
     pub fn new() -> World {
         World {
             cells: Tile::new(),
-            types: CellTypes::new()
+            types: CellTypes::new(),
         }
     }
 
@@ -100,7 +97,7 @@ impl World {
         self.cells.get_cell(pos)
     }
 
-    pub fn get_cell_types(&self, buf: &mut[u8]) {
+    pub fn get_cell_types(&self, buf: &mut [u8]) {
         let mut idx = 0;
         let pos = Coordinate::new(0, 0);
         let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
@@ -114,7 +111,6 @@ impl World {
         self.cells.iter_cells()
     }
 }
-
 
 // use rand::Rng;
 // use rand_pcg::Pcg32;

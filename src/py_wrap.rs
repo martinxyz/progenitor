@@ -5,22 +5,21 @@ use pyo3::prelude::{Py, PyModule, PyResult, Python};
 // use pyo3::prelude::*;
 // use pyo3::wrap_pyfunction;
 
-
 use pyo3::prelude::*;
 // use pyo3::types::{
 //     PyBytes
 // };
 use ndarray::prelude::*;
-use numpy::{PyArray2, PyArray1, ToPyArray, IntoPyArray};
 use numpy::convert;
+use numpy::{IntoPyArray, PyArray1, PyArray2, ToPyArray};
 
 use pyo3::buffer::PyBuffer;
 use pyo3::exceptions;
 // use ndarray::{self, array, };
 // use pyo3::class::PyBufferProtocol;
 // use pyo3::wrap_pyfunction;
-use crate::tile;
 use crate::cell;
+use crate::tile;
 // use cell::Cell;
 // use hex2d::{Coordinate, Direction};
 
@@ -47,10 +46,13 @@ impl World {
     fn get_particles(&self, py: Python, _x: i32, _y: i32, _w: i32, _h: i32) -> Py<PyArray1<bool>> {
         // data: Array::from_elem((N, N), init)
         // use Cell::{Border, Empty, Cell};
-        let arr: Array1<bool> = self.inner.cells.iter_cells()
+        let cells = &self.inner.cells;
+        cells
+            .iter_cells()
             .map(|cell| cell.get_particle())
-            .collect();
-        arr.to_pyarray(py).to_owned()
+            .collect::<Array1<_>>()
+            .to_pyarray(py)
+            .to_owned()
     }
 
     // fn test_buffer_protocol(&mut self, buf: &PyBuffer) {
@@ -67,7 +69,6 @@ impl World {
     //     // println!("Foo!");
     //     println!("Foo! Shape: {:?}", buf.len());
     // }
-
 }
 
 #[pymodule]
