@@ -1,0 +1,10 @@
+language: rust
+rust:
+    - nightly
+before_script:
+- rustup component add rustfmt
+script:
+- cargo build --verbose
+- cargo test --verbose
+- cargo fmt -- --check
+
