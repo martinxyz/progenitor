@@ -39,3 +39,6 @@ requires-dist = ["numpy~=1.17.4"]
 
 #[package.metadata.maturin.scripts]
 #get_42 = "my_project:DummyClass.get_42"
+
+[profile.bench]
+debug = true  # for better profiling

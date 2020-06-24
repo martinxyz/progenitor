@@ -1,3 +1,4 @@
+#![feature(test)]
 extern crate progenitor;
 use progenitor::{World, CellType, CellTypeRef, Cell};
 use hex2d::{Coordinate, Direction};
@@ -52,4 +53,26 @@ fn simple_growth() {
 
     w.tick(Direction::XZ);
     assert_eq!(6, count_growing_cells(&w));
+}
+
+extern crate test;
+use test::Bencher;
+
+#[bench]
+fn benchtest(b: &mut Bencher) {
+    let mut w = World::new();
+    let growing_cell = w.types.add_type(&CellType{
+        air_like: false,
+        child_type: CellTypeRef(1),  // self-pointer !!! very bad API
+        ..CellType::default()
+    });
+    let pos1 = Coordinate::new(5, 5);
+    w.set_cell(pos1, w.types.create_cell(growing_cell));
+    /*
+    let count_growing_cells = |w: &World| {
+        w.iter_cells().filter(|c| c.get_type() == growing_cell).count()
+    };
+    b.iter(|| count_growing_cells(&w));
+    */
+    b.iter(|| w.tick(Direction::YZ));
 }
