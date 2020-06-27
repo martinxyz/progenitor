@@ -1,7 +1,7 @@
 mod cell;
 pub mod coords;
 mod tile;
-pub use coords::{Direction, ToIndex};
+pub use coords::Direction;
 
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]
 mod py_wrap;
@@ -51,7 +51,7 @@ impl World {
             // 1. transactions to/from neighbours
             // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
             let prev = neighbours[tick_direction as usize];
-            let next = neighbours[(-tick_direction).to_index()];
+            let next = neighbours[-tick_direction as usize];
             let t1 = types.get_transaction(prev, *cell);
             let t2 = types.get_transaction(*cell, next);
             *cell = types.execute_transactions(t1, *cell, t2);

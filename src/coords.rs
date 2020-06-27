@@ -1,17 +1,41 @@
-/// Hex coordinate conversions
+//! Hex coordinate conversions
+//!
+//! All hexagons are "pointy topped".
+//!
+//! Conventions follow the redblobgames
+//! [hexagons](https://www.redblobgames.com/grids/hexagons/) article.
+
+/// Cube coordinates
 ///
-/// We are using "pointy topped" hexagons.
-/// For conventions see: https://www.redblobgames.com/grids/hexagons/
+/// [Cube coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-cube) are used for general hexagonal algorithms.
+///
+/// Re-exported from the [hex2d](https://crates.io/crates/hex2d) crate:
+///
+pub use hex2d::Coordinate as Cube;
 
-pub type Cube = hex2d::Coordinate<i32>;
-pub type Direction = hex2d::Direction;
+/// One of the 6 directions
+///
+/// Re-exported from the [hex2d](https://crates.io/crates/hex2d) crate:
+///
+pub use hex2d::Direction;
 
+/// Offset coordinates
+///
+/// [Offset coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-offset)
+/// are used to render a rectangular view.
+///
+/// We only support "odd-r" (as defined in the link above).
+///
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Ord, PartialOrd)]
 pub struct Offset {
     pub col: i32,
     pub row: i32,
 }
 
+/// Axial coordinates
+///
+/// We use [axial coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-axial) to iterate over [map storage](https://www.redblobgames.com/grids/hexagons/#map-storage).
+///
 #[derive(Copy, Clone, Eq, PartialEq, Hash, Debug, Ord, PartialOrd)]
 pub struct Axial {
     pub q: i32,
@@ -50,15 +74,3 @@ impl From<Offset> for Cube {
 }
 
 // impl From<Offset> for Axial {
-
-pub trait ToIndex {
-    fn to_index(&self) -> usize;
-}
-
-impl ToIndex for hex2d::Direction {
-    fn to_index(&self) -> usize {
-        // (hex2d docu specifies range [0, 6) but enforces a signed integer type)
-        // maybe this can be somehow solved in the hex2d crate instead?
-        self.to_int::<i32>() as usize
-    }
-}

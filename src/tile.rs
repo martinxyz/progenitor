@@ -5,6 +5,7 @@ use cell::Cell;
 use coords::Direction;
 
 const SIZE_LOG2: u32 = 5;
+/// Tile storage is a SIZE x SIZE parallelogram.
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 

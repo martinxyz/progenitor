@@ -1,8 +1,13 @@
+/// Reference to a registered `CellType`
+///
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CellTypeRef(pub u8); // really... pub pub? Should not expose both CellTypeRef internals and CellType.
 
+/// State of a cell
+///
+/// This includes a reference to the `CellType` and other per-hex information
+/// (e.g. counters for individual cells).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// Represents the state of a cell
 pub struct Cell {
     cell_type: CellTypeRef,
     pub value1: u8, // less pub please, representation should probably be internal
@@ -75,6 +80,9 @@ pub enum TransformTrigger {
 }
 */
 
+/// Cell update rules
+///
+/// Rules how `Cell` states interact
 #[derive(Debug, Clone)]
 pub struct CellType {
     // pub value1_spec: ValueSpec,
