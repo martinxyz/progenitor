@@ -10,7 +10,6 @@
   "author": "Martin Renold <martin@log2.ch>",
   "license": "MIT",
   "dependencies": {
-    "@svgdotjs/svg.js": "^3.0.16",
     "honeycomb-grid": "^3.1.7",
     "progenitor": "file:../pkg"
   },
