@@ -36,6 +36,7 @@ impl Cell {
     }
 }
 
+/*
 #[derive(Debug, Clone, Copy)]
 pub enum ValueTransfer {
     Set(u8),
@@ -72,10 +73,11 @@ pub enum TransformTrigger {
     Never,
     Value1Equals(u8),
 }
+*/
 
 #[derive(Debug, Clone)]
 pub struct CellType {
-    pub value1_spec: ValueSpec,
+    // pub value1_spec: ValueSpec,
     // pub transform_type: CellTypeRef,
     pub transform_at_value1: Option<u8>,
     pub transform_into: CellTypeRef,
@@ -88,11 +90,13 @@ pub struct CellType {
 impl CellType {
     pub fn default() -> CellType {
         CellType {
+            /*
             value1_spec: ValueSpec {
                 initial: 0,
                 // tick: ValueTransfer::Copy,
                 // transfer: ValueTransfer::Set(0),
             },
+            */
             transform_at_value1: None,
             transform_into: CellTypeRef(0),
             child_type: CellTypeRef(0),
@@ -215,6 +219,12 @@ impl CellTypes {
 
         // noop
         cur
+    }
+}
+
+impl Default for CellTypes {
+    fn default() -> Self {
+        CellTypes::new()
     }
 }
 

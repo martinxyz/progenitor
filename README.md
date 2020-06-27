@@ -17,6 +17,8 @@ Random builds/snapshots at https://log2.ch/progenitor/
 
 # Build and Run
 
+[![Build Status](https://travis-ci.org/martinxyz/progenitor.svg?branch=master)](https://travis-ci.org/martinxyz/progenitor)
+
 ## Rust Library
 
 Run `cargo build` and `cargo test`.

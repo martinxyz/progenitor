@@ -1,24 +1,13 @@
-// use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
-// use numpy::{IntoPyArray, PyArrayDyn};
-
-use pyo3::prelude::{Py, PyModule, PyResult, Python};
-// use pyo3::prelude::*;
 // use pyo3::wrap_pyfunction;
-
-use pyo3::prelude::*;
-// use pyo3::types::{
-//     PyBytes
-// };
-use ndarray::prelude::*;
-use numpy::convert;
-use numpy::{IntoPyArray, PyArray1, PyArray2, ToPyArray};
-
 use pyo3::buffer::PyBuffer;
-use pyo3::exceptions;
-// use ndarray::{self, array, };
-// use pyo3::class::PyBufferProtocol;
-// use pyo3::wrap_pyfunction;
-use crate::cell;
+use pyo3::prelude::*;
+// use pyo3::types::PyBytes;
+use ndarray::prelude::*;
+// use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
+// use numpy::convert;
+use numpy::{PyArray1, ToPyArray};
+// use numpy::{IntoPyArray, PyArray2, PyArrayDyn};
+
 use crate::tile;
 // use cell::Cell;
 // use hex2d::{Coordinate, Direction};

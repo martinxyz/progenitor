@@ -2,7 +2,7 @@ use crate::cell;
 use cell::Cell;
 use hex2d::{Coordinate, Direction};
 
-const SIZE_LOG2: u32 = 4;
+const SIZE_LOG2: u32 = 5;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
@@ -50,9 +50,9 @@ impl Tile {
     }
 
     fn get_index(pos: Coordinate) -> usize {
-        // cube to axial
+        // cube to axial (OPTIMIZE: for iteration we should use axial coordinates to begin with)
         let q = (pos.x as u32) % SIZE;
-        let r = (pos.z() as u32) % SIZE; // this is what I wanted, but... maybe consider wanting something else now?
+        let r = (pos.z() as u32) % SIZE;
         (r * SIZE + q) as usize
     }
 
@@ -75,7 +75,7 @@ impl Tile {
             .flatten()
     }
 
-    /// Iterate over all cells (in unspecified order), yielding the cell and its 6 neighbours
+    /// Iterate over all cells (in axial-storage order), yielding the cell and its 6 neighbours
     pub fn iter_radius_1(&self) -> NeighbourIter {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
         NeighbourIter {
@@ -90,7 +90,8 @@ impl Tile {
     where
         F: Fn(&mut Cell, NeighbourCells),
     {
-        // note: could be optimized require only a copy of the previous line
+        // OPTIMIZE: could touch less memory by only keeping a copy of the previous line
+        // OPTIMIZE: provide a cheaper method for accessing only two neighbours on the same axis
         let tile_old = self.clone();
         let iter_old_neighbours = tile_old.iter_radius_1();
         let iter_mut_center = self.data.iter_mut();
@@ -101,6 +102,12 @@ impl Tile {
 
     pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {
         self.data.iter()
+    }
+}
+
+impl Default for Tile {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -128,20 +135,14 @@ impl<'t> Iterator for NeighbourIter<'t> {
         }
 
         // axial to cube
-        let x = q;
-        let z = r;
-        let y = -z - x;
-        let center_pos = Coordinate::new(x, y);
-        let mut neighbours = [Cell::empty(); 6];
-        for i in 0..6 {
-            // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
-            // for direction in 0..6 {
-            //     let (dx, dy) = DIR2DELTA[direction];
-            //     neighbours[direction] = self.tile.get_cell(x + dx, y + dy);
-            // }
-            let pos = center_pos + Direction::from_int(i as i32);
-            neighbours[i] = self.tile.get_cell(pos);
-        }
+        let center_pos = Coordinate { x: q, y: -r - q };
+
+        // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
+        let neigh = |idx| {
+            let pos = center_pos + Direction::from_int(idx);
+            self.tile.get_cell(pos)
+        };
+        let neighbours = [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)];
         let center = self.tile.get_cell(center_pos);
         Some((center, neighbours))
     }
