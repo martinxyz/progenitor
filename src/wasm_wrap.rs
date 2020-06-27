@@ -1,4 +1,4 @@
-use crate::tile::offset_to_cube;
+use crate::coords;
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
 use js_sys::Uint8Array;
@@ -47,9 +47,9 @@ impl World {
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
-        let coord = offset_to_cube(col, row);
+        let pos = coords::Offset { col, row };
         self.inner
-            .set_cell(coord, self.inner.types.create_cell(CellTypeRef(ct)));
+            .set_cell(pos.into(), self.inner.types.create_cell(CellTypeRef(ct)));
     }
 
     pub fn tick(&mut self, direction: i32) {

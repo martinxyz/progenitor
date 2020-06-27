@@ -10,7 +10,6 @@ use numpy::{PyArray1, ToPyArray};
 
 use crate::tile;
 // use cell::Cell;
-// use hex2d::{Coordinate, Direction};
 
 #[pyclass]
 pub(crate) struct World {

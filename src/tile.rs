@@ -1,19 +1,12 @@
 use crate::cell;
+use crate::coords;
+
 use cell::Cell;
-use hex2d::{Coordinate, Direction};
+use coords::Direction;
 
 const SIZE_LOG2: u32 = 5;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
-
-// This doesn't exist in hex2d?! Or I didn't find it?
-pub fn offset_to_cube(col: i32, row: i32) -> Coordinate {
-    // taken from redblob - XXX this may need unit-tests (does it work with with negative pos?) if I'm going to keep this
-    let x = col - (row - (row & 1)) / 2;
-    let z = row;
-    let y = -x - z;
-    Coordinate::new(x, y)
-}
 
 #[derive(Clone)]
 pub struct Tile {
@@ -49,29 +42,30 @@ impl Tile {
         }
     }
 
-    fn get_index(pos: Coordinate) -> usize {
+    // XXX this should take coords::Axial, etc.
+    fn get_index(pos: coords::Cube) -> usize {
         // cube to axial (OPTIMIZE: for iteration we should use axial coordinates to begin with)
         let q = (pos.x as u32) % SIZE;
         let r = (pos.z() as u32) % SIZE;
         (r * SIZE + q) as usize
     }
 
-    pub fn set_cell(&mut self, pos: Coordinate, cell: Cell) {
+    pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {
         self.data[Self::get_index(pos)] = cell;
     }
 
-    pub fn get_cell(&self, pos: Coordinate) -> Cell {
+    pub fn get_cell(&self, pos: coords::Cube) -> Cell {
         self.data[Self::get_index(pos)]
     }
 
     /// Iterator over a rectangle in offset coordinates.
     pub fn iterate_rectangle(
-        pos: Coordinate,
+        pos: coords::Cube,
         width: i32,
         height: i32,
-    ) -> impl Iterator<Item = Coordinate> {
+    ) -> impl Iterator<Item = coords::Cube> {
         (0..height)
-            .map(move |row| (0..width).map(move |col| pos + offset_to_cube(col, row)))
+            .map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
             .flatten()
     }
 
@@ -135,7 +129,7 @@ impl<'t> Iterator for NeighbourIter<'t> {
         }
 
         // axial to cube
-        let center_pos = Coordinate { x: q, y: -r - q };
+        let center_pos = coords::Cube { x: q, y: -r - q };
 
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {

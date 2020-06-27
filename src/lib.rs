@@ -1,5 +1,7 @@
 mod cell;
+pub mod coords;
 mod tile;
+pub use coords::{Direction, ToIndex};
 
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]
 mod py_wrap;
@@ -10,23 +12,10 @@ use cell::CellTypes;
 pub use cell::{Cell, CellType, CellTypeRef}; // note: Cell should not be pub? at least not its internals
 pub use tile::{Tile, SIZE};
 
-use hex2d::{Coordinate, Direction};
-
 pub struct World {
     cells: Tile,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
-}
-
-trait ToIndex {
-    fn to_index(&self) -> usize;
-}
-impl ToIndex for hex2d::Direction {
-    fn to_index(&self) -> usize {
-        // (hex2d docu specifies range [0, 6) - but a signed int type is enforced)
-        // maybe this can be somehow solved in the hex2d crate instead?
-        self.to_int::<i32>() as usize
-    }
 }
 
 /* maybe?
@@ -89,16 +78,16 @@ impl World {
         // }
     }
 
-    pub fn set_cell(&mut self, pos: Coordinate, cell: Cell) {
+    pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {
         self.cells.set_cell(pos, cell);
     }
 
-    pub fn get_cell(&self, pos: Coordinate) -> Cell {
+    pub fn get_cell(&self, pos: coords::Cube) -> Cell {
         self.cells.get_cell(pos)
     }
 
     pub fn get_cell_types(&self, buf: &mut [u8]) {
-        let pos = Coordinate::new(0, 0);
+        let pos = coords::Cube::new(0, 0);
         let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
         for (idx, coord) in it.enumerate() {
             buf[idx] = self.get_cell(coord).get_type().0;
