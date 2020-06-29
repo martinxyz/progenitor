@@ -7,11 +7,11 @@ This project is:
 * an open-ended playground for some ideas
 * a mess while I'm figuring out Rust
 
-Named after [progenitor cells](https://en.wikipedia.org/wiki/Progenitor_cell).
-
 This repo is Rust library with bindings for Python ([PyO3](https://pyo3.rs)) and Typescript ([wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/)).
 
 Build snapshots/demos: [log2.ch/progenitor](https://log2.ch/progenitor/)
+
+Named after [progenitor cells](https://en.wikipedia.org/wiki/Progenitor_cell).
 
 ## Build and Run
 

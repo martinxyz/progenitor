@@ -87,7 +87,7 @@ impl World {
     }
 
     pub fn get_cell_types(&self, buf: &mut [u8]) {
-        let pos = coords::Cube::new(0, 0);
+        let pos = coords::Cube { x: 0, y: 0 };
         let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
         for (idx, coord) in it.enumerate() {
             buf[idx] = self.get_cell(coord).get_type().0;

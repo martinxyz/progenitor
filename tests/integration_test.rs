@@ -6,7 +6,7 @@ use progenitor::{Cell, CellType, CellTypeRef, World};
 #[test]
 fn initialization_should_be_inert() {
     let mut w = World::new();
-    let pos = Cube::new(5, 5);
+    let pos = Cube { x: 5, y: 5 };
     assert_eq!(w.get_cell(pos), Cell::empty());
     w.tick(Direction::YZ);
     assert_eq!(w.get_cell(pos), Cell::empty());
@@ -21,8 +21,8 @@ fn simple_self_transformation() {
         ..CellType::default()
     });
     let persistent_cell = w.types.add_type(&CellType::default());
-    let pos1 = Cube::new(5, 5);
-    let pos2 = Cube::new(5, 6);
+    let pos1 = Cube { x: 5, y: 5 };
+    let pos2 = Cube { x: 5, y: 6 };
     w.set_cell(pos1, w.types.create_cell(dying_cell));
     w.set_cell(pos2, w.types.create_cell(persistent_cell));
     assert_eq!(w.get_cell(pos1).get_type(), dying_cell);
@@ -40,7 +40,7 @@ fn simple_growth() {
         child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     });
-    let pos1 = Cube::new(5, 5);
+    let pos1 = Cube { x: 5, y: 5 };
     w.set_cell(pos1, w.types.create_cell(growing_cell));
     let count_growing_cells = |w: &World| {
         w.iter_cells()
@@ -68,7 +68,7 @@ fn benchtest(b: &mut Bencher) {
         child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     });
-    let pos1 = Cube::new(5, 5);
+    let pos1 = Cube { x: 5, y: 5 };
     w.set_cell(pos1, w.types.create_cell(growing_cell));
     /*
     let count_growing_cells = |w: &World| {

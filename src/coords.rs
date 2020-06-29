@@ -61,15 +61,15 @@ impl From<Offset> for Cube {
     ///
     /// ```
     /// use progenitor::coords::{Cube, Offset};
-    /// let pos: Cube = Offset{col: -1, row: -1}.into();
-    /// assert_eq!(pos, Cube{x: 0, y: 1});
+    /// let pos: Cube = Offset { col: -1, row: -1 }.into();
+    /// assert_eq!(pos, Cube { x: 0, y: 1 });
     /// ```
     fn from(p: Offset) -> Cube {
         // taken from redblob
         let x = p.col - (p.row - (p.row & 1)) / 2;
         let z = p.row;
         let y = -x - z;
-        Cube::new(x, y)
+        Cube { x, y }
     }
 }
 
