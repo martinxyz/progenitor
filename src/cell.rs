@@ -1,18 +1,16 @@
-/// Reference to a registered `CellType`
-///
+use std::ops::{Index, IndexMut};
+
+/// Reference to a `CellType`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CellTypeRef(pub u8); // really... pub pub? Should not expose both CellTypeRef internals and CellType.
+pub struct CellTypeRef(pub u8);
 
 /// State of a cell
-///
-/// This includes a reference to the `CellType` and other per-hex information
-/// (e.g. counters for individual cells).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Cell {
-    cell_type: CellTypeRef,
+    pub cell_type: CellTypeRef,
     pub value1: u8, // less pub please, representation should probably be internal
     pub value2: u8,
-    particle: bool,
+    pub particle: bool,
 }
 
 impl Cell {
@@ -23,21 +21,6 @@ impl Cell {
             value2: 0,
             particle: false,
         }
-    }
-
-    pub fn get_particle(&self) -> bool {
-        self.particle
-    }
-    pub fn set_particle(&self, state: bool) -> Self {
-        Self {
-            particle: state,
-            ..*self
-        }
-    }
-
-    // hm... ugly do-nothing getter, just to have a stable public API? really?
-    pub fn get_type(&self) -> CellTypeRef {
-        self.cell_type
     }
 }
 
@@ -83,10 +66,10 @@ pub enum TransformTrigger {
 /// Cell update rules
 ///
 /// Rules how `Cell` states interact
-#[derive(Debug, Clone)]
+// note: "Copy" required for array initialization
+#[derive(Debug, Clone, Copy)]
 pub struct CellType {
     // pub value1_spec: ValueSpec,
-    // pub transform_type: CellTypeRef,
     pub transform_at_value1: Option<u8>,
     pub transform_into: CellTypeRef,
     pub child_type: CellTypeRef,
@@ -115,35 +98,26 @@ impl CellType {
     }
 }
 
-/*
-impl CellType {
-// problem... this one should be in the global list of cell types, not here,
-// so it can reference itself by index.
-}
-*/
+pub const MAX_CELL_TYPES: usize = 256;
+pub struct CellTypes(Box<[CellType; MAX_CELL_TYPES]>);
 
-pub struct CellTypes {
-    // const MAX_CELL_TYPES: usize = 127;  // maybe use fixe-size array instead of Vec?
-    // maybe add a name string? (separated from the CellType memory used for calculations)
-    types: Vec<CellType>,
+impl Index<CellTypeRef> for CellTypes {
+    type Output = CellType;
+    fn index(&self, index: CellTypeRef) -> &CellType {
+        &self.0[index.0 as usize]
+    }
+}
+
+impl IndexMut<CellTypeRef> for CellTypes {
+    fn index_mut(&mut self, index: CellTypeRef) -> &mut CellType {
+        &mut self.0[index.0 as usize]
+    }
 }
 
 impl CellTypes {
-    pub fn new() -> CellTypes {
+    pub fn new() -> Self {
         let empty_type = CellType::default();
-        // let border = CellType {  ...
-        CellTypes {
-            types: vec![empty_type],
-        }
-    }
-
-    // not needed?
-    pub fn type_from_cell(&self, cell: Cell) -> &CellType {
-        &self.types[cell.cell_type.0 as usize]
-    }
-
-    pub fn type_from_typeref(&self, tr: CellTypeRef) -> &CellType {
-        &self.types[tr.0 as usize]
+        CellTypes(Box::new([empty_type; 256]))
     }
 
     pub fn create_cell(&self, cell_type: CellTypeRef) -> Cell {
@@ -154,18 +128,9 @@ impl CellTypes {
         // ...more fancy initialization might be configurable in CellType in the future.
     }
 
-    pub fn add_type(&mut self, cell_type: &CellType) -> CellTypeRef {
-        if self.types.len() > 255 {
-            panic!("currently at most 256 cell types are supported")
-        }
-        let cell_type_ref = CellTypeRef(self.types.len() as u8);
-        self.types.push(cell_type.clone());
-        cell_type_ref
-    }
-
     pub fn get_transaction(&self, cur: Cell, next: Cell) -> Transaction {
-        let cur_ct = self.type_from_cell(cur);
-        let next_ct = self.type_from_cell(next);
+        let cur_ct = self[cur.cell_type];
+        let next_ct = self[next.cell_type];
         // if (probability(cur_ct.skip_transaction_p)) { return {}; }
 
         if next_ct.air_like {

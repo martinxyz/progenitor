@@ -34,16 +34,18 @@ impl World {
     }
 
     pub fn make_some_cells(&mut self) {
-        self.inner.types.add_type(&CellType {
+        let c1 = CellTypeRef(1);
+        let c2 = CellTypeRef(2);
+        self.inner.types[c1] = CellType {
             air_like: false,
-            child_type: CellTypeRef(2), // numeric pointer!!! very bad as an API
+            child_type: c2,
             ..CellType::default()
-        });
-        self.inner.types.add_type(&CellType {
+        };
+        self.inner.types[c2] = CellType {
             air_like: false,
-            child_type: CellTypeRef(1), // numeric pointer!!! very bad as an API
+            child_type: c1,
             ..CellType::default()
-        });
+        };
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {

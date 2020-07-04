@@ -15,36 +15,40 @@ fn initialization_should_be_inert() {
 #[test]
 fn simple_self_transformation() {
     let mut w = World::new();
-    let dying_cell = w.types.add_type(&CellType {
+    let empty_cell = CellTypeRef(0);
+    let dying_cell = CellTypeRef(1);
+    let persistent_cell = CellTypeRef(2);
+
+    w.types[dying_cell] = CellType {
         transform_at_value1: Some(0),
-        transform_into: CellTypeRef(0),
+        transform_into: empty_cell,
         ..CellType::default()
-    });
-    let persistent_cell = w.types.add_type(&CellType::default());
+    };
     let pos1 = Cube { x: 5, y: 5 };
     let pos2 = Cube { x: 5, y: 6 };
     w.set_cell(pos1, w.types.create_cell(dying_cell));
     w.set_cell(pos2, w.types.create_cell(persistent_cell));
-    assert_eq!(w.get_cell(pos1).get_type(), dying_cell);
-    assert_eq!(w.get_cell(pos2).get_type(), persistent_cell);
+    assert_eq!(w.get_cell(pos1).cell_type, dying_cell);
+    assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
     w.tick(Direction::YZ);
     assert_eq!(w.get_cell(pos1), Cell::empty());
-    assert_eq!(w.get_cell(pos2).get_type(), persistent_cell);
+    assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
 }
 
 #[test]
 fn simple_growth() {
     let mut w = World::new();
-    let growing_cell = w.types.add_type(&CellType {
+    let growing_cell: CellTypeRef = CellTypeRef(1);
+    w.types[growing_cell] = CellType {
         air_like: false,
-        child_type: CellTypeRef(1), // self-pointer !!! very bad API
+        child_type: growing_cell,
         ..CellType::default()
-    });
+    };
     let pos1 = Cube { x: 5, y: 5 };
     w.set_cell(pos1, w.types.create_cell(growing_cell));
     let count_growing_cells = |w: &World| {
         w.iter_cells()
-            .filter(|c| c.get_type() == growing_cell)
+            .filter(|c| c.cell_type == growing_cell)
             .count()
     };
     assert_eq!(1, count_growing_cells(&w));
@@ -63,11 +67,12 @@ use test::Bencher;
 #[bench]
 fn benchtest(b: &mut Bencher) {
     let mut w = World::new();
-    let growing_cell = w.types.add_type(&CellType {
+    let growing_cell = CellTypeRef(0);
+    w.types[growing_cell] = CellType {
         air_like: false,
         child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
-    });
+    };
     let pos1 = Cube { x: 5, y: 5 };
     w.set_cell(pos1, w.types.create_cell(growing_cell));
     /*

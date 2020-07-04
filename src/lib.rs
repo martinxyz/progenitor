@@ -57,7 +57,7 @@ impl World {
             *cell = types.execute_transactions(t1, *cell, t2);
 
             // 2. self-transformation (independent from neighbours)
-            let cell_type = types.type_from_cell(*cell);
+            let cell_type = &types[cell.cell_type];
             if let Some(value1) = cell_type.transform_at_value1 {
                 if cell.value1 == value1 {
                     *cell = types.create_cell(cell_type.transform_into);
@@ -90,7 +90,7 @@ impl World {
         let pos = coords::Cube { x: 0, y: 0 };
         let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
         for (idx, coord) in it.enumerate() {
-            buf[idx] = self.get_cell(coord).get_type().0;
+            buf[idx] = self.get_cell(coord).cell_type.0;
         }
     }
 
