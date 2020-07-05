@@ -4,7 +4,8 @@ import { defineGrid, extendHex, Hex } from 'honeycomb-grid'
 let gridSize = get_size()
 
 const w = new World()
-w.make_some_cells()
+// w.set_rules_demo1()
+w.set_rules_demo2()
 // w.set_cell(0, 0, 1)
 // for (let i = 0; i < 3; i++) w.tick()
 // w.set_cell(4, 4, 1)

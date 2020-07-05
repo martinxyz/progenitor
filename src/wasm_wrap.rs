@@ -33,17 +33,46 @@ impl World {
         }
     }
 
-    pub fn make_some_cells(&mut self) {
+    pub fn set_rules_demo1(&mut self) {
         let c1 = CellTypeRef(1);
         let c2 = CellTypeRef(2);
         self.inner.types[c1] = CellType {
-            air_like: false,
+            priority: 1,
+            max_children: 255,
             child_type: c2,
             ..CellType::default()
         };
         self.inner.types[c2] = CellType {
-            air_like: false,
+            priority: 1,
+            max_children: 255,
             child_type: c1,
+            ..CellType::default()
+        };
+    }
+
+    pub fn set_rules_demo2(&mut self) {
+        let types = &mut self.inner.types;
+        // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
+        // of tumorous neurosphere growth: Roles of developmental maturity and cell death"
+
+        let empty = CellTypeRef(0);
+        types[empty] = CellType {
+            priority: -1, // cells with priority 0 may replace "empty" cells with their children
+            ..CellType::default()
+        };
+
+        let stem_cell = CellTypeRef(1);
+        let progenitor_cell = CellTypeRef(2);
+        let differentiated_cell = CellTypeRef(3);
+        types[stem_cell] = CellType {
+            max_children: 255,
+            child_type: progenitor_cell,
+            // child_condition: always,
+            ..CellType::default()
+        };
+        types[progenitor_cell] = CellType {
+            max_children: 7,
+            child_type: differentiated_cell,
             ..CellType::default()
         };
     }

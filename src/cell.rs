@@ -72,10 +72,11 @@ pub struct CellType {
     // pub value1_spec: ValueSpec,
     pub transform_at_value1: Option<u8>,
     pub transform_into: CellTypeRef,
+    pub max_children: u8,
     pub child_type: CellTypeRef,
     pub skip_transaction_p: u8, // probability (0 = never, 128 = always)
     pub child_at_parent_location_p: u8, // probability (0 = never, 128 = always)
-    pub air_like: bool,
+    pub priority: i8,           // 0 = "default" (replacing a cell requires higher priority)
 }
 
 impl CellType {
@@ -90,10 +91,11 @@ impl CellType {
             */
             transform_at_value1: None,
             transform_into: CellTypeRef(0),
+            max_children: 0,
             child_type: CellTypeRef(0),
             skip_transaction_p: 0,
             child_at_parent_location_p: 0,
-            air_like: true,
+            priority: 0,
         }
     }
 }
@@ -123,7 +125,9 @@ impl CellTypes {
     pub fn create_cell(&self, cell_type: CellTypeRef) -> Cell {
         Cell {
             cell_type,
-            ..Cell::empty()
+            value1: 0,
+            value2: 0,
+            particle: false,
         }
         // ...more fancy initialization might be configurable in CellType in the future.
     }
@@ -133,21 +137,25 @@ impl CellTypes {
         let next_ct = self[next.cell_type];
         // if (probability(cur_ct.skip_transaction_p)) { return {}; }
 
-        if next_ct.air_like {
-            // let child_ct = self.type_from_typeref(cur_ct.child_type);
-            if !cur_ct.air_like {
-                println!("cur: {:?}", cur);
-                println!("next: {:?}", next);
-                // todo: value1 transfer, max child cound, etc.
-                let res = Transaction {
-                    split: SplitTransaction::Split {
-                        child1: cur,
-                        child2: self.create_cell(cur_ct.child_type),
+        if cur_ct.priority > next_ct.priority && cur.value1 < cur_ct.max_children {
+            // let child_ct = self[cur_ct.child_type];
+            // println!("cur: {:?}", cur);
+            // println!("next: {:?}", next);
+            // todo: value1 transfer, max child cound, etc.
+            let res = Transaction {
+                split: SplitTransaction::Split {
+                    cur_cell: Cell {
+                        value1: cur.value1 + 1,
+                        ..cur
                     },
-                };
-                println!("res: {:?}", res);
-                return res;
-            }
+                    cur_priority: cur_ct.priority,
+                    next_cell: self.create_cell(cur_ct.child_type),
+                    // for the purpose of creation, parent's priority counts, not the child's priority
+                    next_priority: cur_ct.priority,
+                },
+            };
+            // println!("res: {:?}", res);
+            return res;
         }
         // if (next.cell_type == 0 &&
         //     cur.cell_type != 0 &&
@@ -175,22 +183,40 @@ impl CellTypes {
     pub fn execute_transactions(
         &self,
         prev_to_cur: Transaction,
-        cur: Cell,
+        mut cur: Cell,
         cur_to_next: Transaction,
     ) -> Cell {
-        // prev creates child2
-        if let SplitTransaction::Split { child1: _, child2 } = prev_to_cur.split {
-            assert_eq!(cur_to_next.split, SplitTransaction::None);
-            return child2;
+        // prev_to_cur: prev creates its "next_cell" here
+        if let SplitTransaction::Split {
+            cur_cell: _,
+            cur_priority: _,
+            next_cell: cell,
+            next_priority: cell_priority,
+        } = prev_to_cur.split
+        {
+            // if this wasn't true, the SplitTransaction would not have been created
+            assert!(cell_priority > self[cur.cell_type].priority);
+            cur = cell;
         }
 
-        // cur creates child1
-        if let SplitTransaction::Split { child1, child2: _ } = prev_to_cur.split {
-            assert_eq!(cur_to_next.split, SplitTransaction::None);
-            return child1;
+        // cur_to_next: cur creates its "cur_cell"
+        if let SplitTransaction::Split {
+            cur_cell: cell,
+            cur_priority: cell_priority,
+            next_cell: _,
+            next_priority: _,
+        } = cur_to_next.split
+        {
+            if cell_priority > self[cur.cell_type].priority {
+                cur = cell;
+            } else {
+                // "cell" lost arbitration and is destroyed (can only happen
+                // when using the SplitTransaction to move or self-tranform;
+                // cannot happen when using the SplitTransaction just to grow)
+                // ...I think? Those rules are probably not good yet.
+            }
         }
 
-        // noop
         cur
     }
 }
@@ -218,5 +244,10 @@ pub struct Transaction {
 #[derive(Debug, PartialEq)]
 enum SplitTransaction {
     None,
-    Split { child1: Cell, child2: Cell },
+    Split {
+        cur_cell: Cell,
+        cur_priority: i8,
+        next_cell: Cell,
+        next_priority: i8,
+    },
 }

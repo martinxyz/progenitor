@@ -40,8 +40,9 @@ fn simple_growth() {
     let mut w = World::new();
     let growing_cell: CellTypeRef = CellTypeRef(1);
     w.types[growing_cell] = CellType {
-        air_like: false,
+        priority: 1,
         child_type: growing_cell,
+        max_children: 255,
         ..CellType::default()
     };
     let pos1 = Cube { x: 5, y: 5 };
@@ -69,7 +70,7 @@ fn benchtest(b: &mut Bencher) {
     let mut w = World::new();
     let growing_cell = CellTypeRef(0);
     w.types[growing_cell] = CellType {
-        air_like: false,
+        priority: 1,
         child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     };
