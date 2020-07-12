@@ -81,9 +81,12 @@ impl Tile {
     }
 
     /// For convolution-like operations
-    pub fn mutate_with_radius_1<F>(&mut self, f: F)
+    pub fn mutate_with_radius_1<F>(&mut self, mut f: F)
     where
-        F: Fn(&mut Cell, NeighbourCells),
+        // note to self: I think FnMut instead of Fn implies that we should
+        // iterate in well-defined order...? For reproducible rng seed at least,
+        // order should not be thought of an unstable implementation detail.
+        F: FnMut(&mut Cell, NeighbourCells),
     {
         // OPTIMIZE: could touch less memory by only keeping a copy of the previous line
         // OPTIMIZE: provide a cheaper method for accessing only two neighbours on the same axis

@@ -1,3 +1,5 @@
+use rand::SeedableRng;
+use rand_pcg::Pcg32;
 mod cell;
 pub mod coords;
 mod tile;
@@ -16,6 +18,7 @@ pub struct World {
     cells: Tile,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
+    rng: Pcg32,
 }
 
 /* maybe?
@@ -42,18 +45,20 @@ impl World {
         World {
             cells: Tile::new(),
             types: CellTypes::new(),
+            rng: Pcg32::seed_from_u64(0),
         }
     }
 
     pub fn tick(&mut self, tick_direction: Direction) {
         let types = &self.types;
+        let mut rng = &mut self.rng;
         self.cells.mutate_with_radius_1(|cell, neighbours| {
             // 1. transactions to/from neighbours
             // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
             let prev = neighbours[tick_direction as usize];
             let next = neighbours[-tick_direction as usize];
-            let t1 = types.get_transaction(prev, *cell);
-            let t2 = types.get_transaction(*cell, next);
+            let t1 = types.get_transaction(&mut rng, prev, *cell);
+            let t2 = types.get_transaction(&mut rng, *cell, next);
             *cell = types.execute_transactions(t1, *cell, t2);
 
             // 2. self-transformation (independent from neighbours)
@@ -104,18 +109,6 @@ impl Default for World {
         Self::new()
     }
 }
-
-// use rand::Rng;
-// use rand_pcg::Pcg32;
-// #[pyfunction]
-// fn test_rng(seed: u64) -> PyResult<i32> {
-// use rand::prelude::*;
-//     // let mut rng = thread_rng();
-//     let mut rng = Pcg32::seed_from_u64(seed);
-//     println!("Random bool: {:?}", rng.gen());
-//     let x = rng.gen_range(6, 100);
-//     Ok(x)
-// }
 
 // #[pymodule]
 // fn progenitor(_py: Python, m: &PyModule) -> PyResult<()> {
