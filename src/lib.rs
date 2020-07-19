@@ -1,4 +1,5 @@
 use rand::SeedableRng;
+use rand::seq::SliceRandom;
 use rand_pcg::Pcg32;
 mod cell;
 pub mod coords;
@@ -49,38 +50,45 @@ impl World {
         }
     }
 
-    pub fn tick(&mut self, tick_direction: Direction) {
+    pub fn tick(&mut self) {
         let types = &self.types;
         let mut rng = &mut self.rng;
-        self.cells.mutate_with_radius_1(|cell, neighbours| {
-            // 1. transactions to/from neighbours
-            // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
-            let prev = neighbours[tick_direction as usize];
-            let next = neighbours[-tick_direction as usize];
-            let t1 = types.get_transaction(&mut rng, prev, *cell);
-            let t2 = types.get_transaction(&mut rng, *cell, next);
-            *cell = types.execute_transactions(t1, *cell, t2);
-
-            // 2. self-transformation (independent from neighbours)
-            let cell_type = &types[cell.cell_type];
-            if let Some(value1) = cell_type.transform_at_value1 {
-                if cell.value1 == value1 {
-                    *cell = types.create_cell(cell_type.transform_into);
-                }
-            }
+        self.cells.mutate_with_radius_1(|cell, _neighbours| {
+            *cell = types.prepare_transaction(&mut rng, *cell);
         });
-        // for y in 0..SIZE as i32 {
-        //     for x in 0..SIZE as i32 {
-        //         // should probably not put all the logic in here
-        //         let cell = self.cells.get_cell(x, y);
-        //         let cell_type = self.types.type_from_cell(&cell);
-        //         if let Some(value1) = cell_type.transform_at_value1 {
-        //             if cell.value1 == value1 {
-        //                 self.cells.set_cell(x, y, self.types.create_cell(cell_type.transform_into))
-        //             }
-        //         }
-        //     }
-        // }
+
+        let mut directions: Vec<Direction> = Direction::all().to_vec();
+        directions.shuffle(&mut rng);
+
+        for dir in directions {
+            self.cells.mutate_with_radius_1(|cell, neighbours| {
+                // 1. transactions to/from neighbours
+                // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
+                let prev = neighbours[dir as usize];
+                let next = neighbours[-dir as usize];
+                let t1 = types.get_transaction(prev, *cell, dir);
+                let t2 = types.get_transaction(*cell, next, dir);
+                *cell = types.execute_transactions(t1, *cell, t2);
+
+                // 2. self-transformation (independent from neighbours)
+                let cell_type = &types[cell.cell_type];
+                if let Some(value1) = cell_type.transform_at_value1 {
+                    if cell.value1 == value1 {
+                        *cell = types.create_cell(cell_type.transform_into);
+                    }
+                }
+            });
+            // should probably not put all the logic in here
+            // if let Some(value1) = cell_type.transform_at_value1 {
+            //     if cell.value1 == value1 {
+            //         self.cells.set_cell(x, y, self.types.create_cell(cell_type.transform_into))
+            //     }
+            // }
+        }
+
+        self.cells.mutate_with_radius_1(|cell, _neighbours| {
+            *cell = types.clear_transaction(*cell);
+        });
     }
 
     pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {

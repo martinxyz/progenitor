@@ -77,8 +77,9 @@ function delay(ms: number) {
       w.set_cell(gridSize/2+3, gridSize/2-0, 1)
       w.set_cell(gridSize/2+1, gridSize/2-8, 1)
       w.set_cell(gridSize/2+3, gridSize/2-2, 1)
+    } else {
+      w.tick()
     }
-    w.tick(i)
     // w.set_cell(i, 1, 1)
     data = w.update_data()
     ctx.fillStyle = '#000F'
@@ -88,6 +89,6 @@ function delay(ms: number) {
       height: gridSize,
       onCreate: renderHex
     })
-    await delay(50)
+    await delay(500)
   }
 })()

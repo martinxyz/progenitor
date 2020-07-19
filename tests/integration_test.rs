@@ -1,6 +1,6 @@
 #![feature(test)]
 extern crate progenitor;
-use progenitor::coords::{Cube, Direction};
+use progenitor::coords::Cube;
 use progenitor::{Cell, CellType, CellTypeRef, World};
 
 #[test]
@@ -8,7 +8,7 @@ fn initialization_should_be_inert() {
     let mut w = World::new();
     let pos = Cube { x: 5, y: 5 };
     assert_eq!(w.get_cell(pos), Cell::empty());
-    w.tick(Direction::YZ);
+    w.tick();
     assert_eq!(w.get_cell(pos), Cell::empty());
 }
 
@@ -30,7 +30,7 @@ fn simple_self_transformation() {
     w.set_cell(pos2, w.types.create_cell(persistent_cell));
     assert_eq!(w.get_cell(pos1).cell_type, dying_cell);
     assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
-    w.tick(Direction::YZ);
+    w.tick();
     assert_eq!(w.get_cell(pos1), Cell::empty());
     assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
 }
@@ -53,13 +53,10 @@ fn simple_growth() {
             .count()
     };
     assert_eq!(1, count_growing_cells(&w));
-    w.tick(Direction::YZ);
-    assert_eq!(2, count_growing_cells(&w));
-    w.tick(Direction::YZ);
-    assert_eq!(3, count_growing_cells(&w));
-
-    w.tick(Direction::XZ);
-    assert_eq!(6, count_growing_cells(&w));
+    w.tick();
+    assert_eq!(1 + 6, count_growing_cells(&w));
+    w.tick();
+    assert_eq!(1 + 6 + 12, count_growing_cells(&w));
 }
 
 extern crate test;
@@ -82,5 +79,5 @@ fn benchtest(b: &mut Bencher) {
     };
     b.iter(|| count_growing_cells(&w));
     */
-    b.iter(|| w.tick(Direction::YZ));
+    b.iter(|| w.tick());
 }

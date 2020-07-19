@@ -1,3 +1,4 @@
+use crate::coords::{Direction, DirectionSet};
 use rand::Rng;
 use std::ops::{Index, IndexMut};
 
@@ -12,6 +13,13 @@ pub struct Cell {
     pub value1: u8, // less pub please, representation should probably be internal
     pub value2: u8,
     pub particle: bool,
+    temp: CellTemp,
+}
+
+// Temporary state of cell during transaction resolution
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct CellTemp {
+    pub transact: DirectionSet,
 }
 
 impl Cell {
@@ -21,6 +29,7 @@ impl Cell {
             value1: 0,
             value2: 0,
             particle: false,
+            temp: Default::default(),
         }
     }
 }
@@ -133,35 +142,62 @@ impl CellTypes {
             value1: 0,
             value2: 0,
             particle: false,
+            temp: CellTemp {
+                // New cells created during a transaction shall not create a
+                // transactions themselves during the same tick().
+                transact: DirectionSet::none()
+            }
         }
         // ...more fancy initialization might be configurable in CellType in the future.
     }
 
-    pub fn get_transaction(&self, rng: &mut impl Rng, cur: Cell, next: Cell) -> Transaction {
+    pub fn prepare_transaction(&self, _rng: &mut impl Rng, cur: Cell) -> Cell {
+        let transact = DirectionSet::all();
+        // This should depend on the celltype, eventually, I think.
+        //
+        // allow a single random direction:
+        // let dir = Direction::from_int(rng.gen_range(0, 6));
+        // bits = 1 << rng.gen_range(0, 6);
+        //
+        // TODO: implement skip_transaction_p here
+        Cell {
+            // allow all 6 directions in the same tick():
+            temp: CellTemp { transact },
+            ..cur
+        }
+    }
+
+    pub fn clear_transaction(&self, cur: Cell) -> Cell {
+        Cell {
+            temp: Default::default(),
+            ..cur
+        }
+    }
+
+    pub fn get_transaction(&self, cur: Cell, next: Cell, dir: Direction) -> Transaction {
         let cur_ct = self[cur.cell_type];
         let next_ct = self[next.cell_type];
 
-        // if (probability(cur_ct.skip_transaction_p)) { return {}; }
-        // let x = rng.gen_range(6, 100);
-
-        if rng.gen() && cur.value1 < cur_ct.max_children && cur_ct.priority > next_ct.priority {
-            let res = Transaction {
-                // Note that a SplitTransactions should only be created if:
-                // 1. next_cell has higher priority than the cell it replaces, and
-                // 2. cur_cell does not have higher priority than the cell it replaces.
-                //
-                // Those rules ensure that, even if there is a conflict,
-                // transactions can only replace a cell if the creator of the
-                // transaction has higher priority than the cell being replaced.
-                split: SplitTransaction::Split {
-                    cur_cell: Cell {
-                        value1: cur.value1 + 1,
-                        ..cur
+        if cur.temp.transact.contains(dir) {
+            if cur.value1 < cur_ct.max_children && cur_ct.priority > next_ct.priority {
+                let res = Transaction {
+                    // Note that a SplitTransactions should only be created if:
+                    // 1. next_cell has higher priority than the cell it replaces, and
+                    // 2. cur_cell does not have higher priority than the cell it replaces.
+                    //
+                    // Those rules ensure that, even if there is a conflict,
+                    // transactions can only replace a cell if the creator of the
+                    // transaction has higher priority than the cell being replaced.
+                    split: SplitTransaction::Split {
+                        cur_cell: Cell {
+                            value1: cur.value1 + 1,
+                            ..cur
+                        },
+                        next_cell: self.create_cell(cur_ct.child_type),
                     },
-                    next_cell: self.create_cell(cur_ct.child_type),
-                },
-            };
-            return res;
+                };
+                return res;
+            }
         }
         // if (next.cell_type == 0 &&
         //     cur.cell_type != 0 &&
@@ -192,10 +228,18 @@ impl CellTypes {
         cur: Cell,
         cur_to_next: Transaction,
     ) -> Cell {
-        if let SplitTransaction::Split {cur_cell: _, next_cell} = prev_to_cur.split {
+        if let SplitTransaction::Split {
+            cur_cell: _,
+            next_cell,
+        } = prev_to_cur.split
+        {
             // note: prev_to_cur takes priority (cell priorities are checked again)
             next_cell
-        } else if let SplitTransaction::Split {cur_cell, next_cell: _} = cur_to_next.split {
+        } else if let SplitTransaction::Split {
+            cur_cell,
+            next_cell: _,
+        } = cur_to_next.split
+        {
             cur_cell
         } else {
             cur
@@ -226,8 +270,5 @@ pub struct Transaction {
 #[derive(Debug, PartialEq)]
 enum SplitTransaction {
     None,
-    Split {
-        cur_cell: Cell,
-        next_cell: Cell,
-    },
+    Split { cur_cell: Cell, next_cell: Cell },
 }

@@ -83,8 +83,8 @@ impl World {
             .set_cell(pos.into(), self.inner.types.create_cell(CellTypeRef(ct)));
     }
 
-    pub fn tick(&mut self, direction: i32) {
-        self.inner.tick(Direction::from_int(direction));
+    pub fn tick(&mut self) {
+        self.inner.tick();
     }
 
     pub fn update_data(&mut self) -> Uint8Array {
