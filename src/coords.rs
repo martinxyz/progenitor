@@ -19,7 +19,9 @@ pub use hex2d::Coordinate as Cube;
 ///
 pub use hex2d::Direction;
 
-/// A set of directions (may be empty, at most all six)
+/// A set of directions
+///
+/// It can be empty or contain at most all 6 directions.
 ///
 /// # Examples
 ///
@@ -58,9 +60,9 @@ impl DirectionSet {
             mask: 1 << (dir as u8),
         }
     }
-    pub fn matching<F>(contains: F) -> Self
+    pub fn matching<F>(mut contains: F) -> Self
     where
-        F: Fn(Direction) -> bool,
+        F: FnMut(Direction) -> bool,
     {
         let mask = (0..6)
             .into_iter()

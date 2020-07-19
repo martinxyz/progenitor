@@ -64,14 +64,18 @@ impl World {
         let stem_cell = CellTypeRef(1);
         let progenitor_cell = CellTypeRef(2);
         let differentiated_cell = CellTypeRef(3);
+        // let p = 120;
+        let p = 255;
         types[stem_cell] = CellType {
             max_children: 255,
             child_type: progenitor_cell,
             // child_condition: always,
+            skip_transaction_p: p,
             ..CellType::default()
         };
         types[progenitor_cell] = CellType {
             max_children: 7,
+            skip_transaction_p: p,
             child_type: differentiated_cell,
             ..CellType::default()
         };

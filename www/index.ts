@@ -89,6 +89,6 @@ function delay(ms: number) {
       height: gridSize,
       onCreate: renderHex
     })
-    await delay(500)
+    await delay(200)
   }
 })()

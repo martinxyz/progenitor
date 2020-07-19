@@ -1,5 +1,6 @@
 use crate::coords::{Direction, DirectionSet};
 use rand::Rng;
+use rand::seq::SliceRandom;
 use std::ops::{Index, IndexMut};
 
 /// Reference to a `CellType`
@@ -151,15 +152,18 @@ impl CellTypes {
         // ...more fancy initialization might be configurable in CellType in the future.
     }
 
-    pub fn prepare_transaction(&self, _rng: &mut impl Rng, cur: Cell) -> Cell {
-        let transact = DirectionSet::all();
-        // This should depend on the celltype, eventually, I think.
-        //
-        // allow a single random direction:
+    pub fn prepare_transaction(&self, rng: &mut impl Rng, cur: Cell) -> Cell {
+        let ct = self[cur.cell_type];
+        let transact = match ct.skip_transaction_p {
+            0 => DirectionSet::all(),
+            128 => DirectionSet::none(),
+            prob if prob < 128 => DirectionSet::matching(|_| {
+                rng.gen_range(0, 128) >= prob
+            }),
+            // Also allow a single random direction? But in a better way...
+            _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
+        };
         // let dir = Direction::from_int(rng.gen_range(0, 6));
-        // bits = 1 << rng.gen_range(0, 6);
-        //
-        // TODO: implement skip_transaction_p here
         Cell {
             // allow all 6 directions in the same tick():
             temp: CellTemp { transact },
