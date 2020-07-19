@@ -19,6 +19,73 @@ pub use hex2d::Coordinate as Cube;
 ///
 pub use hex2d::Direction;
 
+/// A set of directions (may be empty, at most all six)
+///
+/// # Examples
+///
+/// ```
+/// use progenitor::{DirectionSet, Direction};
+///
+/// let all = DirectionSet::all();
+/// assert!(all.contains(Direction::XZ));
+///
+/// let none = DirectionSet::none();
+/// assert!(!none.contains(Direction::XZ));
+///
+/// let single = DirectionSet::single(Direction::XZ);
+/// assert!(single.contains(Direction::XZ));
+/// assert!(!single.contains(Direction::XY));
+///
+/// let some = DirectionSet::matching(|d| d == Direction::XY || d == Direction::YZ);
+/// assert!(some.contains(Direction::XY));
+/// assert!(some.contains(Direction::YZ));
+/// assert!(!some.contains(Direction::XZ));
+/// ```
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+pub struct DirectionSet {
+    mask: u8,
+}
+
+impl DirectionSet {
+    pub fn none() -> Self {
+        DirectionSet { mask: 0 }
+    }
+    pub fn all() -> Self {
+        DirectionSet { mask: (1 << 6) - 1 }
+    }
+    pub fn single(dir: Direction) -> Self {
+        DirectionSet {
+            mask: 1 << (dir as u8),
+        }
+    }
+    pub fn matching<F>(contains: F) -> Self
+    where
+        F: Fn(Direction) -> bool,
+    {
+        let mask = (0..6)
+            .into_iter()
+            .filter(|i| contains(Direction::from_int(*i)))
+            .fold(0, |mask, i| mask | (1 << i));
+        DirectionSet { mask }
+    }
+    pub fn contains(&self, dir: Direction) -> bool {
+        let dir_mask = 1 << (dir as u8);
+        self.mask & dir_mask != 0
+    }
+}
+
+/* doesn't seem to work, maybe because &[Direction] is a different type from &[Direction, 2]?
+impl From<&[Direction]> for DirectionSet {
+    fn from(directions: &[Direction]) -> Self {
+        DirectionSet{
+            mask: directions.iter().fold(0, |mask, dir| {
+                mask | (1 << (*dir as u8))
+            })
+        }
+    }
+}
+*/
+
 /// Offset coordinates
 ///
 /// [Offset coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-offset)

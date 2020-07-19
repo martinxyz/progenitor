@@ -3,7 +3,7 @@ use rand_pcg::Pcg32;
 mod cell;
 pub mod coords;
 mod tile;
-pub use coords::Direction;
+pub use coords::{Direction, DirectionSet};
 
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]
 mod py_wrap;
