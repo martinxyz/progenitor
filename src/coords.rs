@@ -65,7 +65,6 @@ impl DirectionSet {
         F: FnMut(Direction) -> bool,
     {
         let mask = (0..6)
-            .into_iter()
             .filter(|i| contains(Direction::from_int(*i)))
             .fold(0, |mask, i| mask | (1 << i));
         DirectionSet { mask }

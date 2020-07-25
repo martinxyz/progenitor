@@ -1,5 +1,5 @@
-use rand::SeedableRng;
 use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use rand_pcg::Pcg32;
 mod cell;
 pub mod coords;

@@ -7,7 +7,7 @@ This project is:
 * an open-ended playground for some ideas
 * a mess while I'm figuring out Rust
 
-This repo is Rust library with bindings for Python ([PyO3](https://pyo3.rs)) and Typescript ([wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/)).
+This repo is a Rust library with bindings for Python ([PyO3](https://pyo3.rs)) and Typescript ([wasm-bindgen](https://rustwasm.github.io/docs/wasm-bindgen/)).
 
 Build snapshots/demos: [log2.ch/progenitor](https://log2.ch/progenitor/)
 
@@ -64,7 +64,6 @@ RUSTFLAGS="-C target-cpu=native" \
 This will install the Python module into the virtualenv. You can then use
 `import progenitor` from Python.
 
-Note: if you are running Python from the toplevel directory this will actually
-import the *progenitor* subdirectory, instead of the package installed into the
-virtualenv. This works because `maturin develop` also copies the compiled Rust
-extension into that directory.
+Note: if you run Python from the toplevel directory it will import the
+*progenitor* subdirectory instead of the virtualenv module. This also works
+because `maturin develop` copies the compiled extension into that directory.

@@ -1,6 +1,5 @@
 use crate::coords::{Direction, DirectionSet};
-use rand::Rng;
-use rand::seq::SliceRandom;
+use rand::{seq::SliceRandom, Rng};
 use std::ops::{Index, IndexMut};
 
 /// Reference to a `CellType`
@@ -21,6 +20,7 @@ pub struct Cell {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct CellTemp {
     pub transact: DirectionSet,
+    pub moving: bool,
 }
 
 impl Cell {
@@ -85,9 +85,9 @@ pub struct CellType {
     pub transform_into: CellTypeRef,
     pub max_children: u8,
     pub child_type: CellTypeRef,
-    pub skip_transaction_p: u8, // probability (0 = never, 128 = always)
-    pub child_at_parent_location_p: u8, // probability (0 = never, 128 = always)
-    pub priority: i8,           // 0 = "default" (replacing a cell requires higher priority)
+    pub skip_transaction_p: u8,   // probability (0 = never, 128 = always)
+    pub motion_transaction_p: u8, // probability (0 = never, 128 = always) to move the parent
+    pub priority: i8,             // 0 = "default" (replacing a cell requires higher priority)
 }
 
 impl CellType {
@@ -105,7 +105,7 @@ impl CellType {
             max_children: 0,
             child_type: CellTypeRef(0),
             skip_transaction_p: 0,
-            child_at_parent_location_p: 0,
+            motion_transaction_p: 0,
             priority: 0,
         }
     }
@@ -146,8 +146,9 @@ impl CellTypes {
             temp: CellTemp {
                 // New cells created during a transaction shall not create a
                 // transactions themselves during the same tick().
-                transact: DirectionSet::none()
-            }
+                transact: DirectionSet::none(),
+                moving: false,
+            },
         }
         // ...more fancy initialization might be configurable in CellType in the future.
     }
@@ -157,16 +158,19 @@ impl CellTypes {
         let transact = match ct.skip_transaction_p {
             0 => DirectionSet::all(),
             128 => DirectionSet::none(),
-            prob if prob < 128 => DirectionSet::matching(|_| {
-                rng.gen_range(0, 128) >= prob
-            }),
+            prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0, 128) >= prob),
             // Also allow a single random direction? But in a better way...
             _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
         };
         // let dir = Direction::from_int(rng.gen_range(0, 6));
+        let moving = match ct.motion_transaction_p {
+            0 => false,
+            prob if prob < 128 => rng.gen_range(0, 128) < prob,
+            _ => true,
+        };
         Cell {
             // allow all 6 directions in the same tick():
-            temp: CellTemp { transact },
+            temp: CellTemp { transact, moving },
             ..cur
         }
     }
@@ -183,24 +187,32 @@ impl CellTypes {
         let next_ct = self[next.cell_type];
 
         if cur.temp.transact.contains(dir) {
+            // Note that a SplitTransactions should only be created if:
+            // 1. next_cell has higher priority than the cell it replaces, and
+            // 2. cur_cell does not have higher priority than the cell it replaces.
+            //
+            // Those rules ensure that, even if there is a conflict,
+            // transactions can only replace a cell if the creator of the
+            // transaction has higher priority than the cell being replaced.
             if cur.value1 < cur_ct.max_children && cur_ct.priority > next_ct.priority {
-                let res = Transaction {
-                    // Note that a SplitTransactions should only be created if:
-                    // 1. next_cell has higher priority than the cell it replaces, and
-                    // 2. cur_cell does not have higher priority than the cell it replaces.
-                    //
-                    // Those rules ensure that, even if there is a conflict,
-                    // transactions can only replace a cell if the creator of the
-                    // transaction has higher priority than the cell being replaced.
-                    split: SplitTransaction::Split {
-                        cur_cell: Cell {
-                            value1: cur.value1 + 1,
-                            ..cur
-                        },
-                        next_cell: self.create_cell(cur_ct.child_type),
+                let cur_updated = Cell {
+                    value1: cur.value1 + 1,
+                    ..cur
+                };
+                let new_child = self.create_cell(cur_ct.child_type);
+                return Transaction {
+                    split: if cur.temp.moving {
+                        SplitTransaction::Split {
+                            cur_cell: new_child,
+                            next_cell: cur_updated,
+                        }
+                    } else {
+                        SplitTransaction::Split {
+                            cur_cell: cur_updated,
+                            next_cell: new_child,
+                        }
                     },
                 };
-                return res;
             }
         }
         // if (next.cell_type == 0 &&
