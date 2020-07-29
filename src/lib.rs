@@ -54,6 +54,7 @@ impl World {
         let types = &self.types;
         let mut rng = &mut self.rng;
         self.cells.mutate_with_radius_1(|cell, _neighbours| {
+            *cell = types.self_transform(&mut rng, *cell);
             *cell = types.prepare_transaction(&mut rng, *cell);
         });
 
@@ -70,23 +71,14 @@ impl World {
                 let t2 = types.get_transaction(*cell, next, dir);
                 *cell = types.execute_transactions(t1, *cell, t2);
 
-                // 2. self-transformation (independent from neighbours)
-                let cell_type = &types[cell.cell_type];
-                if let Some(value1) = cell_type.transform_at_value1 {
-                    if cell.value1 == value1 {
-                        *cell = types.create_cell(cell_type.transform_into);
-                    }
-                }
+                // 2. self-transformation (independent from neighbours, 6 executions per step)
+                // currently not used
             });
-            // should probably not put all the logic in here
-            // if let Some(value1) = cell_type.transform_at_value1 {
-            //     if cell.value1 == value1 {
-            //         self.cells.set_cell(x, y, self.types.create_cell(cell_type.transform_into))
-            //     }
-            // }
         }
 
         self.cells.mutate_with_radius_1(|cell, _neighbours| {
+            // we do this a the end, rather than the start, mostly just to allow
+            // cell comparision in unit-tests
             *cell = types.clear_transaction(*cell);
         });
     }

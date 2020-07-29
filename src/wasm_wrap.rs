@@ -64,22 +64,27 @@ impl World {
         let stem_cell = CellTypeRef(1);
         let progenitor_cell = CellTypeRef(2);
         let differentiated_cell = CellTypeRef(3);
-        // let p_skip = 120;
-        let p_skip = 255;
-        let p_motion = 35;
+        let base = CellType {
+            skip_transaction_p: 255, // 120
+            motion_transaction_p: 35,
+            transform_at_random_p: 10,
+            transform_into: empty,
+            ..CellType::default()
+        };
         types[stem_cell] = CellType {
             max_children: 255,
             child_type: progenitor_cell,
-            skip_transaction_p: p_skip,
-            motion_transaction_p: p_motion,
-            ..CellType::default()
+            transform_at_random_p: 0,
+            ..base
         };
         types[progenitor_cell] = CellType {
             max_children: 7,
-            skip_transaction_p: p_skip,
-            motion_transaction_p: p_motion,
             child_type: differentiated_cell,
-            ..CellType::default()
+            ..base
+        };
+        types[differentiated_cell] = CellType {
+            transform_at_random_p: 2,
+            ..base
         };
         // types[differentiated_cell] = CellType {
         //     max_children: 255,

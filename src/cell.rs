@@ -82,6 +82,7 @@ pub enum TransformTrigger {
 pub struct CellType {
     // pub value1_spec: ValueSpec,
     pub transform_at_value1: Option<u8>,
+    pub transform_at_random_p: u8, // probability (0 = never, 128 = always)
     pub transform_into: CellTypeRef,
     pub max_children: u8,
     pub child_type: CellTypeRef,
@@ -101,6 +102,7 @@ impl CellType {
             },
             */
             transform_at_value1: None,
+            transform_at_random_p: 0,
             transform_into: CellTypeRef(0),
             max_children: 0,
             child_type: CellTypeRef(0),
@@ -257,6 +259,25 @@ impl CellTypes {
         } = cur_to_next.split
         {
             cur_cell
+        } else {
+            cur
+        }
+    }
+
+    pub fn self_transform(&self, rng: &mut impl Rng, cur: Cell) -> Cell {
+        let ct = self[cur.cell_type];
+        let trigger1 = if let Some(value1) = ct.transform_at_value1 {
+            cur.value1 == value1
+        } else {
+            false
+        };
+        let trigger2 = match ct.transform_at_random_p {
+            0 => false,
+            prob if prob < 128 => rng.gen_range(0, 128) < prob,
+            _ => true,
+        };
+        if trigger1 || trigger2 {
+            self.create_cell(ct.transform_into)
         } else {
             cur
         }

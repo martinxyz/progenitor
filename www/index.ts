@@ -65,8 +65,8 @@ function delay(ms: number) {
   return new Promise<void>(resolve => setTimeout(resolve, ms))
 }
 (async () => {
-  for (let i = 0; i < 300; i++) {
-    const k = i % 50
+  for (let i = 0; i < 3000; i++) {
+    const k = i % 500
     if (k === 0) {
       for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
