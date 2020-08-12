@@ -39,13 +39,13 @@ impl World {
         self.inner.types[c1] = CellType {
             priority: 1,
             max_children: 255,
-            child_type: c2,
+            transaction_child_type: c2,
             ..CellType::default()
         };
         self.inner.types[c2] = CellType {
             priority: 1,
             max_children: 255,
-            child_type: c1,
+            transaction_child_type: c1,
             ..CellType::default()
         };
     }
@@ -65,34 +65,81 @@ impl World {
         let progenitor_cell = CellTypeRef(2);
         let differentiated_cell = CellTypeRef(3);
         let base = CellType {
-            skip_transaction_p: 255, // 120
-            motion_transaction_p: 35,
+            transaction_skip_p: 255, // 120
+            transaction_move_parent_p: 35,
             transform_at_random_p: 10,
             transform_into: empty,
             ..CellType::default()
         };
         types[stem_cell] = CellType {
             max_children: 255,
-            child_type: progenitor_cell,
+            transaction_child_type: progenitor_cell,
             transform_at_random_p: 0,
             ..base
         };
         types[progenitor_cell] = CellType {
             max_children: 7,
-            child_type: differentiated_cell,
+            transaction_child_type: differentiated_cell,
             ..base
         };
         types[differentiated_cell] = CellType {
             transform_at_random_p: 2,
             ..base
         };
-        // types[differentiated_cell] = CellType {
-        //     max_children: 255,
-        //     child_type: empty,
-        //     skip_transaction_p: 115,
-        //     motion_transaction_p: 128,
-        //     ..CellType::default()
-        // }
+    }
+
+    pub fn set_rules_demo3(&mut self) {
+        let types = &mut self.inner.types;
+
+        let empty = CellTypeRef(0);
+        types[empty] = CellType {
+            priority: -1, // cells with priority 0 may replace "empty" cells with their children
+            ..CellType::default()
+        };
+
+        let stem_cell = CellTypeRef(1);
+        let progenitor_cell = CellTypeRef(2);
+        let differentiated_cell = CellTypeRef(3);
+        let interior_dead_cell = CellTypeRef(4);
+        let slime = CellTypeRef(5);
+        let base = CellType {
+            transaction_skip_p: 255, // 120
+            transaction_move_parent_p: 35,
+            transform_at_random_p: 10,
+            transform_into: interior_dead_cell,
+            ..CellType::default()
+        };
+        types[stem_cell] = CellType {
+            max_children: 255,
+            transaction_child_type: progenitor_cell,
+            transform_at_random_p: 0,
+            ..base
+        };
+        types[progenitor_cell] = CellType {
+            max_children: 7,
+            transaction_child_type: differentiated_cell,
+            ..base
+        };
+        types[differentiated_cell] = CellType {
+            max_children: 255,
+            transaction_child_type: slime, // why does it seem to move when producing slime?
+            // skip_transaction_p: 120,
+            transaction_skip_p: 0,
+            transaction_move_parent_p: 0,
+
+            transform_at_random_p: 2,
+            ..base
+        };
+        types[slime] = CellType {
+            priority: -1, // cells with priority 0 may replace "slime" cells with their children
+            transform_at_random_p: 1,
+            transform_into: empty,
+            ..CellType::default()
+        };
+        types[interior_dead_cell] = CellType {
+            transform_into: slime,
+            ..types[slime]
+        };
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {

@@ -41,7 +41,7 @@ fn simple_growth() {
     let growing_cell: CellTypeRef = CellTypeRef(1);
     w.types[growing_cell] = CellType {
         priority: 1,
-        child_type: growing_cell,
+        transaction_child_type: growing_cell,
         max_children: 255,
         ..CellType::default()
     };
@@ -68,7 +68,7 @@ fn benchtest(b: &mut Bencher) {
     let growing_cell = CellTypeRef(0);
     w.types[growing_cell] = CellType {
         priority: 1,
-        child_type: CellTypeRef(1), // self-pointer !!! very bad API
+        transaction_child_type: CellTypeRef(1), // self-pointer !!! very bad API
         ..CellType::default()
     };
     let pos1 = Cube { x: 5, y: 5 };

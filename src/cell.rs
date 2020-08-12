@@ -85,10 +85,10 @@ pub struct CellType {
     pub transform_at_random_p: u8, // probability (0 = never, 128 = always)
     pub transform_into: CellTypeRef,
     pub max_children: u8,
-    pub child_type: CellTypeRef,
-    pub skip_transaction_p: u8,   // probability (0 = never, 128 = always)
-    pub motion_transaction_p: u8, // probability (0 = never, 128 = always) to move the parent
-    pub priority: i8,             // 0 = "default" (replacing a cell requires higher priority)
+    pub transaction_child_type: CellTypeRef,
+    pub transaction_skip_p: u8, // probability (0 = never, 128 = always)
+    pub transaction_move_parent_p: u8, // probability (0 = never, 128 = always) to move the parent
+    pub priority: i8,           // 0 = "default" (replacing a cell requires higher priority)
 }
 
 impl CellType {
@@ -105,9 +105,9 @@ impl CellType {
             transform_at_random_p: 0,
             transform_into: CellTypeRef(0),
             max_children: 0,
-            child_type: CellTypeRef(0),
-            skip_transaction_p: 0,
-            motion_transaction_p: 0,
+            transaction_child_type: CellTypeRef(0),
+            transaction_skip_p: 0,
+            transaction_move_parent_p: 0,
             priority: 0,
         }
     }
@@ -157,7 +157,7 @@ impl CellTypes {
 
     pub fn prepare_transaction(&self, rng: &mut impl Rng, cur: Cell) -> Cell {
         let ct = self[cur.cell_type];
-        let transact = match ct.skip_transaction_p {
+        let transact = match ct.transaction_skip_p {
             0 => DirectionSet::all(),
             128 => DirectionSet::none(),
             prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0, 128) >= prob),
@@ -165,7 +165,7 @@ impl CellTypes {
             _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
         };
         // let dir = Direction::from_int(rng.gen_range(0, 6));
-        let moving = match ct.motion_transaction_p {
+        let moving = match ct.transaction_move_parent_p {
             0 => false,
             prob if prob < 128 => rng.gen_range(0, 128) < prob,
             _ => true,
@@ -201,7 +201,7 @@ impl CellTypes {
                     value1: cur.value1 + 1,
                     ..cur
                 };
-                let new_child = self.create_cell(cur_ct.child_type);
+                let new_child = self.create_cell(cur_ct.transaction_child_type);
                 return Transaction {
                     split: if cur.temp.moving {
                         SplitTransaction::Split {

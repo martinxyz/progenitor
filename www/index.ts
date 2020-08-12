@@ -5,7 +5,8 @@ let gridSize = get_size()
 
 const w = new World()
 // w.set_rules_demo1()
-w.set_rules_demo2()
+// w.set_rules_demo2()
+w.set_rules_demo3()
 // w.set_cell(0, 0, 1)
 // for (let i = 0; i < 3; i++) w.tick()
 // w.set_cell(4, 4, 1)
@@ -34,12 +35,14 @@ function renderHex(hex: Hex<{}>) {
     let idx = y * gridSize + x
     let d = data[idx]
 
-    let color = '#FFF'
+    // let color = '#FFF'
+    let color = '#188'
     if (d == 0) color = '#AAA'
-    if (d == 1) color = '#171'
-    if (d == 2) color = '#BB0'
+    if (d == 1) color = '#292'
+    if (d == 2) color = '#357'
     if (d == 3) color = '#188'
-    if (d == 4) color = '#FAB'
+    if (d == 4) color = '#FFF'
+    if (d == 5) color = '#799'
 
     let corners: number[] = []
     ctx.save()
