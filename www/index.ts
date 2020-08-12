@@ -47,7 +47,7 @@ function renderHex(hex: Hex<{}>) {
     let corners: number[] = []
     ctx.save()
     ctx.translate(position.x, position.y)
-    ctx.scale(0.98, 0.98)
+    ctx.scale(0.97, 0.97)
     ctx.beginPath()
     hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
     ctx.fillStyle = color
@@ -85,9 +85,8 @@ function delay(ms: number) {
     }
     // w.set_cell(i, 1, 1)
     data = w.update_data()
-    ctx.fillStyle = '#000F'
-    ctx.fillRect(0, 0, canvas.width, canvas.height)
-    let grid = Grid.rectangle({
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    Grid.rectangle({
       width: gridSize,
       height: gridSize,
       onCreate: renderHex
