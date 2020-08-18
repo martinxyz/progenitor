@@ -22,6 +22,6 @@ module.exports = {
   mode: "development",
   devtool: "source-map",
   plugins: [
-    new CopyWebpackPlugin(['index.html'])
+    new CopyWebpackPlugin(['index.html', 'main.css'])
   ],
 };
