@@ -1,88 +1,97 @@
-import { World, get_size } from "progenitor"
-import { defineGrid, extendHex, Hex } from 'honeycomb-grid'
+<div class="button-row">
+    <button on:click={onReset}>⏮</button>
+    <!-- <button on:clock={onPause}>⏸</button> -->
+    <button on:click={onStep}>1</button>
+    <button on:click={onPlayNormal}>▶</button>
+    <button on:click={onPlayFast}>▶▶</button>
+    <br/>
+    <canvas bind:this={canvas}/>
+</div>
+
+<style>
+ .button-row {
+     padding: 7px;
+     background-color: #BBB;
+ }
+ canvas {
+     background-color: black;
+ }
+</style>
+
+<script lang="ts">
+import { defineGrid, extendHex } from 'honeycomb-grid'
+import { onMount } from 'svelte';
+import { World, get_size } from "progenitor";
+
+let canvas: HTMLCanvasElement
 
 let gridSize = get_size()
-
-// var data = new Uint8Array(gridSize * gridSize)
-// for (let i=0; i<gridSize*gridSize; i++) {
-//   data[i] = i % 3 == 0 ? 0 : 1
-// }
-
-const canvas = document.getElementById('hex-canvas') as HTMLCanvasElement
-canvas.width = 500
-canvas.height = 500
-const ctx = canvas.getContext('2d')!
 
 const Hex = extendHex({ size: 8 })
 const Grid = defineGrid(Hex)
 // Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
+let ctx;
 
-// function delay(ms: number) {
-//   return new Promise<void>(resolve => setTimeout(resolve, ms))
-// }
-function main() {
-  const w = new World()
-  // w.set_rules_demo1()
-  // w.set_rules_demo2()
-  w.set_rules_demo3()
-  // w.set_cell(0, 0, 1)
-  // for (let i = 0; i < 3; i++) w.tick()
-  // w.set_cell(4, 4, 1)
+onMount(() => {
+    canvas.width = 500
+    canvas.height = 500
+    console.log('get_size()', get_size())
+    ctx = canvas.getContext('2d')
+    onReset()
+    onPlayNormal()
+});
 
-  document.getElementById('btn-reset')?.addEventListener('click', onReset)
-  document.getElementById('btn-step')?.addEventListener('click', onStep)
-  document.getElementById('btn-play')?.addEventListener('click', onPlayNormal)
-  document.getElementById('btn-play-fast')?.addEventListener('click', onPlayFast)
 
-  let intervalId: NodeJS.Timeout | null = null
-  let playSpeed: 'fast' | 'normal' = 'normal'
-  onReset()
-  onPlayNormal()
+const w = new World()
+w.set_rules_demo3()
+// w.set_cell(0, 0, 1)
 
-  function onReset() {
+let intervalId: NodeJS.Timeout | null = null
+let playSpeed: 'fast' | 'normal' = 'normal'
+
+function onReset() {
     resetSimulation(w)
     renderWorld(w)
-  }
-  function onStep() {
+}
+function onStep() {
     if (intervalId) {
-      clearInterval(intervalId)
-      intervalId = null
+        clearInterval(intervalId)
+        intervalId = null
     }
     w.tick()
     // requestAnimationFrame(() => renderWorld(w))
     renderWorld(w)
-  }
-  function onPlayNormal() {
+}
+function onPlayNormal() {
     playSpeed = 'normal'
     play()
-  }
-  function onPlayFast() {
+}
+function onPlayFast() {
     playSpeed = 'fast'
     play()
-  }
-  function stop() {
+}
+function stop() {
     if (intervalId) {
-      clearInterval(intervalId)
-      intervalId = null
+        clearInterval(intervalId)
+        intervalId = null
     }
-  }
-  function play() {
+}
+function play() {
     stop()
     intervalId = setInterval(intervalCallback, playSpeed === 'normal' ? 300 : 100)
-  }
+}
 
-  function intervalCallback() {
+function intervalCallback() {
     console.log('intervalCallback')
     const ticks = playSpeed === 'normal' ? 1 : 8
     for (let i=0; i<ticks; i++) {
-      w.tick()
+        w.tick()
     }
     // requestAnimationFrame(() => renderWorld(w))
     renderWorld(w)
-  }
 }
-main()
 
+// XXX split, pure functions
 function resetSimulation(w: World) {
     for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
@@ -129,12 +138,6 @@ function renderWorld(w: World) {
     ctx.fillStyle = color
     ctx.fill()
     ctx.restore()
-
-    // note: bad performance because each hex triggers layout + style recalculations
-    // svg
-    //   .polygon(corners)
-    //   .fill(color)
-    //   .stroke({ width: 1, color: '#333' })
-    //   .translate(position.x, position.y)
   }
 }
+</script>
