@@ -1,8 +1,9 @@
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 const path = require('path');
 
 const mode = process.env.NODE_ENV || 'development';
-const prod = mode === 'production';
+const devMode = mode !== 'production';
 
 module.exports = {
     entry: {
@@ -17,44 +18,58 @@ module.exports = {
     },
 
     output: {
-        // path: __dirname + '/public',
-        // filename: '[name].js',
-        // chunkFilename: '[name].[id].js'
-        filename: 'bundle.js',
         path: path.join(__dirname, 'build'),
     },
     module: {
         rules: [
+            {
+                test: /\.tsx?$/,
+                use: 'ts-loader',
+                exclude: /node_modules/,
+            },
             {
                 test: /\.svelte$/,
                 use: {
                     loader: 'svelte-loader',
                     options: {
                         emitCss: true,
-                        // hotReload: true,
+                        hotReload: true,
                         preprocess: require('svelte-preprocess')({})
                     }
-                }
+                },
+                exclude: /node_modules/,
             },
             {
                 test: /\.css$/,
                 use: [
-                    /**
-                     * MiniCssExtractPlugin doesn't support HMR.
-                     * For developing, use 'style-loader' instead.
-                     * */
-                    prod ? MiniCssExtractPlugin.loader : 'style-loader',
-                    'css-loader'
+                    {
+                        loader: MiniCssExtractPlugin.loader,
+                        options: {
+                            // hot module reload
+                            hmr: devMode,
+                            // in case hmr does not work:
+                            // reloadAll: true,
+                        },
+                    },
+                    'css-loader',
                 ]
             }
         ]
     },
     mode,
     plugins: [
-        new MiniCssExtractPlugin({
-            // filename: '[name].css'
-            filename: 'bundle.css'
+        new MiniCssExtractPlugin({}),
+        new CopyWebpackPlugin({
+            patterns: [
+                { from: 'index.html' },
+                { from: 'global.css' },
+                { from: 'assets', to: 'assets' },
+            ]
         })
     ],
-    devtool: prod ? false: 'source-map'
+    // devtool: devMode ? 'source-map' : false
+    devtool: "source-map",
+    // optimization: {
+    //     minimize: false
+    // }
 };
