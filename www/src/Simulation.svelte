@@ -1,17 +1,16 @@
 <div class="button-row">
+    <canvas bind:this={canvas}/>
+    <br/>
     <button on:click={onReset}>⏮</button>
     <!-- <button on:clock={onPause}>⏸</button> -->
     <button on:click={onStep}>1</button>
     <button on:click={onPlayNormal}>▶</button>
     <button on:click={onPlayFast}>▶▶</button>
-    <br/>
-    <canvas bind:this={canvas}/>
 </div>
 
 <style>
     .button-row {
         padding: 7px;
-        background-color: #BBB;
     }
     canvas {
         background-color: black;
@@ -84,7 +83,6 @@
     }
 
     function intervalCallback() {
-        console.log('intervalCallback')
         const ticks = playSpeed === 'normal' ? 1 : 8
         for (let i=0; i<ticks; i++) {
             sim.tick()

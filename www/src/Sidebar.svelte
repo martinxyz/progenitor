@@ -6,7 +6,6 @@
 <style>
  .infobar {
      padding: 7px;
-     background-color: #BBB;
      min-width: 16em;
  }
 </style>
