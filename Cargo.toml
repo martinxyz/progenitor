@@ -17,8 +17,8 @@ default = ["console_error_panic_hook"]
 python = ["pyo3", "numpy", "ndarray"]
 
 [dependencies]
-rand = "0.7.3"
-rand_pcg = "0.2.1"
+rand = "0.7"
+rand_pcg = "0.2"
 
 # hex2d = "0.2.0"  # wasm support currently only works with master
 hex2d = { git = "https://github.com/dpc/hex2d-rs.git", rev = "2ffc1f8da994b4c8ce0ce9b6d8141942b4f48eed" }
@@ -30,12 +30,12 @@ js-sys = "0.3"
 console_error_panic_hook = { version = "0.1", optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-pyo3 = { version = "0.10.1", optional = true, features = ["extension-module"] }
-numpy = { version = "0.9.0", optional = true }
-ndarray = { version = "0.13.1", optional = true }
+pyo3 = { version = "0.11", optional = true, features = ["extension-module"] }
+numpy = { version = "0.11", optional = true }
+ndarray = { version = "0.13", optional = true }
 
 [package.metadata.maturin]
-requires-dist = ["numpy~=1.17.4"]
+requires-dist = ["numpy~=1.17"]
 
 #[package.metadata.maturin.scripts]
 #get_42 = "my_project:DummyClass.get_42"

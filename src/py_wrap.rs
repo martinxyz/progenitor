@@ -37,15 +37,15 @@ impl World {
         let cells = &self.inner.cells;
         cells
             .iter_cells()
-            .map(|cell| cell.get_particle())
+            .map(|cell| cell.particle)
             .collect::<Array1<_>>()
             .to_pyarray(py)
             .to_owned()
     }
 
     // fn test_buffer_protocol(&mut self, buf: &PyBuffer) {
-    fn test_buffer_protocol(&self, py: Python, v: &PyAny) -> PyResult<()> {
-        let buf = PyBuffer::get(py, v)?;
+    fn test_buffer_protocol(&self, v: &PyAny) -> PyResult<()> {
+        let buf: PyBuffer<u8> = PyBuffer::get(v)?;
         println!("Buffer protocol shape: {:?}", buf.shape());
         Ok(())
     }

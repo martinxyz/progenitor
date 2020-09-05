@@ -1,10 +1,11 @@
 # from .progenitor import World as _World, CellContent as _CellContent
-from .progenitor import get_tile_size, Cells
 from .progenitor import Cells as _Cells
-from typing import NamedTuple, List
+from typing import NamedTuple
 import numpy as np
 
-tile_size = get_tile_size()
+tile_size = 4
+print('FIXME: tile_size:', tile_size)
+# cells = _Cells()
 
 class CellContent(NamedTuple):
     cell_type: int = 0
