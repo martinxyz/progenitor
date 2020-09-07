@@ -1,11 +1,9 @@
 <script lang="ts">
-    import Sidebar from './Sidebar.svelte'
     import Simulation from './Simulation.svelte'
 </script>
 
 <div class="main">
     <Simulation/>
-    <Sidebar/>
 </div>
 
 <style>

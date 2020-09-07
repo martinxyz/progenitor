@@ -1,5 +1,8 @@
 <div class="button-row">
-    <canvas bind:this={canvas}/>
+    <div class="canvasDiv">
+        <canvas class="mainCanvas" bind:this={canvas} />
+        <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
+    </div>
     <br/>
     <button on:click={onReset}>⏮</button>
     <!-- <button on:clock={onPause}>⏸</button> -->
@@ -7,41 +10,62 @@
     <button on:click={onPlayNormal}>▶</button>
     <button on:click={onPlayFast}>▶▶</button>
 </div>
+<Sidebar {cell}/>
 
 <style>
     .button-row {
         padding: 7px;
     }
-    canvas {
+    .mainCanvas {
         background-color: black;
+    }
+    .canvasDiv {
+        position: relative;
+    }
+    .overlayCanvas {
+        position: absolute;
+        background-color: transparent;
+        top: 0;
+        left: 0;
     }
 </style>
 
 <script lang="ts">
- import { defineGrid, extendHex } from 'honeycomb-grid'
- import { onMount } from 'svelte'
- import { get_size } from "progenitor"
- import type { Hex as HexType } from 'honeycomb-grid'
- import Simulation from './simulation'
+    import Sidebar from './Sidebar.svelte'
+    import Simulation from './simulation'
+    import { defineGrid, extendHex } from 'honeycomb-grid'
+    import { onMount } from 'svelte'
+    import { get_size } from "progenitor"
+    import type { Hex as HexType } from 'honeycomb-grid'
 
     let canvas: HTMLCanvasElement
+    let overlayCanvas: HTMLCanvasElement
+    let cursor = null
+    $: cell = cursor ? sim.get_cell_info(cursor.x, cursor.y) : null
 
     const gridSize = get_size()
 
     const Hex = extendHex({ size: 8 })
     const Grid = defineGrid(Hex)
     // Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
+
+    const myGrid = Grid.rectangle({width: gridSize, height: gridSize})
+
     let ctx: CanvasRenderingContext2D
+    let overlayCtx: CanvasRenderingContext2D
 
     onMount(() => {
         canvas.width = 500
         canvas.height = 500
         console.log('get_size()', get_size())
         ctx = canvas.getContext('2d')
+
+        overlayCanvas.width = canvas.width
+        overlayCanvas.height = canvas.height
+        overlayCtx = overlayCanvas.getContext('2d')
         onReset()
         onPlayNormal()
     });
-
 
     const sim = new Simulation()
     // const w = new World()
@@ -92,15 +116,13 @@
     }
 
     function renderSim() {
+        cell = cell  // trigger update (maybe not the most ellegant way...)
+
         // sim(global)
         const data = sim.update_data()
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
-        Grid.rectangle({
-            width: gridSize,
-            height: gridSize,
-            onCreate: renderHex
-        })
+        myGrid.forEach(renderHex)
 
         function renderHex(hex: HexType<object>) {
             const position = hex.toPoint()
@@ -118,7 +140,6 @@
             if (d == 4) color = '#FFF'
             if (d == 5) color = '#799'
 
-            let corners: number[] = []
             ctx.save()
             ctx.translate(position.x, position.y)
             ctx.scale(0.97, 0.97)
@@ -129,4 +150,34 @@
             ctx.restore()
         }
     }
+
+
+   function onMouseMove({offsetX, offsetY}) {
+       const hexCoordinates = Grid.pointToHex(offsetX, offsetY)
+       const valid = myGrid.includes(hexCoordinates)
+       overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
+       if (valid) {
+           cursor = hexCoordinates
+           renderCursorHex(overlayCtx, myGrid.get(hexCoordinates))
+       } else {
+           cursor = null
+       }
+
+       function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType<object>) {
+           const position = hex.toPoint()
+           ctx.save()
+           ctx.translate(position.x, position.y)
+           ctx.scale(0.97, 0.97)  // FIXME: code duplication
+           ctx.beginPath()
+           hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
+           ctx.closePath()
+           ctx.strokeStyle = '#FFFF'
+           ctx.lineWidth = 4
+           ctx.stroke()
+           ctx.strokeStyle = '#000F'
+           ctx.lineWidth = 2
+           ctx.stroke()
+           ctx.restore()
+       }
+   }
 </script>

@@ -19,6 +19,9 @@ python = ["pyo3", "numpy", "ndarray"]
 [dependencies]
 rand = "0.7"
 rand_pcg = "0.2"
+# indexmap = "1.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 # hex2d = "0.2.0"  # wasm support currently only works with master
 hex2d = { git = "https://github.com/dpc/hex2d-rs.git", rev = "2ffc1f8da994b4c8ce0ce9b6d8141942b4f48eed" }
@@ -42,3 +45,6 @@ requires-dist = ["numpy~=1.17"]
 
 [profile.bench]
 debug = true  # for better profiling
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false  # for whatever reason, wsam-opt bails out if I return String

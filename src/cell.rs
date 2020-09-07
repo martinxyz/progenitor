@@ -1,18 +1,20 @@
 use crate::coords::{Direction, DirectionSet};
 use rand::{seq::SliceRandom, Rng};
 use std::ops::{Index, IndexMut};
+use serde::{Serialize, Deserialize};
 
 /// Reference to a `CellType`
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CellTypeRef(pub u8);
 
 /// State of a cell
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cell {
     pub cell_type: CellTypeRef,
     pub value1: u8, // less pub please, representation should probably be internal
     pub value2: u8,
     pub particle: bool,
+    #[serde(skip)]
     temp: CellTemp,
 }
 

@@ -1,6 +1,13 @@
 import { World, get_size } from "progenitor"
 const gridSize = get_size()
 
+export interface CellInfo {
+    cell_type: number,
+    value1: number,
+    value2: number,
+    particle: boolean,
+}
+
 export default class Simulation {
     constructor (
         private w = new World()
@@ -10,6 +17,10 @@ export default class Simulation {
 
     tick() {
         this.w.tick()
+    }
+
+    get_cell_info(col: number, row: number): CellInfo {
+        return JSON.parse(this.w.get_cell_json(col, row))
     }
 
     reset() {

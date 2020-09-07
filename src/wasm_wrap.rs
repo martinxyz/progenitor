@@ -148,6 +148,12 @@ impl World {
             .set_cell(pos.into(), self.inner.types.create_cell(CellTypeRef(ct)));
     }
 
+    pub fn get_cell_json(&self, col: i32, row: i32) -> String {
+        let pos = coords::Offset { col, row };
+        let cell = self.inner.get_cell(pos.into());
+        serde_json::to_string(&cell).unwrap()
+    }
+
     pub fn tick(&mut self) {
         self.inner.tick();
     }
