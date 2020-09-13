@@ -1,33 +1,56 @@
-<div class="button-row">
+<div>
     <div class="canvasDiv">
         <canvas class="mainCanvas" bind:this={canvas} />
         <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
     </div>
-    <br/>
-    <button on:click={onReset}>⏮</button>
-    <!-- <button on:clock={onPause}>⏸</button> -->
-    <button on:click={onStep}>1</button>
-    <button on:click={onPlayNormal}>▶</button>
-    <button on:click={onPlayFast}>▶▶</button>
+    <div class="button-row">
+        <button on:click={onReset}>⏮</button>
+        <!-- <button on:clock={onPause}>⏸</button> -->
+        <button on:click={onStep}>1</button>
+        <button on:click={onPlayNormal}>▶</button>
+        <button on:click={onPlayFast}>▶▶</button>
+        <div class="spacer"></div>
+        <div class="step">
+            {step}
+        </div>
+    </div>
 </div>
 <Sidebar {cell}/>
 
 <style>
-    .button-row {
-        padding: 7px;
-    }
-    .mainCanvas {
-        background-color: black;
-    }
     .canvasDiv {
         position: relative;
     }
     .overlayCanvas {
         position: absolute;
-        background-color: transparent;
         top: 0;
         left: 0;
+        background-color: transparent;
     }
+    .mainCanvas {
+        background-color: #2E170E;
+    }
+    .button-row {
+        padding-top: 7px;
+        display: flex;
+    }
+    button {
+        margin: 0 0.2em 0 0;
+    }
+    .spacer {
+        flex-grow: 1;
+    }
+    .step {
+        color: #2E170E80;
+        display: inline-block;
+        background-color: transparent;
+        border: 1px solid #2E170E40;
+        border-radius: 5px;
+        min-width: 3.5em;
+        padding: .15em .35em;
+        align-self: center;
+        text-align: center;
+   }
 </style>
 
 <script lang="ts">
@@ -55,19 +78,21 @@
     let overlayCtx: CanvasRenderingContext2D
 
     onMount(() => {
-        canvas.width = 500
-        canvas.height = 500
+        canvas.width = 450
+        canvas.height = 388
         console.log('get_size()', get_size())
         ctx = canvas.getContext('2d')
 
         overlayCanvas.width = canvas.width
         overlayCanvas.height = canvas.height
         overlayCtx = overlayCanvas.getContext('2d')
+
         onReset()
         onPlayNormal()
-    });
+    })
 
     const sim = new Simulation()
+    let step = -1
     // const w = new World()
     // w.set_cell(0, 0, 1)
 
@@ -116,7 +141,9 @@
     }
 
     function renderSim() {
-        cell = cell  // trigger update (maybe not the most ellegant way...)
+        // trigger updates (maybe not the most ellegant way...)
+        cell = cell
+        step = sim.get_step()
 
         // sim(global)
         const data = sim.update_data()
@@ -171,10 +198,10 @@
            ctx.beginPath()
            hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
            ctx.closePath()
-           ctx.strokeStyle = '#FFFF'
+           ctx.strokeStyle = '#FFF9'
            ctx.lineWidth = 4
            ctx.stroke()
-           ctx.strokeStyle = '#000F'
+           ctx.strokeStyle = '#2E170E'
            ctx.lineWidth = 2
            ctx.stroke()
            ctx.restore()

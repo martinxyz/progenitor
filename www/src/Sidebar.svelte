@@ -15,7 +15,7 @@
 
 <style>
  .infobar {
-     padding: 7px;
+     padding-left: 1em;
      min-width: 16em;
  }
 </style>

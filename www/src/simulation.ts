@@ -9,18 +9,24 @@ export interface CellInfo {
 }
 
 export default class Simulation {
-    constructor (
-        private w = new World()
-    ) {
+    private w = new World()
+    private step: number
+
+    constructor () {
         this.w.set_rules_demo3()
     }
 
     tick() {
         this.w.tick()
+        this.step += 1
     }
 
     get_cell_info(col: number, row: number): CellInfo {
         return JSON.parse(this.w.get_cell_json(col, row))
+    }
+
+    get_step() {
+        return this.step
     }
 
     reset() {
@@ -33,7 +39,7 @@ export default class Simulation {
         this.w.set_cell(gridSize / 2 + 3, gridSize / 2 - 0, 1)
         this.w.set_cell(gridSize / 2 + 1, gridSize / 2 - 8, 1)
         this.w.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
-
+        this.step = 0
     }
 
     update_data(): Uint8Array {
