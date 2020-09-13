@@ -45,8 +45,8 @@ input, button, select, textarea {
     border-radius: 5px;
 }
 
-h3 {
-    color: #2E170EB0;
+h1, h2, h3 {
+    color: #2E170ED5;
 }
 
 input:disabled {
@@ -54,7 +54,7 @@ input:disabled {
 }
 
 button {
-    background-color: #EEE;
+    background-color: #DDD;
     outline: none;
     min-width: 4.5em;
 }

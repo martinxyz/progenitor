@@ -5,13 +5,23 @@
             <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
         </div>
         <div class="button-row">
-            <button on:click={onReset}>⏮</button>
+            <button on:click={onReset}>
+                <i class="fas fa-fast-backward"></i>
+            </button>
             <!-- <button on:clock={onPause}>⏸</button> -->
             <button on:click={onStep}>
-                <i class="fas fa-camera"></i> <!-- this icon's 1) style prefix == fas and 2) icon name == camera -->
-                1</button>
-            <button on:click={onPlayNormal}>▶</button>
-            <button on:click={onPlayFast}>▶▶</button>
+                {#if intervalId}
+                    <i class="fas fa-pause"></i>
+                {:else}
+                    <i class="fas fa-step-forward"></i>
+                {/if}
+            </button>
+            <button on:click={onPlayNormal}>
+                <i class="fas fa-play"></i>
+            </button>
+            <button on:click={onPlayFast}>
+                <i class="fas fa-forward"></i>
+            </button>
             <div class="spacer"></div>
             <div class="step">
                 {step}
@@ -50,6 +60,7 @@
     }
     button {
         margin: 0 0.2em 0 0;
+        color: #2E170ED5;
     }
     .spacer {
         flex-grow: 1;
