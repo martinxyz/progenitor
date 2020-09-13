@@ -6,13 +6,10 @@
     <Simulation/>
 </div>
 
-<style>
+<style lang="scss">
     .main {
-        /* text-align: center; */
         padding: 1em;
-        /* margin: 0 auto; */
         display: flex;
-        flex-direction: row;
-        background-color: #CCC;
+        justify-content: center;
     }
 </style>

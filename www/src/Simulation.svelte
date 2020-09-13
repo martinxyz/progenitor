@@ -1,23 +1,37 @@
-<div>
-    <div class="canvasDiv">
-        <canvas class="mainCanvas" bind:this={canvas} />
-        <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
-    </div>
-    <div class="button-row">
-        <button on:click={onReset}>⏮</button>
-        <!-- <button on:clock={onPause}>⏸</button> -->
-        <button on:click={onStep}>1</button>
-        <button on:click={onPlayNormal}>▶</button>
-        <button on:click={onPlayFast}>▶▶</button>
-        <div class="spacer"></div>
-        <div class="step">
-            {step}
+<div class="container">
+    <div>
+        <div class="canvasDiv">
+            <canvas class="mainCanvas" bind:this={canvas} />
+            <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
+        </div>
+        <div class="button-row">
+            <button on:click={onReset}>⏮</button>
+            <!-- <button on:clock={onPause}>⏸</button> -->
+            <button on:click={onStep}>
+                <i class="fas fa-camera"></i> <!-- this icon's 1) style prefix == fas and 2) icon name == camera -->
+                1</button>
+            <button on:click={onPlayNormal}>▶</button>
+            <button on:click={onPlayFast}>▶▶</button>
+            <div class="spacer"></div>
+            <div class="step">
+                {step}
+            </div>
         </div>
     </div>
+    <div>
+        <Sidebar {cell}/>
+    </div>
 </div>
-<Sidebar {cell}/>
 
-<style>
+<style lang="scss">
+    .container {
+        display: inline-flex;
+        flex-direction: row;
+        background-color: #CCC;
+        border: 2px solid #2E170E;
+        border-radius: 5px;
+        padding: .5em;
+    }
     .canvasDiv {
         position: relative;
     }

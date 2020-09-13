@@ -10,6 +10,7 @@
   "author": "Martin Renold <martin@log2.ch>",
   "license": "MIT",
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^5.14.0",
     "honeycomb-grid": "^3.1.7",
     "progenitor": "file:../pkg"
   },
@@ -18,7 +19,10 @@
     "copy-webpack-plugin": "^6.1.0",
     "cross-env": "^7.0.2",
     "css-loader": "^4.2.2",
+    "file-loader": "^6.1.0",
     "mini-css-extract-plugin": "^0.11.0",
+    "node-sass": "^4.14.1",
+    "sass-loader": "^10.0.2",
     "style-loader": "^1.2.1",
     "svelte": "^3.24.1",
     "svelte-language-server": "^0.10.113",
