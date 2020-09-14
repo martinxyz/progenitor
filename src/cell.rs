@@ -1,7 +1,7 @@
 use crate::coords::{Direction, DirectionSet};
 use rand::{seq::SliceRandom, Rng};
+use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};
-use serde::{Serialize, Deserialize};
 
 /// Reference to a `CellType`
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

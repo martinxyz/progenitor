@@ -6,8 +6,11 @@
 <div class="infobar">
     <h3>Info</h3>
     {#if cell}
-        CellType { cell.cell_type }
-        <pre>{JSON.stringify(cell, null, 2)}</pre>
+        CellType: { cell.cell_type } <br/>
+        Value1: { cell.value1 } <br/>
+        Value2: { cell.value2 } <br/>
+        Particle: { cell.particle } <br/>
+        <!-- <pre>{JSON.stringify(cell, null, 2)}</pre> -->
     {:else}
         Select a cell.
     {/if}

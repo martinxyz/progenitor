@@ -2,7 +2,13 @@
     <div>
         <div class="canvasDiv">
             <canvas class="mainCanvas" bind:this={canvas} />
-            <canvas class="overlayCanvas" bind:this={overlayCanvas} on:mousemove={onMouseMove} />
+            <canvas
+                class="overlayCanvas"
+                bind:this={overlayCanvas}
+                on:mousemove={onMouseMove}
+                on:mouseleave={onMouseLeave}
+                on:click={onClick}
+            />
         </div>
         <div class="button-row">
             <button on:click={onReset}>
@@ -81,14 +87,17 @@
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import Simulation from './simulation'
-    import { defineGrid, extendHex } from 'honeycomb-grid'
+    import { defineGrid, extendHex, PointCoordinates } from 'honeycomb-grid'
     import { onMount } from 'svelte'
     import { get_size } from "progenitor"
     import type { Hex as HexType } from 'honeycomb-grid'
 
     let canvas: HTMLCanvasElement
     let overlayCanvas: HTMLCanvasElement
-    let cursor = null
+    let cursorHover = null
+    let cursorSelected = null
+    $: renderCursors(cursorSelected, cursorHover)
+    $: cursor = cursorSelected || cursorHover
     $: cell = cursor ? sim.get_cell_info(cursor.x, cursor.y) : null
 
     const gridSize = get_size()
@@ -118,8 +127,6 @@
 
     const sim = new Simulation()
     let step = -1
-    // const w = new World()
-    // w.set_cell(0, 0, 1)
 
     let intervalId = null
     let playSpeed: 'fast' | 'normal' = 'normal'
@@ -134,7 +141,7 @@
             intervalId = null
         }
         sim.tick()
-        // requestAnimationFrame(() => renderWorld(w))
+        // requestAnimationFrame(() => renderSim(w))
         renderSim()
     }
     function onPlayNormal() {
@@ -170,7 +177,6 @@
         cell = cell
         step = sim.get_step()
 
-        // sim(global)
         const data = sim.update_data()
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -203,33 +209,58 @@
         }
     }
 
+    function offsetToHex(offsetX: number, offsetY: number)  {
+        const hexCoordinates = Grid.pointToHex(offsetX, offsetY)
+        if (myGrid.includes(hexCoordinates)) {
+            return hexCoordinates
+        } else {
+            return null
+        }
+    }
 
-   function onMouseMove({offsetX, offsetY}) {
-       const hexCoordinates = Grid.pointToHex(offsetX, offsetY)
-       const valid = myGrid.includes(hexCoordinates)
-       overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
-       if (valid) {
-           cursor = hexCoordinates
-           renderCursorHex(overlayCtx, myGrid.get(hexCoordinates))
-       } else {
-           cursor = null
-       }
 
-       function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType<object>) {
-           const position = hex.toPoint()
-           ctx.save()
-           ctx.translate(position.x, position.y)
-           ctx.scale(0.97, 0.97)  // FIXME: code duplication
-           ctx.beginPath()
-           hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
-           ctx.closePath()
-           ctx.strokeStyle = '#FFF9'
-           ctx.lineWidth = 4
-           ctx.stroke()
-           ctx.strokeStyle = '#2E170E'
-           ctx.lineWidth = 2
-           ctx.stroke()
-           ctx.restore()
-       }
-   }
+    function onMouseMove({offsetX, offsetY}) {
+        cursorHover = offsetToHex(offsetX, offsetY)
+    }
+
+    function onMouseLeave() {
+        cursorHover = null
+    }
+
+    function onClick({offsetX, offsetY}) {
+        const p = offsetToHex(offsetX, offsetY)
+        if (p && p.equals(cursorSelected)) {
+            cursorSelected = null;
+            cursorHover = null;
+        } else {
+            cursorSelected = p
+        }
+    }
+
+    function renderCursors(selected: PointCoordinates, hover: PointCoordinates) {
+        if (!overlayCtx) return
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
+        if (selected) {
+            renderCursorHex(overlayCtx, myGrid.get(selected))
+        } else if (hover) {
+            renderCursorHex(overlayCtx, myGrid.get(hover))
+        }
+    }
+
+    function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType<object>) {
+        const position = hex.toPoint()
+        ctx.save()
+        ctx.translate(position.x, position.y)
+        ctx.scale(0.97, 0.97)  // FIXME: code duplication
+        ctx.beginPath()
+        hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
+        ctx.closePath()
+        ctx.strokeStyle = '#FFF9'
+        ctx.lineWidth = 4
+        ctx.stroke()
+        ctx.strokeStyle = '#2E170E'
+        ctx.lineWidth = 2
+        ctx.stroke()
+        ctx.restore()
+    }
 </script>
