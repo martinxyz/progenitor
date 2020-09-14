@@ -1,6 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
+use std::io::prelude::*;
 mod cell;
 pub mod coords;
 mod tile;
@@ -97,6 +98,25 @@ impl World {
         for (idx, coord) in it.enumerate() {
             buf[idx] = self.get_cell(coord).cell_type.0;
         }
+    }
+
+    pub fn export_snapshot(&self) -> Vec<u8> {
+        let mut res = vec![1u8]; // version to signal breaking changes
+        res.append(&mut bincode::serialize(&self.rng).unwrap());
+        res.append(&mut bincode::serialize(&self.cells).unwrap());
+        res
+    }
+
+    pub fn import_snapshot(&mut self, data: &[u8]) {
+        let mut unread = data;
+        let mut version = [0u8; 1];
+        unread.read_exact(&mut version).unwrap();
+        if version != [1] {
+            panic!("version not compatible")
+        }
+        self.rng = bincode::deserialize_from(&mut unread).unwrap();
+        self.cells = bincode::deserialize_from(&mut unread).unwrap();
+        // ignore extra, if any (allows for non-breaking extensions)
     }
 
     pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {

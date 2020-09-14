@@ -184,6 +184,18 @@ impl World {
         count_growing_cells(&self.inner)
     }
     */
+
+    pub fn export_snapshot(&self) -> Vec<u8> {
+        // FIXME: this gets converted to a JS Uint8Array, but:
+        // I think (hope) it's a copy, not a reference to the wasm memory. XXX
+        // (Also, why didn't I do it that way for update_data()? Was it just
+        // a premature optimization to avoid the copy?)
+        self.inner.export_snapshot()
+    }
+
+    pub fn import_snapshot(&mut self, data: &[u8]) {
+        self.inner.import_snapshot(data);
+    }
 }
 
 impl Default for World {

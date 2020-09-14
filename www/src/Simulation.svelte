@@ -14,6 +14,9 @@
             <button on:click={onReset}>
                 <i class="fas fa-fast-backward"></i>
             </button>
+            <button on:click={onUndoStep}>
+                <i class="fas fa-step-backward"></i>
+            </button>
             <!-- <button on:clock={onPause}>⏸</button> -->
             <button on:click={onStep}>
                 {#if intervalId}
@@ -66,6 +69,7 @@
     }
     button {
         margin: 0 0.2em 0 0;
+        min-width: 3.8em;
         color: #2E170ED5;
     }
     .spacer {
@@ -144,6 +148,14 @@
         // requestAnimationFrame(() => renderSim(w))
         renderSim()
     }
+    function onUndoStep() {
+        if (intervalId) {
+            clearInterval(intervalId)
+            intervalId = null
+        }
+        sim.tick_undo()
+        renderSim()
+    }
     function onPlayNormal() {
         playSpeed = 'normal'
         play()
@@ -217,7 +229,6 @@
             return null
         }
     }
-
 
     function onMouseMove({offsetX, offsetY}) {
         cursorHover = offsetToHex(offsetX, offsetY)

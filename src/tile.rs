@@ -1,5 +1,6 @@
 use crate::cell;
 use crate::coords;
+use serde::{Deserialize, Serialize};
 
 use cell::Cell;
 use coords::Direction;
@@ -9,12 +10,13 @@ const SIZE_LOG2: u32 = 5;
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Tile {
     // I think we don't technically need the Box, just to make sure it's on the heap.
     // Could also use "Vec", but I guess compile-time size will allow additional optimizations?
     // (At least with g++ and Eigen compile-time size was really helping. Maybe test this theory at some point.)
-    data: Box<[Cell; (SIZE * SIZE) as usize]>,
+    // data: Box<[Cell; (SIZE * SIZE) as usize]>,  // only works with serde up to 32 elements
+    data: Box<[Cell]>,
     // old C++ code, with padding for border-conditions:
     // (note: Padding on each tile is probably not even required for performance.
     //        We could use a huge memory block instead of tiles and do loop tiling,

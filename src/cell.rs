@@ -11,7 +11,7 @@ pub struct CellTypeRef(pub u8);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cell {
     pub cell_type: CellTypeRef,
-    pub value1: u8, // less pub please, representation should probably be internal
+    pub value1: u8,
     pub value2: u8,
     pub particle: bool,
     #[serde(skip)]
@@ -21,8 +21,8 @@ pub struct Cell {
 // Temporary state of cell during transaction resolution
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct CellTemp {
-    pub transact: DirectionSet,
-    pub moving: bool,
+    transact: DirectionSet,
+    moving: bool,
 }
 
 impl Cell {

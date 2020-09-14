@@ -11,14 +11,22 @@ export interface CellInfo {
 export default class Simulation {
     private w = new World()
     private step: number
+    private snapshots = []
 
     constructor () {
         this.w.set_rules_demo3()
     }
 
     tick() {
+        this.snapshots = [...this.snapshots.slice(-100), this.w.export_snapshot()]
         this.w.tick()
         this.step += 1
+    }
+
+    tick_undo() {
+        if (this.snapshots.length == 0) return;
+        this.w.import_snapshot(this.snapshots.pop())
+        this.step -= 1
     }
 
     get_cell_info(col: number, row: number): CellInfo {
