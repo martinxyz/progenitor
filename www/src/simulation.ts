@@ -48,6 +48,7 @@ export default class Simulation {
         this.w.set_cell(gridSize / 2 + 1, gridSize / 2 - 8, 1)
         this.w.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
         this.step = 0
+        this.snapshots = []
     }
 
     update_data(): Uint8Array {
