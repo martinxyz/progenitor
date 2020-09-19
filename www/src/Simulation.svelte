@@ -1,4 +1,4 @@
-<div class="container">
+<div class="container" on:keydown={onKey}>
     <div>
         <div class="canvasDiv">
             <canvas class="mainCanvas" bind:this={canvas} />
@@ -11,24 +11,23 @@
             />
         </div>
         <div class="button-row">
-            <button on:click={onReset}>
+            <button on:click={onReset} title="Reset (Backspace)">
                 <i class="fas fa-fast-backward"></i>
             </button>
-            <button on:click={onUndoStep}>
+            <button on:click={onUndoStep} title="Step Back (Arrow Left)">
                 <i class="fas fa-step-backward"></i>
             </button>
-            <!-- <button on:clock={onPause}>⏸</button> -->
-            <button on:click={onStep}>
+            <button on:click={onStep} bind:this={stepButton} title="Single Step (Arrow Right)">
                 {#if intervalId}
                     <i class="fas fa-pause"></i>
                 {:else}
                     <i class="fas fa-step-forward"></i>
                 {/if}
             </button>
-            <button on:click={onPlayNormal}>
+            <button on:click={onPlayNormal} title="Play Slow">
                 <i class="fas fa-play"></i>
             </button>
-            <button on:click={onPlayFast}>
+            <button on:click={onPlayFast} title="Play Fast">
                 <i class="fas fa-forward"></i>
             </button>
             <div class="spacer"></div>
@@ -96,6 +95,8 @@
     import { get_size } from "progenitor"
     import type { Hex as HexType } from 'honeycomb-grid'
 
+    let stepButton: HTMLElement
+
     let canvas: HTMLCanvasElement
     let overlayCanvas: HTMLCanvasElement
     let cursorHover = null
@@ -127,6 +128,8 @@
 
         onReset()
         onPlayNormal()
+
+        stepButton.focus()
     })
 
     const sim = new Simulation()
@@ -182,6 +185,21 @@
         }
         // requestAnimationFrame(() => renderWorld(w))
         renderSim()
+    }
+
+    function onKey(ev) {
+        const fn = {
+            'ArrowRight': onStep,
+            'ArrowLeft': onUndoStep,
+            'h': onStep,
+            'l': onUndoStep,
+            'Backspace': onReset,
+        }[ev.key]
+        if (fn) {
+            fn()
+            ev.preventDefault()
+            ev.stopPropagation()
+        }
     }
 
     function renderSim() {
