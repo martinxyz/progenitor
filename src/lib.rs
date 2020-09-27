@@ -1,5 +1,6 @@
-use rand::seq::SliceRandom;
-use rand::SeedableRng;
+use rand::{SeedableRng, seq::SliceRandom};
+#[cfg(not(target_arch = "wasm32"))]
+use rand::thread_rng;
 use rand_pcg::Pcg32;
 use std::io::prelude::*;
 mod cell;
@@ -44,11 +45,19 @@ pub enum Channels {
 
 impl World {
     pub fn new() -> World {
+        #[cfg(not(target_arch = "wasm32"))]
+        let rng = Pcg32::from_rng(thread_rng()).unwrap();
+        #[cfg(target_arch = "wasm32")]  // no thread_rng
+        let rng = Pcg32::seed_from_u64(0);
         World {
             cells: Tile::new(),
             types: CellTypes::new(),
-            rng: Pcg32::seed_from_u64(0),
+            rng,
         }
+    }
+
+    pub fn seed(&mut self, seed: u64) {
+        self.rng = Pcg32::seed_from_u64(seed);
     }
 
     pub fn tick(&mut self) {

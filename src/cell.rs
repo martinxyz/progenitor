@@ -83,8 +83,8 @@ pub enum TransformTrigger {
 #[derive(Debug, Clone, Copy)]
 pub struct CellType {
     // pub value1_spec: ValueSpec,
-    pub transform_at_value1: Option<u8>,
-    pub transform_at_random_p: u8, // probability (0 = never, 128 = always)
+    pub transform_at_value1: Option<u8>, // ...2 bytes...
+    pub transform_at_random_p: u8,       // probability (0 = never, 128 = always)
     pub transform_into: CellTypeRef,
     pub max_children: u8,
     pub transaction_child_type: CellTypeRef,

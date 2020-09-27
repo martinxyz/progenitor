@@ -1,5 +1,4 @@
 #![feature(test)]
-extern crate progenitor;
 use progenitor::coords::Cube;
 use progenitor::{Cell, CellType, CellTypeRef, World};
 
