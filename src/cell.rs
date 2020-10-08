@@ -12,7 +12,7 @@ pub struct CellTypeRef(pub u8);
 pub struct Cell {
     pub cell_type: CellTypeRef,
     pub value1: u8,
-    pub heading: u8,  // generic value2, or used as heading, perhaps? 3bits at least...
+    pub heading: u8, // generic value2, or used as heading, perhaps? 3bits at least...
     pub particle: bool,
     #[serde(skip)]
     temp: CellTemp,
@@ -165,7 +165,7 @@ impl CellTypes {
             128 => DirectionSet::none(),
             129 => match cur.heading {
                 i if i < 6 => DirectionSet::single(Direction::from_int(i as i8)),
-                _ =>  DirectionSet::none(),
+                _ => DirectionSet::none(),
             },
             // Also allow a single random direction? But in a better way...
             _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),

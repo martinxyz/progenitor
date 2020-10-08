@@ -1,6 +1,6 @@
-use rand::{SeedableRng, seq::SliceRandom};
 #[cfg(not(target_arch = "wasm32"))]
 use rand::thread_rng;
+use rand::{seq::SliceRandom, SeedableRng};
 use rand_pcg::Pcg32;
 use std::io::prelude::*;
 mod cell;
@@ -47,7 +47,7 @@ impl World {
     pub fn new() -> World {
         #[cfg(not(target_arch = "wasm32"))]
         let rng = Pcg32::from_rng(thread_rng()).unwrap();
-        #[cfg(target_arch = "wasm32")]  // no thread_rng
+        #[cfg(target_arch = "wasm32")] // no thread_rng
         let rng = Pcg32::seed_from_u64(0);
         World {
             cells: Tile::new(),

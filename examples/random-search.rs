@@ -1,6 +1,10 @@
 use progenitor::{coords, CellType, CellTypeRef, World};
+use rand::{thread_rng, Rng};
 use rayon::prelude::*;
-use rand::{Rng, thread_rng};
+
+use std::fs::File;
+use std::io::prelude::*;
+use std::collections::HashSet;
 
 const PARAM_COUNT: usize = 4;
 
@@ -63,12 +67,17 @@ fn create_world(params: &[u8]) -> World {
     world
 }
 
-fn evaluate(params: &[u8]) -> f64 {
+fn run(params: &[u8]) -> World {
     let mut world = create_world(params);
     let iterations = 100;
     for _ in 0..iterations {
         world.tick();
     }
+    world
+}
+
+fn evaluate(params: &[u8]) -> f64 {
+    let world = run(params);
     let empty = CellTypeRef(0);
     let n = world.iter_cells().filter(|&c| c.cell_type != empty).count();
     // println!("{} cells after {} iterations", n, iterations);
@@ -76,25 +85,44 @@ fn evaluate(params: &[u8]) -> f64 {
 }
 
 fn main() {
-    #[cfg(debug_assertions)] {
+    #[cfg(debug_assertions)]
+    {
         println!("warning: was compiled without optimizations");
     }
 
     let population_size = 10_000;
 
     let mut rng = thread_rng();
-    let population: Vec<Vec<u8>> = (0..population_size).into_iter().map(|_|
-        (0..PARAM_COUNT).into_iter()
-        .map(|_| rng.gen_range(0, 256) as u8)
-        .collect()
-    ).collect();
+    let population: Vec<Vec<u8>> = (0..population_size)
+        .into_iter()
+        .map(|_| {
+            (0..PARAM_COUNT)
+                .into_iter()
+                .map(|_| rng.gen_range(0, 256) as u8)
+                .collect()
+        })
+        .collect();
+
+    let mut bins_seen = HashSet::new();
 
     for params in population {
         let repetitions = 4;
         let score = (0..repetitions)
             .into_par_iter()
             .map(|_| evaluate(&params[0..4]))
-            .sum::<f64>() / repetitions as f64;
+            .sum::<f64>()
+            / repetitions as f64;
         println!("score: {:.6}, params: {:?}", score, params);
+        let world = run(&params[0..4]);
+
+        let scale_to_int = 10.0;
+        let bin = (score * scale_to_int).round() as i32;
+        if bins_seen.insert(bin) {
+            let filename = format!("output_{}.dat", bin as f64 / scale_to_int);
+            println!("found bin {}, writing {}", bin, filename);
+            let data = world.export_snapshot();
+            let mut file = File::create(&filename).unwrap();
+            file.write_all(&data).unwrap();
+        }
     }
 }
