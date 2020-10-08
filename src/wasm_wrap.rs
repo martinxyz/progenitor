@@ -91,6 +91,11 @@ impl World {
     pub fn set_rules_demo3(&mut self) {
         let types = &mut self.inner.types;
 
+        // let params = [207, 7, 51, 250];
+        // let params = [91, 33, 181, 66];
+        // let params = [2, 126, 177, 148];
+        let params = [202, 0, 52, 10];
+
         let empty = CellTypeRef(0);
         types[empty] = CellType {
             priority: -1, // cells with priority 0 may replace "empty" cells with their children
@@ -104,8 +109,8 @@ impl World {
         let slime = CellTypeRef(5);
         let base = CellType {
             transaction_skip_p: 255, // 120
-            transaction_move_parent_p: 35,
-            transform_at_random_p: 10,
+            transaction_move_parent_p: params[0],
+            transform_at_random_p: params[1],
             transform_into: interior_dead_cell,
             ..CellType::default()
         };
@@ -116,7 +121,7 @@ impl World {
             ..base
         };
         types[progenitor_cell] = CellType {
-            max_children: 7,
+            max_children: params[2],
             transaction_child_type: differentiated_cell,
             ..base
         };
@@ -127,7 +132,7 @@ impl World {
             transaction_skip_p: 0,
             transaction_move_parent_p: 0,
 
-            transform_at_random_p: 2,
+            transform_at_random_p: params[3],
             ..base
         };
         types[slime] = CellType {
@@ -140,6 +145,37 @@ impl World {
             transform_into: slime,
             ..types[slime]
         };
+
+        // let cell = types.create_cell(stem_cell);
+        // world.set_cell(coords::Cube { x: 5, y: 5 }, cell);
+        // world
+    }
+
+    pub fn set_rules_demo4(&mut self) {
+        let types = &mut self.inner.types;
+
+        let empty = CellTypeRef(0);
+        let photon = CellTypeRef(1);
+        types[empty] = CellType {
+            priority: -50, // cells with priority 0 may replace "empty" cells with their children
+            transform_at_random_p: 1,
+            transform_into: photon,
+            ..CellType::default()
+        };
+        types[photon] = CellType {
+            priority: -1,
+            // transform_into: CellTypeRef(2),
+            transaction_move_parent_p: 128,
+            max_children: 255,
+            transaction_child_type: CellTypeRef(0),
+            // transform_at_value1: Some(0),
+            transaction_skip_p: 129,
+            ..CellType::default()
+        };
+
+        // idea: some kind of "algae"/"photoreceptor" cell; it doesn't need to
+        // "belong" to another entity, but is required to provide energy to
+        // other blobs. So they are kind of herded / farmed / grown next to.
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {

@@ -18,7 +18,7 @@
     {#if cell}
         CellType: {cell.cell_type}
         <br /> Value1: {cell.value1}
-        <br /> Value2: {cell.value2}
+        <br /> Heading: {cell.heading}
         <br /> Particle: {cell.particle}
         <br />
         <!-- <pre>{JSON.stringify(cell, null, 2)}</pre> -->

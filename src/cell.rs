@@ -12,7 +12,7 @@ pub struct CellTypeRef(pub u8);
 pub struct Cell {
     pub cell_type: CellTypeRef,
     pub value1: u8,
-    pub value2: u8,
+    pub heading: u8,  // generic value2, or used as heading, perhaps? 3bits at least...
     pub particle: bool,
     #[serde(skip)]
     temp: CellTemp,
@@ -30,7 +30,7 @@ impl Cell {
         Cell {
             cell_type: CellTypeRef(0),
             value1: 0,
-            value2: 0,
+            heading: 0,
             particle: false,
             temp: Default::default(),
         }
@@ -88,7 +88,7 @@ pub struct CellType {
     pub transform_into: CellTypeRef,
     pub max_children: u8,
     pub transaction_child_type: CellTypeRef,
-    pub transaction_skip_p: u8, // probability (0 = never, 128 = always)
+    pub transaction_skip_p: u8, // probability (0 = never, 128 = always) (XXX misnamed for values >128)
     pub transaction_move_parent_p: u8, // probability (0 = never, 128 = always) to move the parent
     pub priority: i8,           // 0 = "default" (replacing a cell requires higher priority)
 }
@@ -145,7 +145,7 @@ impl CellTypes {
         Cell {
             cell_type,
             value1: 0,
-            value2: 0,
+            heading: 0,
             particle: false,
             temp: CellTemp {
                 // New cells created during a transaction shall not create a
@@ -161,8 +161,12 @@ impl CellTypes {
         let ct = self[cur.cell_type];
         let transact = match ct.transaction_skip_p {
             0 => DirectionSet::all(),
-            128 => DirectionSet::none(),
             prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0, 128) >= prob),
+            128 => DirectionSet::none(),
+            129 => match cur.heading {
+                i if i < 6 => DirectionSet::single(Direction::from_int(i as i8)),
+                _ =>  DirectionSet::none(),
+            },
             // Also allow a single random direction? But in a better way...
             _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
         };

@@ -47,9 +47,14 @@ requires-dist = ["numpy~=1.17"]
 
 # test this later, when doing optimizations:
 #[profile.release]
-#lto = "fat"
 #codegen-units = 1
 #debug = true
+#panic = 'abort'
+##lto = 'thin'
+#lto = "fat"
+
+[dev-dependencies]
+rayon = "1.4"
 
 [profile.bench]
 debug = true  # for better profiling

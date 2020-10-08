@@ -4,7 +4,7 @@ const gridSize = get_size()
 export interface CellInfo {
     cell_type: number,
     value1: number,
-    value2: number,
+    heading: number,
     particle: boolean,
 }
 
@@ -14,7 +14,7 @@ export default class Simulation {
     private snapshots = []
 
     constructor () {
-        this.w.set_rules_demo3()
+        this.w.set_rules_demo4()
     }
 
     tick() {
