@@ -2,9 +2,9 @@ use progenitor::{coords, CellType, CellTypeRef, World};
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
-use std::collections::HashSet;
 
 const PARAM_COUNT: usize = 4;
 
@@ -94,7 +94,6 @@ fn main() {
 
     let mut rng = thread_rng();
     let population: Vec<Vec<u8>> = (0..population_size)
-        .into_iter()
         .map(|_| {
             (0..PARAM_COUNT)
                 .into_iter()
@@ -103,26 +102,42 @@ fn main() {
         })
         .collect();
 
-    let mut bins_seen = HashSet::new();
+    let scale_to_int = 10.0;
 
-    for params in population {
-        let repetitions = 4;
-        let score = (0..repetitions)
-            .into_par_iter()
-            .map(|_| evaluate(&params[0..4]))
-            .sum::<f64>()
-            / repetitions as f64;
-        println!("score: {:.6}, params: {:?}", score, params);
-        let world = run(&params[0..4]);
+    let bins_seen = population
+        .into_par_iter()
+        .map(|params| {
+            let repetitions = 4;
+            let score = (0..repetitions)
+                .map(|_| evaluate(&params[0..4]))
+                .sum::<f64>()
+                / repetitions as f64;
+            println!("score: {:.6}, params: {:?}", score, params);
+            let world = run(&params[0..4]);
 
-        let scale_to_int = 10.0;
-        let bin = (score * scale_to_int).round() as i32;
-        if bins_seen.insert(bin) {
-            let filename = format!("output_{}.dat", bin as f64 / scale_to_int);
-            println!("found bin {}, writing {}", bin, filename);
-            let data = world.export_snapshot();
-            let mut file = File::create(&filename).unwrap();
-            file.write_all(&data).unwrap();
-        }
+            let bin = (score * scale_to_int).round() as i32;
+            (bin, world)
+        })
+        .fold(
+            || HashMap::new(),
+            |mut hs, (bin, world)| {
+                hs.insert(bin, world);
+                hs
+            },
+        )
+        .reduce(
+            || HashMap::new(),
+            |mut h1, h2| {
+                h1.extend(h2);
+                h1
+            },
+        );
+
+    for (bin, world) in bins_seen.into_iter() {
+        let filename = format!("output_{}.dat", bin as f64 / scale_to_int);
+        println!("found bin {}, writing {}", bin, filename);
+        let data = world.export_snapshot();
+        let mut file = File::create(&filename).unwrap();
+        file.write_all(&data).unwrap();
     }
 }

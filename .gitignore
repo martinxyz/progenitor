@@ -3,3 +3,4 @@ __pycache__
 /progenitor/progenitor.*.so
 /.log
 /.vscode
+output*.dat
