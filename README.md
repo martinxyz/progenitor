@@ -40,7 +40,7 @@ After the steps above, build and run the web application:
 ```bash
 cd www
 npm install
-npm start
+npm run dev
 ```
 
 Then open [http://localhost:8080](http://localhost:8080) in a browser.

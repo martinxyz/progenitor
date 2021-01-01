@@ -104,7 +104,7 @@ fn main() {
 
     let scale_to_int = 10.0;
 
-    let bins_seen = population
+    let bins_found = population
         .into_par_iter()
         .map(|params| {
             let repetitions = 4;
@@ -133,7 +133,7 @@ fn main() {
             },
         );
 
-    for (bin, world) in bins_seen.into_iter() {
+    for (bin, world) in bins_found.into_iter() {
         let filename = format!("output_{}.dat", bin as f64 / scale_to_int);
         println!("found bin {}, writing {}", bin, filename);
         let data = world.export_snapshot();
