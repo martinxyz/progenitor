@@ -207,7 +207,7 @@
         cell = cell
         step = sim.get_step()
 
-        const data = sim.update_data()
+        const [data_cell_type, data_energy] = sim.get_data()
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         myGrid.forEach(renderHex)
@@ -217,7 +217,8 @@
 
             let {x, y} = hex.cartesian()
             let idx = y * gridSize + x
-            let d = data[idx]
+            let d = data_cell_type[idx]
+            let e = data_energy[idx]
 
             // let color = '#FFF'
             let color = '#188'
@@ -236,6 +237,23 @@
             ctx.fillStyle = color
             ctx.fill()
             ctx.restore()
+
+            if (e > 0) {
+                if (e === 1) color = '#7708';
+                if (e === 2) color = '#AA09';
+                if (e === 3) color = '#FF0B';
+                if (e === 4) color = '#FF4D';
+                if (e === 5) color = '#FF8E';
+                if (e >= 6) color = '#FFFF';
+                ctx.save()
+                ctx.translate(position.x, position.y)
+                ctx.scale(0.97, 0.97)
+                ctx.beginPath()
+                ctx.arc(hex.center().x, hex.center().y, 4.0, 0, 2*Math.PI)
+                ctx.fillStyle = color
+                ctx.fill()
+                ctx.restore()
+            }
         }
     }
 

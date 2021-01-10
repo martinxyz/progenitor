@@ -1,8 +1,7 @@
-use crate::cell;
 use crate::coords;
 use serde::{Deserialize, Serialize};
+use std::iter::FromIterator;
 
-use cell::Cell;
 use coords::Direction;
 
 const SIZE_LOG2: u32 = 5;
@@ -11,17 +10,17 @@ pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Tile {
+pub struct Tile<CellT: Copy> {
     // I think we don't technically need the Box, just to make sure it's on the heap.
     // Could also use "Vec", but I guess compile-time size will allow additional optimizations?
     // (At least with g++ and Eigen compile-time size was really helping. Maybe test this theory at some point.)
-    // data: Box<[Cell; (SIZE * SIZE) as usize]>,  // only works with serde up to 32 elements
-    data: Box<[Cell]>,
+    // data: Box<[CellT; (SIZE * SIZE) as usize]>,  // only works with serde up to 32 elements
+    data: Box<[CellT]>,
     // old C++ code, with padding for border-conditions:
     // (note: Padding on each tile is probably not even required for performance.
     //        We could use a huge memory block instead of tiles and do loop tiling,
     //        if we do not want the "inifinite space of tiles" feature.
-    //        Though it tiling might be good, to keep things on the same memory page?
+    //        Though tiling might be good, to keep things on the same memory page?
     //        This is for later. Let's do something that works first.)
     //
     // struct Tile {
@@ -35,13 +34,22 @@ pub struct Tile {
     //};
 }
 
-// type NeighbourIterMut<'t> = std::iter::Zip<std::slice::IterMut<'t, Cell>, NeighbourIter<'t>>;
+impl<CellT: Copy> FromIterator<CellT> for Tile<CellT> {
+    fn from_iter<T: IntoIterator<Item = CellT>>(iter: T) -> Self {
+        let data: Box<[CellT]> = iter.into_iter().collect();
+        if data.len() != (SIZE * SIZE) as usize {
+            panic!("Tile created from iterator of wrong size.")
+        }
+        Tile { data }
+    }
+}
 
-impl Tile {
-    pub fn new() -> Tile {
-        let cell = Cell::empty();
+// type NeighbourIterMut<'t> = std::iter::Zip<std::slice::IterMut<'t, CellT>, NeighbourIter<'t>>;
+
+impl<CellT: Copy> Tile<CellT> {
+    pub fn new(fill: CellT) -> Self {
         Tile {
-            data: Box::new([cell; (SIZE * SIZE) as usize]),
+            data: Box::new([fill; (SIZE * SIZE) as usize]),
         }
     }
 
@@ -53,27 +61,16 @@ impl Tile {
         (r * SIZE + q) as usize
     }
 
-    pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {
+    pub fn set_cell(&mut self, pos: coords::Cube, cell: CellT) {
         self.data[Self::get_index(pos)] = cell;
     }
 
-    pub fn get_cell(&self, pos: coords::Cube) -> Cell {
+    pub fn get_cell(&self, pos: coords::Cube) -> CellT {
         self.data[Self::get_index(pos)]
     }
 
-    /// Iterator over a rectangle in offset coordinates.
-    pub fn iterate_rectangle(
-        pos: coords::Cube,
-        width: i32,
-        height: i32,
-    ) -> impl Iterator<Item = coords::Cube> {
-        (0..height)
-            .map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
-            .flatten()
-    }
-
     /// Iterate over all cells (in axial-storage order), yielding the cell and its 6 neighbours
-    pub fn iter_radius_1(&self) -> NeighbourIter {
+    pub fn iter_radius_1(&self) -> NeighbourIter<CellT> {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
         NeighbourIter {
             tile: &self,
@@ -88,7 +85,7 @@ impl Tile {
         // note to self: I think FnMut instead of Fn implies that we should
         // iterate in well-defined order...? For reproducible rng seed at least,
         // order should not be thought of an unstable implementation detail.
-        F: FnMut(&mut Cell, NeighbourCells),
+        F: FnMut(&mut CellT, NeighbourCells<CellT>),
     {
         // OPTIMIZE: could touch less memory by only keeping a copy of the previous line
         // OPTIMIZE: provide a cheaper method for accessing only two neighbours on the same axis
@@ -100,27 +97,37 @@ impl Tile {
         }
     }
 
-    pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {
+    // ??? do we gain something by returning "impl ExactSizeIterator" instead of "impl Iterator"?
+    // Probably it is enough that the actual instance type is "impl ExactSizeIterator"...?
+    pub fn iter_cells(&self) -> impl ExactSizeIterator<Item = &CellT> {
         self.data.iter()
     }
 }
 
-impl Default for Tile {
-    fn default() -> Self {
-        Self::new()
-    }
+/// Iterator over a rectangle in offset coordinates.
+pub fn iterate_rectangle(
+    pos: coords::Cube,
+    width: i32,
+    height: i32,
+) -> impl Iterator<Item = coords::Cube> {
+    (0..height)
+        .map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
+        .flatten()
 }
 
-pub struct NeighbourIter<'t> {
-    tile: &'t Tile,
+pub struct NeighbourIter<'t, CellT: Copy> {
+    tile: &'t Tile<CellT>,
     q: i32,
     r: i32,
 }
 
-pub type NeighbourCells = [Cell; 6];
+pub type NeighbourCells<CellT> = [(Direction, CellT); 6];
 
-impl<'t> Iterator for NeighbourIter<'t> {
-    type Item = (Cell, NeighbourCells);
+impl<CellT> Iterator for NeighbourIter<'_, CellT>
+where
+    CellT: Copy,
+{
+    type Item = (CellT, NeighbourCells<CellT>);
     fn next(&mut self) -> Option<Self::Item> {
         // there is probably some rust-ish was to avoid doing this...
         // maybe should use an iterator that just yields the indices, separate from the data access?
@@ -139,11 +146,19 @@ impl<'t> Iterator for NeighbourIter<'t> {
 
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
-            let pos = center_pos + Direction::from_int(idx);
-            self.tile.get_cell(pos)
+            let dir = Direction::from_int(idx);
+            let pos = center_pos + dir;
+            (dir, self.tile.get_cell(pos))
         };
         let neighbours = [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)];
         let center = self.tile.get_cell(center_pos);
         Some((center, neighbours))
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = (SIZE * SIZE) as usize;
+        (len, Some(len))
+    }
 }
+
+impl<CellT: Copy> ExactSizeIterator for NeighbourIter<'_, CellT> {}

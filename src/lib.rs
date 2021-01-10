@@ -2,7 +2,8 @@
 use rand::thread_rng;
 use rand::{seq::SliceRandom, SeedableRng};
 use rand_pcg::Pcg32;
-use std::io::prelude::*;
+use std::{convert::TryInto, io::prelude::*};
+use tile::iterate_rectangle;
 mod cell;
 pub mod coords;
 mod tile;
@@ -14,11 +15,11 @@ mod py_wrap;
 mod wasm_wrap;
 
 use cell::CellTypes;
-pub use cell::{Cell, CellType, CellTypeRef}; // note: Cell should not be pub? at least not its internals
+pub use cell::{Cell, CellTemp, CellType, CellTypeRef};
 pub use tile::{Tile, SIZE};
 
 pub struct World {
-    cells: Tile,
+    cells: Tile<Cell>,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
     rng: Pcg32,
@@ -50,7 +51,7 @@ impl World {
         #[cfg(target_arch = "wasm32")] // no thread_rng
         let rng = Pcg32::seed_from_u64(0);
         World {
-            cells: Tile::new(),
+            cells: Tile::new(Default::default()),
             types: CellTypes::new(),
             rng,
         }
@@ -63,10 +64,34 @@ impl World {
     pub fn tick(&mut self) {
         let types = &self.types;
         let mut rng = &mut self.rng;
-        self.cells.mutate_with_radius_1(|cell, _neighbours| {
-            *cell = types.self_transform(&mut rng, *cell);
-            *cell = types.prepare_transaction(&mut rng, *cell);
-        });
+        // self.cells.mutate_with_radius_1(|cell, _neighbours| {
+        // *cell = types.self_transform(&mut rng, *cell);
+        // });
+
+        let cells_temp: Tile<_> = self
+            .cells
+            .iter_cells()
+            .map(|&cell| {
+                let next_cell = types.self_transform(&mut rng, cell);
+                let next_temp = types.prepare_growth(&mut rng, cell);
+                (next_cell, next_temp)
+            })
+            .collect();
+
+        self.cells = cells_temp
+            .iter_radius_1()
+            .map(|((next_cell, _), neighbours)| {
+                let neighbours_temp: [_; 6] = neighbours
+                    .iter()
+                    .map(|&(dir, (_, temp))| (dir, temp))
+                    .collect::<Vec<_>>()
+                    .try_into()
+                    .unwrap();
+                types.execute_growth(next_cell, neighbours_temp)
+            })
+            .collect();
+
+        // *cell = types.prepare_growth(&mut rng, *cell);
 
         let mut directions: Vec<Direction> = Direction::all().to_vec();
         directions.shuffle(&mut rng);
@@ -75,8 +100,8 @@ impl World {
             self.cells.mutate_with_radius_1(|cell, neighbours| {
                 // 1. transactions to/from neighbours
                 // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
-                let prev = neighbours[dir as usize];
-                let next = neighbours[-dir as usize];
+                let prev = neighbours[dir as usize].1;
+                let next = neighbours[-dir as usize].1;
                 let t1 = types.get_transaction(prev, *cell, dir);
                 let t2 = types.get_transaction(*cell, next, dir);
                 *cell = types.execute_transactions(t1, *cell, t2);
@@ -85,12 +110,6 @@ impl World {
                 // currently not used
             });
         }
-
-        self.cells.mutate_with_radius_1(|cell, _neighbours| {
-            // we do this a the end, rather than the start, mostly just to allow
-            // cell comparision in unit-tests
-            *cell = types.clear_transaction(*cell);
-        });
     }
 
     pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {
@@ -101,12 +120,11 @@ impl World {
         self.cells.get_cell(pos)
     }
 
-    pub fn get_cell_types(&self, buf: &mut [u8]) {
+    pub fn get_cells_rectangle(&self) -> Vec<Cell> {
         let pos = coords::Cube { x: 0, y: 0 };
-        let it = Tile::iterate_rectangle(pos, SIZE as i32, SIZE as i32);
-        for (idx, coord) in it.enumerate() {
-            buf[idx] = self.get_cell(coord).cell_type.0;
-        }
+        iterate_rectangle(pos, SIZE as i32, SIZE as i32)
+            .map(|coord| self.get_cell(coord))
+            .collect()
     }
 
     pub fn export_snapshot(&self) -> Vec<u8> {
@@ -128,7 +146,7 @@ impl World {
         // ignore extra, if any (allows for non-breaking extensions)
     }
 
-    pub fn iter_cells(&self) -> impl Iterator<Item = &Cell> {
+    pub fn iter_cells(&self) -> impl ExactSizeIterator<Item = &Cell> {
         self.cells.iter_cells()
     }
 }

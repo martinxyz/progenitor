@@ -1,7 +1,7 @@
 use crate::coords;
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
-use js_sys::Uint8Array;
+// use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
 fn set_panic_hook() {
@@ -19,7 +19,6 @@ pub fn get_size() -> u32 {
 // pub needed?
 pub struct World {
     inner: crate::World,
-    data: Vec<u8>,
 }
 
 #[wasm_bindgen]
@@ -29,7 +28,6 @@ impl World {
         set_panic_hook();
         World {
             inner: crate::World::new(),
-            data: vec![0; (SIZE * SIZE) as usize],
         }
     }
 
@@ -37,15 +35,13 @@ impl World {
         let c1 = CellTypeRef(1);
         let c2 = CellTypeRef(2);
         self.inner.types[c1] = CellType {
-            priority: 1,
-            max_children: 255,
-            transaction_child_type: c2,
+            priority: 110,
+            grow_child_type: c2,
             ..CellType::default()
         };
         self.inner.types[c2] = CellType {
-            priority: 1,
-            max_children: 255,
-            transaction_child_type: c1,
+            priority: 110,
+            grow_child_type: c1,
             ..CellType::default()
         };
     }
@@ -65,117 +61,27 @@ impl World {
         let progenitor_cell = CellTypeRef(2);
         let differentiated_cell = CellTypeRef(3);
         let base = CellType {
-            transaction_skip_p: 255, // 120
-            transaction_move_parent_p: 35,
+            grow_p: 255, // 120
+            // transaction_move_parent_p: 35,
             transform_at_random_p: 10,
             transform_into: empty,
             ..CellType::default()
         };
         types[stem_cell] = CellType {
-            max_children: 255,
-            transaction_child_type: progenitor_cell,
+            // max_children: 255,
+            grow_child_type: progenitor_cell,
             transform_at_random_p: 0,
             ..base
         };
         types[progenitor_cell] = CellType {
-            max_children: 7,
-            transaction_child_type: differentiated_cell,
+            initial_energy: 7,
+            grow_child_type: differentiated_cell,
             ..base
         };
         types[differentiated_cell] = CellType {
             transform_at_random_p: 2,
             ..base
         };
-    }
-
-    pub fn set_rules_demo3(&mut self) {
-        let types = &mut self.inner.types;
-
-        // let params = [207, 7, 51, 250];
-        // let params = [91, 33, 181, 66];
-        // let params = [2, 126, 177, 148];
-        let params = [202, 0, 52, 10];
-
-        let empty = CellTypeRef(0);
-        types[empty] = CellType {
-            priority: -1, // cells with priority 0 may replace "empty" cells with their children
-            ..CellType::default()
-        };
-
-        let stem_cell = CellTypeRef(1);
-        let progenitor_cell = CellTypeRef(2);
-        let differentiated_cell = CellTypeRef(3);
-        let interior_dead_cell = CellTypeRef(4);
-        let slime = CellTypeRef(5);
-        let base = CellType {
-            transaction_skip_p: 255, // 120
-            transaction_move_parent_p: params[0],
-            transform_at_random_p: params[1],
-            transform_into: interior_dead_cell,
-            ..CellType::default()
-        };
-        types[stem_cell] = CellType {
-            max_children: 255,
-            transaction_child_type: progenitor_cell,
-            transform_at_random_p: 0,
-            ..base
-        };
-        types[progenitor_cell] = CellType {
-            max_children: params[2],
-            transaction_child_type: differentiated_cell,
-            ..base
-        };
-        types[differentiated_cell] = CellType {
-            max_children: 255,
-            transaction_child_type: slime, // why does it seem to move when producing slime?
-            // skip_transaction_p: 120,
-            transaction_skip_p: 0,
-            transaction_move_parent_p: 0,
-
-            transform_at_random_p: params[3],
-            ..base
-        };
-        types[slime] = CellType {
-            priority: -1, // cells with priority 0 may replace "slime" cells with their children
-            transform_at_random_p: 1,
-            transform_into: empty,
-            ..CellType::default()
-        };
-        types[interior_dead_cell] = CellType {
-            transform_into: slime,
-            ..types[slime]
-        };
-
-        // let cell = types.create_cell(stem_cell);
-        // world.set_cell(coords::Cube { x: 5, y: 5 }, cell);
-        // world
-    }
-
-    pub fn set_rules_demo4(&mut self) {
-        let types = &mut self.inner.types;
-
-        let empty = CellTypeRef(0);
-        let photon = CellTypeRef(1);
-        types[empty] = CellType {
-            priority: -50, // cells with priority 0 may replace "empty" cells with their children
-            transform_at_random_p: 1,
-            transform_into: photon,
-            ..CellType::default()
-        };
-        types[photon] = CellType {
-            priority: -1,
-            // transform_into: CellTypeRef(2),
-            transaction_move_parent_p: 128,
-            max_children: 255,
-            transaction_child_type: CellTypeRef(0),
-            // transform_at_value1: Some(0),
-            transaction_skip_p: 129,
-            ..CellType::default()
-        };
-
-        // idea: some kind of "algae"/"photoreceptor" cell; it doesn't need to
-        // "belong" to another entity, but is required to provide energy to
-        // other blobs. So they are kind of herded / farmed / grown next to.
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
@@ -194,21 +100,13 @@ impl World {
         self.inner.tick();
     }
 
-    pub fn update_data(&mut self) -> Uint8Array {
-        /*
-        self.data = self.inner.cells
-            .iter_cells()
-            .map(|c| c.get_type().0)
-        */
-        self.inner.get_cell_types(self.data.as_mut_slice());
-
-        // JS constructor will copy the data
-        Uint8Array::from(self.data.as_slice())
-        // zero-copy:
-        // unsafe {
-        //     // if no rust code runs before the data is used it is safe, if I understand this correctly
-        //     Uint8Array::view(self.data.as_slice())
-        // }
+    pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
+        self.inner.get_cells_rectangle().iter().map(|cell| match channel {
+            0 => cell.cell_type.0,
+            1 => cell.energy,
+            2 => cell.heading,
+            _ => panic!("invalid channel")
+        }).collect()
     }
 
     /* enabling this makes wasm_opt crash (sig11)
@@ -224,8 +122,6 @@ impl World {
     pub fn export_snapshot(&self) -> Vec<u8> {
         // FIXME: this gets converted to a JS Uint8Array, but:
         // I think (hope) it's a copy, not a reference to the wasm memory. XXX
-        // (Also, why didn't I do it that way for update_data()? Was it just
-        // a premature optimization to avoid the copy?)
         self.inner.export_snapshot()
     }
 

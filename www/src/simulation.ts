@@ -14,7 +14,7 @@ export default class Simulation {
     private snapshots = []
 
     constructor () {
-        this.w.set_rules_demo4()
+        this.w.set_rules_demo2()
     }
 
     tick() {
@@ -36,7 +36,7 @@ export default class Simulation {
     get_step() {
         return this.step
     }
-    
+
     async reset() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
@@ -56,8 +56,8 @@ export default class Simulation {
         // this.w.import_snapshot(data)
     }
 
-    update_data(): Uint8Array {
+    get_data(): Uint8Array[] {
         // contract: use it immediately, may be invalid the next time any wasm is called
-        return this.w.update_data()
+        return [this.w.get_data(0), this.w.get_data(1)]
     }
 }
