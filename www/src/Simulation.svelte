@@ -37,7 +37,7 @@
         </div>
     </div>
     <div>
-        <Sidebar {cell}/>
+        <Sidebar {cell} bind:showEnergy/>
     </div>
 </div>
 
@@ -105,6 +105,8 @@
     $: cursor = cursorSelected || cursorHover
     $: cell = cursor ? sim.get_cell_info(cursor.x, cursor.y) : null
 
+    let showEnergy = false
+
     const gridSize = get_size()
 
     const Hex = extendHex({ size: 8 })
@@ -115,6 +117,11 @@
 
     let ctx: CanvasRenderingContext2D
     let overlayCtx: CanvasRenderingContext2D
+
+    $: {
+        showEnergy
+        if (ctx) renderSim()
+    }
 
     onMount(() => {
         canvas.width = 450
@@ -236,15 +243,20 @@
             hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
             ctx.fillStyle = color
             ctx.fill()
+            if (showEnergy) {
+                ctx.fillStyle = '#555A'
+                ctx.fill()
+            }
             ctx.restore()
 
-            if (e > 0) {
-                if (e === 1) color = '#7708';
-                if (e === 2) color = '#AA09';
-                if (e === 3) color = '#FF0B';
-                if (e === 4) color = '#FF4D';
-                if (e === 5) color = '#FF8E';
-                if (e >= 6) color = '#FFFF';
+            if (showEnergy && d !== 0) {
+                if (e === 0) color = '#000';
+                if (e === 1) color = '#880';
+                if (e === 2) color = '#AA0';
+                if (e === 3) color = '#CC0';
+                if (e === 4) color = '#DD0';
+                if (e === 5) color = '#EE2';
+                if (e >= 6) color = '#FF6';
                 ctx.save()
                 ctx.translate(position.x, position.y)
                 ctx.scale(0.97, 0.97)
