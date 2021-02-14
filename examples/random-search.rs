@@ -24,29 +24,28 @@ fn create_world(params: &[u8]) -> World {
     let interior_dead_cell = CellTypeRef(4);
     let slime = CellTypeRef(5);
     let base = CellType {
-        grow_p: 255, // 120
-        transaction_move_parent_p: params[0],
-        transform_at_random_p: params[1],
+        transform_at_random_p: params[1], // 120
+        initial_energy: params[0],        // FIXME: probably nonsense to use a param for that
         transform_into: interior_dead_cell,
+        grow_p: 255,
         ..CellType::default()
     };
     types[stem_cell] = CellType {
-        max_children: 255,
-        grow_child_type: progenitor_cell,
+        initial_energy: 255,
         transform_at_random_p: 0,
+        grow_child_type: progenitor_cell,
         ..base
     };
     types[progenitor_cell] = CellType {
-        max_children: params[2],
+        initial_energy: params[2],
         grow_child_type: differentiated_cell,
         ..base
     };
     types[differentiated_cell] = CellType {
-        max_children: 255,
+        initial_energy: 255,
         grow_child_type: slime, // why does it seem to move when producing slime?
         // skip_transaction_p: 120,
         grow_p: 128,
-        transaction_move_parent_p: 0,
 
         transform_at_random_p: params[3],
         ..base

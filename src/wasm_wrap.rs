@@ -101,12 +101,16 @@ impl World {
     }
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
-        self.inner.get_cells_rectangle().iter().map(|cell| match channel {
-            0 => cell.cell_type.0,
-            1 => cell.energy,
-            2 => cell.heading,
-            _ => panic!("invalid channel")
-        }).collect()
+        self.inner
+            .get_cells_rectangle()
+            .iter()
+            .map(|cell| match channel {
+                0 => cell.cell_type.0,
+                1 => cell.energy,
+                2 => cell.heading,
+                _ => panic!("invalid channel"),
+            })
+            .collect()
     }
 
     /* enabling this makes wasm_opt crash (sig11)
