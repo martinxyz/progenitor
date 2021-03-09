@@ -14,7 +14,7 @@ export default class Simulation {
     private snapshots = []
 
     constructor () {
-        this.w.set_rules_demo2()
+        this.w.set_rules_demo3()
     }
 
     tick() {

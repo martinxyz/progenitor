@@ -74,13 +74,62 @@ impl World {
             ..base
         };
         types[progenitor_cell] = CellType {
-            initial_energy: 7,
+            initial_energy: 1,
             grow_child_type: differentiated_cell,
             ..base
         };
         types[differentiated_cell] = CellType {
+            grow_p: 0, // XXX required to prevent leaking energy into air (FIXME)
+            // e.g. we could either call grow_t somethig else ("friend_t?") and decouple it from growth. Or just disallow setting a grow_p without also setting a grow_type (e.g. proper typing... with option, disallow using the grow_type if it implies zero growth)
             transform_at_random_p: 2,
             ..base
+        };
+    }
+
+    pub fn set_rules_demo3(&mut self) {
+        let types = &mut self.inner.types;
+
+        let mut ref_iterator = (0..255u8).map(|i| CellTypeRef(i));
+        let mut new_ref = || ref_iterator.next().unwrap();
+
+        // let mut id = 0;
+        // fn next_ref() {
+        //     id = id + 1;
+        //     CellTypeRef(id)
+        // }
+
+        let genesis = new_ref();
+        let air = new_ref();
+        let wall = new_ref();
+        let pre_wall = new_ref();
+
+        types[genesis] = CellType {
+            priority: -128,
+            transform_at_random_p: 128,
+            transform_into: air,
+            grow_child_type: pre_wall,
+            grow_p: 2,
+            ..CellType::default()
+        };
+
+        types[air] = CellType {
+            priority: -1,
+            ..CellType::default()
+        };
+
+        types[pre_wall] = CellType {
+            priority: 19,
+            initial_energy: 2,
+            transform_at_random_p: 128,
+            transform_into: wall,
+            grow_child_type: wall,
+            grow_p: 80,
+            ..CellType::default()
+        };
+        types[wall] = CellType {
+            priority: 20,
+            initial_energy: 2,
+            ..CellType::default()
         };
     }
 

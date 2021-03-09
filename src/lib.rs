@@ -1,6 +1,6 @@
 #[cfg(not(target_arch = "wasm32"))]
 use rand::thread_rng;
-use rand::{seq::SliceRandom, SeedableRng};
+use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use std::{convert::TryInto, io::prelude::*};
 use tile::iterate_rectangle;
@@ -93,8 +93,9 @@ impl World {
 
         // *cell = types.prepare_growth(&mut rng, *cell);
 
-        let mut directions: Vec<Direction> = Direction::all().to_vec();
-        directions.shuffle(&mut rng);
+        let directions: Vec<Direction> = Direction::all().to_vec();
+        // let mut directions: Vec<Direction> = Direction::all().to_vec();
+        // directions.shuffle(&mut rng);
 
         for dir in directions {
             self.cells.mutate_with_radius_1(|cell, neighbours| {

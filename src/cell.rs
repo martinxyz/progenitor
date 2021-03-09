@@ -55,7 +55,7 @@ impl CellType {
             transform_at_random_p: 0,
             transform_into: CellTypeRef(0),
             grow_child_type: CellTypeRef(0),
-            grow_p: 128,
+            grow_p: 0,
         }
     }
 }
