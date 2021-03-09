@@ -36,11 +36,13 @@ impl World {
         let c2 = CellTypeRef(2);
         self.inner.types[c1] = CellType {
             priority: 110,
+            grow_p: 128,
             grow_child_type: c2,
             ..CellType::default()
         };
         self.inner.types[c2] = CellType {
             priority: 110,
+            grow_p: 128,
             grow_child_type: c1,
             ..CellType::default()
         };
@@ -89,7 +91,7 @@ impl World {
     pub fn set_rules_demo3(&mut self) {
         let types = &mut self.inner.types;
 
-        let mut ref_iterator = (0..255u8).map(|i| CellTypeRef(i));
+        let mut ref_iterator = (0..255u8).map(CellTypeRef);
         let mut new_ref = || ref_iterator.next().unwrap();
 
         // let mut id = 0;

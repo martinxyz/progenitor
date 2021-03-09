@@ -80,6 +80,7 @@ impl<CellT: Copy> Tile<CellT> {
     }
 
     /// For convolution-like operations
+    /*
     pub fn mutate_with_radius_1<F>(&mut self, mut f: F)
     where
         // note to self: I think FnMut instead of Fn implies that we should
@@ -96,6 +97,7 @@ impl<CellT: Copy> Tile<CellT> {
             f(center, neighbours)
         }
     }
+    */
 
     // ??? do we gain something by returning "impl ExactSizeIterator" instead of "impl Iterator"?
     // Probably it is enough that the actual instance type is "impl ExactSizeIterator"...?

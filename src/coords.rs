@@ -73,6 +73,18 @@ impl DirectionSet {
         let dir_mask = 1 << (dir as u8);
         self.mask & dir_mask != 0
     }
+    pub fn with(&self, dir: Direction, present: bool) -> Self {
+        DirectionSet {
+            mask: if present {
+                self.mask | (1 << (dir as u8))
+            } else {
+                self.mask & !(1 << (dir as u8))
+            },
+        }
+    }
+    pub fn count(&self) -> u8 {
+        self.mask.count_ones() as u8
+    }
 }
 
 /* doesn't seem to work, maybe because &[Direction] is a different type from &[Direction, 2]?

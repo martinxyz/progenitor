@@ -14,8 +14,8 @@ mod py_wrap;
 // #[cfg(target_arch = "wasm32")]
 mod wasm_wrap;
 
-use cell::CellTypes;
 pub use cell::{Cell, CellTemp, CellType, CellTypeRef};
+use cell::{CellTypes, EnergyTransfer};
 pub use tile::{Tile, SIZE};
 
 pub struct World {
@@ -68,7 +68,7 @@ impl World {
         // *cell = types.self_transform(&mut rng, *cell);
         // });
 
-        let cells_temp: Tile<_> = self
+        let cells_temp: Tile<(Cell, CellTemp)> = self
             .cells
             .iter_cells()
             .map(|&cell| {
@@ -91,26 +91,53 @@ impl World {
             })
             .collect();
 
-        // *cell = types.prepare_growth(&mut rng, *cell);
+        // request energy transfer
+        let cells_temp2: Tile<(Cell, EnergyTransfer)> = self
+            .cells
+            .iter_radius_1()
+            .map(|(cell, neighbours)| {
+                let request_out =
+                    neighbours
+                        .iter()
+                        .fold(DirectionSet::none(), |acc, &(dir, neigh)| {
+                            acc.with(dir, types.wants_energy_transfer(cell, neigh, dir))
+                        });
+                let request_in = DirectionSet::all();
+                (cell, EnergyTransfer {
+                    allow_out: if cell.energy >= request_out.count() {
+                        request_out
+                    } else {
+                        DirectionSet::none()
+                    },
+                    allow_in: if cell.energy <= 255 - request_in.count() {
+                        DirectionSet::all()
+                    } else {
+                        DirectionSet::none()
+                    },
+                })
+            })
+            .collect();
 
-        let directions: Vec<Direction> = Direction::all().to_vec();
-        // let mut directions: Vec<Direction> = Direction::all().to_vec();
-        // directions.shuffle(&mut rng);
-
-        for dir in directions {
-            self.cells.mutate_with_radius_1(|cell, neighbours| {
-                // 1. transactions to/from neighbours
-                // note(performance): if we're going to do just one direction at a time, we obviously could do much more efficient interation
-                let prev = neighbours[dir as usize].1;
-                let next = neighbours[-dir as usize].1;
-                let t1 = types.get_transaction(prev, *cell, dir);
-                let t2 = types.get_transaction(*cell, next, dir);
-                *cell = types.execute_transactions(t1, *cell, t2);
-
-                // 2. self-transformation (independent from neighbours, 6 executions per step)
-                // currently not used
-            });
-        }
+        // transfer energy
+        self.cells = cells_temp2
+            .iter_radius_1()
+            .map(|((cell, this), neighbours)| {
+                let diff = neighbours
+                    .iter()
+                    .map(|&(dir, (_, other))| {
+                        let transfer_out =
+                            this.allow_out.contains(dir) && other.allow_in.contains(-dir);
+                        let transfer_in =
+                            this.allow_in.contains(dir) && other.allow_out.contains(-dir);
+                        (if transfer_out { -1 } else { 0 }) + (if transfer_in { 1 } else { 0 })
+                    })
+                    .sum::<i8>();
+                Cell {
+                    energy: ((cell.energy as i16) + (diff as i16)) as u8,
+                    ..cell
+                }
+            })
+            .collect();
     }
 
     pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {

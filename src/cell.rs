@@ -23,6 +23,13 @@ pub struct CellTemp {
     grow_prio: i8,
 }
 
+// Temporary state of cell (intermediate calculation)
+#[derive(Copy, Clone, Debug)]
+pub struct EnergyTransfer {
+    pub allow_out: DirectionSet, // pub?
+    pub allow_in: DirectionSet,
+}
+
 impl Default for Cell {
     fn default() -> Self {
         Cell {
@@ -157,36 +164,18 @@ impl CellTypes {
         }
     }
 
-    pub fn get_transaction(&self, cur: Cell, next: Cell, _dir: Direction) -> Transaction {
+    pub fn wants_energy_transfer(&self, cur: Cell, next: Cell, _dir: Direction) -> bool {
         let cur_ct = self[cur.cell_type];
         // let next_ct = self[next.cell_type];
-
-        let mut energy_transfer = 0;
         if cur.energy > 1 {
             // those should be configurable by celltype
             if next.cell_type == cur.cell_type {
-                energy_transfer = 1
-            } else if cur_ct.grow_p != 0 && next.cell_type == cur_ct.grow_child_type {
-                // energy_transfer = cur.energy - 1
-                energy_transfer = 1
+                true
+            } else {
+                cur_ct.grow_p != 0 && next.cell_type == cur_ct.grow_child_type
             }
-        }
-
-        Transaction { energy_transfer }
-    }
-
-    pub fn execute_transactions(
-        &self,
-        prev_to_cur: Transaction,
-        cur: Cell,
-        cur_to_next: Transaction,
-    ) -> Cell {
-        Cell {
-            energy: cur
-                .energy
-                .wrapping_add(prev_to_cur.energy_transfer)
-                .wrapping_sub(cur_to_next.energy_transfer),
-            ..cur
+        } else {
+            false
         }
     }
 }
@@ -195,9 +184,4 @@ impl Default for CellTypes {
     fn default() -> Self {
         CellTypes::new()
     }
-}
-
-#[derive(Debug)]
-pub struct Transaction {
-    energy_transfer: u8,
 }
