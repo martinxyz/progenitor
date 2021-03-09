@@ -1,4 +1,4 @@
-<div class="container" on:keydown={onKey}>
+<div class="host" on:keydown={onKey}>
     <div>
         <div class="canvasDiv">
             <canvas class="mainCanvas" bind:this={canvas} />
@@ -42,13 +42,9 @@
 </div>
 
 <style lang="scss">
-    .container {
+    .host {
         display: inline-flex;
         flex-direction: row;
-        background-color: #CCC;
-        border: 2px solid #2E170E;
-        border-radius: 5px;
-        padding: .5em;
     }
     .canvasDiv {
         position: relative;
@@ -94,6 +90,14 @@
     import { onMount } from 'svelte'
     import { get_size } from "progenitor"
     import type { Hex as HexType } from 'honeycomb-grid'
+
+    export let rule
+    $: {
+        if (rule) {
+            sim.set_rules(rule)
+            onReset()
+        }
+    }
 
     let stepButton: HTMLElement
 

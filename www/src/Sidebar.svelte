@@ -23,7 +23,7 @@
 <div class="infobar">
     <h3>Display</h3>
     <p>
-        <label>
+        <label class="checkbox">
             <input type="checkbox" bind:checked={showEnergy}/>
             Energy
         </label>

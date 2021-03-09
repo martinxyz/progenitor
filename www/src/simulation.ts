@@ -14,7 +14,14 @@ export default class Simulation {
     private snapshots = []
 
     constructor () {
-        this.w.set_rules_demo3()
+        this.set_rules('demo1')
+    }
+
+    set_rules(name) {
+        let fname = 'set_rules_' + (name || 'demo1')
+        console.log('rule selected:', fname)
+        this.w = new World()  // clear rules
+        this.w[fname]()
     }
 
     tick() {
@@ -37,7 +44,7 @@ export default class Simulation {
         return this.step
     }
 
-    async reset() {
+    reset() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 this.w.set_cell(y, x, 0)
