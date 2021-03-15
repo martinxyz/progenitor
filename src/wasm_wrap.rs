@@ -63,21 +63,26 @@ impl World {
         let progenitor_cell = CellTypeRef(2);
         let differentiated_cell = CellTypeRef(3);
         let base = CellType {
+            priority: 50,
             grow_p: 255, // 120
             // transaction_move_parent_p: 35,
-            transform_at_random_p: 10,
+            transform_at_random_p: 2,
             transform_into: empty,
             ..CellType::default()
         };
         types[stem_cell] = CellType {
+            priority: 100,
             // max_children: 255,
             grow_child_type: progenitor_cell,
             transform_at_random_p: 0,
             ..base
         };
         types[progenitor_cell] = CellType {
-            initial_energy: 1,
-            grow_child_type: differentiated_cell,
+            priority: 40,
+            initial_energy: 6,
+            grow_child_type: progenitor_cell,
+            transform_into: differentiated_cell,
+            transform_at_random_p: 70,
             ..base
         };
         types[differentiated_cell] = CellType {
