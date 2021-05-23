@@ -163,7 +163,7 @@ impl World {
             .map(|cell| match channel {
                 0 => cell.cell_type.0,
                 1 => cell.energy,
-                2 => cell.heading,
+                2 => cell.heading as u8,
                 _ => panic!("invalid channel"),
             })
             .collect()

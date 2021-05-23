@@ -87,7 +87,7 @@ impl World {
                     .collect::<Vec<_>>()
                     .try_into()
                     .unwrap();
-                types.execute_growth(next_cell, neighbours_temp)
+                types.execute_growth(&mut rng, next_cell, neighbours_temp)
             })
             .collect();
 

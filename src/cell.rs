@@ -11,8 +11,8 @@ pub struct CellTypeRef(pub u8);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cell {
     pub cell_type: CellTypeRef,
-    pub energy: u8,  // meaning depends on cell_type
-    pub heading: u8, // generic value2, or used as heading, perhaps? 3bits at least...
+    pub energy: u8,         // meaning depends on cell_type
+    pub heading: Direction, // generic value2, or used as heading, perhaps? 3bits at least... (Direction is probably 32bit, needlessly)
 }
 
 // Temporary state of cell (intermediate calculation)
@@ -35,7 +35,7 @@ impl Default for Cell {
         Cell {
             cell_type: CellTypeRef(0),
             energy: 0,
-            heading: 0,
+            heading: Direction::YZ,
         }
     }
 }
@@ -128,10 +128,7 @@ impl CellTypes {
             0 => DirectionSet::none(),
             prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0, 128) < prob),
             128 => DirectionSet::all(),
-            129 => match cur.heading {
-                i if i < 6 => DirectionSet::single(Direction::from_int(i as i8)),
-                _ => DirectionSet::none(),
-            },
+            129 => DirectionSet::single(cur.heading),
             // Also allow a single random direction? But in a better way...
             _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
         };
@@ -142,25 +139,32 @@ impl CellTypes {
         }
     }
 
-    pub fn execute_growth(&self, cur: Cell, neighbours: [(Direction, CellTemp); 6]) -> Cell {
+    pub fn execute_growth(
+        &self,
+        rng: &mut impl Rng,
+        cur: Cell,
+        neighbours: [(Direction, CellTemp); 6],
+    ) -> Cell {
         let base_prio = self[cur.cell_type].priority;
-        let ct = neighbours.iter().fold(cur.cell_type, |ct, &(dir, temp)| {
-            if temp.grow_directions.contains(-dir)
-                && temp.grow_prio > base_prio
-                && (temp.grow_prio > self[ct].priority
-                    || (temp.grow_prio == self[ct].priority && temp.grow_celltype.0 > ct.0))
-            {
-                temp.grow_celltype
+        let candidates = neighbours
+            .iter()
+            .filter(|&(dir, temp)| {
+                temp.grow_directions.contains(-*dir)
+                    && temp.grow_prio > base_prio
+                    && temp.grow_prio >= self[temp.grow_celltype].priority
+            })
+            .collect::<Vec<_>>();
+        if let Some(&(dir, temp)) = candidates.choose(rng) {
+            let ct = temp.grow_celltype;
+            if ct == cur.cell_type {
+                cur
             } else {
-                ct
+                let mut cell = self.create_cell(ct);
+                cell.heading = -*dir;
+                cell
             }
-        });
-        if ct == cur.cell_type {
-            cur
         } else {
-            self.create_cell(ct)
-            // ...set heading according to source? actually, source is ambiguous.
-            // Maybe attach heading to transactions instead.
+            cur
         }
     }
 
