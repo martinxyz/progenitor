@@ -2,6 +2,7 @@
     import type { CellInfo } from "./simulation"
     export let cell: CellInfo | null
     export let showEnergy: boolean
+    export let showHeading: boolean
 </script>
 
 <style lang="scss">
@@ -26,6 +27,11 @@
         <label class="checkbox">
             <input type="checkbox" bind:checked={showEnergy}/>
             Energy
+        </label>
+        <br/>
+        <label class="checkbox">
+            <input type="checkbox" bind:checked={showHeading}/>
+            Heading
         </label>
     </p>
     <h3>Info</h3>

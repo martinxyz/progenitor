@@ -37,7 +37,7 @@
         </div>
     </div>
     <div>
-        <Sidebar {cell} bind:showEnergy/>
+        <Sidebar {cell} bind:showEnergy bind:showHeading/>
     </div>
 </div>
 
@@ -110,6 +110,7 @@
     $: cell = cursor ? sim.get_cell_info(cursor.x, cursor.y) : null
 
     let showEnergy = false
+    let showHeading = false
 
     const gridSize = get_size()
 
@@ -124,6 +125,7 @@
 
     $: {
         showEnergy
+        showHeading
         if (ctx) renderSim()
     }
 
@@ -218,7 +220,7 @@
         cell = cell
         step = sim.get_step()
 
-        const [data_cell_type, data_energy] = sim.get_data()
+        const [data_cell_type, data_energy, data_heading] = sim.get_data()
 
         ctx.clearRect(0, 0, canvas.width, canvas.height)
         myGrid.forEach(renderHex)
@@ -230,6 +232,7 @@
             let idx = y * gridSize + x
             let d = data_cell_type[idx]
             let e = data_energy[idx]
+            let h = data_heading[idx]
 
             // let color = '#FFF'
             let color = '#188'
@@ -267,6 +270,18 @@
                 ctx.beginPath()
                 ctx.arc(hex.center().x, hex.center().y, 4.0, 0, 2*Math.PI)
                 ctx.fillStyle = color
+                ctx.fill()
+                ctx.restore()
+            }
+            if (showHeading && d !== 0) {
+                ctx.save()
+                ctx.translate(position.x, position.y)
+                ctx.translate(hex.center().x, hex.center().y)
+                ctx.rotate((h+1) / 6 * 2*Math.PI)
+                ctx.translate(4.0, 0)
+                ctx.beginPath()
+                ctx.arc(0, 0, 1.5, 0, 2*Math.PI)
+                ctx.fillStyle = '#000'
                 ctx.fill()
                 ctx.restore()
             }

@@ -65,6 +65,6 @@ export default class Simulation {
 
     get_data(): Uint8Array[] {
         // contract: use it immediately, may be invalid the next time any wasm is called
-        return [this.w.get_data(0), this.w.get_data(1)]
+        return [this.w.get_data(0), this.w.get_data(1), this.w.get_data(2)]
     }
 }
