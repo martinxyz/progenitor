@@ -96,7 +96,7 @@ fn main() {
         .map(|_| {
             (0..PARAM_COUNT)
                 .into_iter()
-                .map(|_| rng.gen_range(0, 256) as u8)
+                .map(|_| rng.gen_range(0..256) as u8)
                 .collect()
         })
         .collect();

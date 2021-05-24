@@ -112,7 +112,7 @@ impl CellTypes {
         let trigger1 = false;
         let trigger2 = match ct.transform_at_random_p {
             0 => false,
-            prob if prob < 128 => rng.gen_range(0, 128) < prob,
+            prob if prob < 128 => rng.gen_range(0..128) < prob,
             _ => true,
         };
         if trigger1 || trigger2 {
@@ -126,7 +126,7 @@ impl CellTypes {
         let ct = self[cur.cell_type];
         let growth = match ct.grow_p {
             0 => DirectionSet::none(),
-            prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0, 128) < prob),
+            prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
             128 => DirectionSet::all(),
             129 => DirectionSet::single(cur.heading),
             // Also allow a single random direction? But in a better way...
