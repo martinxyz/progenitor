@@ -116,7 +116,10 @@ impl CellTypes {
             _ => true,
         };
         if trigger1 || trigger2 {
-            self.create_cell(ct.transform_into)
+            Cell {
+                heading: cur.heading,
+                ..self.create_cell(ct.transform_into)
+            }
         } else {
             cur
         }
