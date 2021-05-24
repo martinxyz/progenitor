@@ -12,7 +12,7 @@ pub struct CellTypeRef(pub u8);
 pub struct Cell {
     pub cell_type: CellTypeRef,
     pub energy: u8,         // meaning depends on cell_type
-    pub heading: Direction, // generic value2, or used as heading, perhaps? 3bits at least... (Direction is probably 32bit, needlessly)
+    pub heading: Direction, // generic value2 byte, perhaps? 3bits for heading at least...
 }
 
 // Temporary state of cell (intermediate calculation)
