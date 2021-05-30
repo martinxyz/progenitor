@@ -5,6 +5,8 @@
 //! Conventions follow the redblobgames
 //! [hexagons](https://www.redblobgames.com/grids/hexagons/) article.
 
+use serde::{Deserialize, Serialize};
+
 /// Cube coordinates
 ///
 /// [Cube coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-cube) are used for general hexagonal algorithms.
@@ -43,7 +45,8 @@ pub use hex2d::Direction;
 /// assert!(some.contains(Direction::YZ));
 /// assert!(!some.contains(Direction::XZ));
 /// ```
-#[derive(Copy, Clone, Eq, PartialEq, Debug, Default)]
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
+// #[serde(transparent)]
 pub struct DirectionSet {
     mask: u8,
 }

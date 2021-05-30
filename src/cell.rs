@@ -1,5 +1,4 @@
-use crate::coords::{Direction, DirectionSet};
-use rand::{seq::SliceRandom, Rng};
+use crate::coords::Direction;
 use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};
 
@@ -11,23 +10,8 @@ pub struct CellTypeRef(pub u8);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Cell {
     pub cell_type: CellTypeRef,
-    pub energy: u8,         // meaning depends on cell_type
-    pub heading: Direction, // generic value2 byte, perhaps? 3bits for heading at least...
-}
-
-// Temporary state of cell (intermediate calculation)
-#[derive(Copy, Clone, Debug)]
-pub struct CellTemp {
-    grow_celltype: CellTypeRef,
-    grow_directions: DirectionSet,
-    grow_prio: i8,
-}
-
-// Temporary state of cell (intermediate calculation)
-#[derive(Copy, Clone, Debug)]
-pub struct EnergyTransfer {
-    pub allow_out: DirectionSet, // pub?
-    pub allow_in: DirectionSet,
+    pub energy: u8,
+    pub heading: Direction,
 }
 
 impl Default for Cell {
@@ -99,90 +83,6 @@ impl CellTypes {
             cell_type,
             energy: ct.initial_energy,
             ..Cell::default()
-        }
-    }
-
-    pub fn self_transform(&self, rng: &mut impl Rng, cur: Cell) -> Cell {
-        let ct = self[cur.cell_type];
-        // let trigger1 = if let Some(energy) = ct.transform_at_energy {
-        //     cur.energy == energy
-        // } else {
-        //     false
-        // };
-        let trigger1 = false;
-        let trigger2 = match ct.transform_at_random_p {
-            0 => false,
-            prob if prob < 128 => rng.gen_range(0..128) < prob,
-            _ => true,
-        };
-        if trigger1 || trigger2 {
-            Cell {
-                heading: cur.heading,
-                ..self.create_cell(ct.transform_into)
-            }
-        } else {
-            cur
-        }
-    }
-
-    pub fn prepare_growth(&self, rng: &mut impl Rng, cur: Cell) -> CellTemp {
-        let ct = self[cur.cell_type];
-        let growth = match ct.grow_p {
-            0 => DirectionSet::none(),
-            prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
-            128 => DirectionSet::all(),
-            129 => DirectionSet::single(cur.heading),
-            // Also allow a single random direction? But in a better way...
-            _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
-        };
-        CellTemp {
-            grow_celltype: ct.grow_child_type,
-            grow_directions: growth,
-            grow_prio: self[ct.grow_child_type].priority,
-        }
-    }
-
-    pub fn execute_growth(
-        &self,
-        rng: &mut impl Rng,
-        cur: Cell,
-        neighbours: [(Direction, CellTemp); 6],
-    ) -> Cell {
-        let base_prio = self[cur.cell_type].priority;
-        let candidates = neighbours
-            .iter()
-            .filter(|&(dir, temp)| {
-                temp.grow_directions.contains(-*dir)
-                    && temp.grow_prio > base_prio
-                    && temp.grow_prio >= self[temp.grow_celltype].priority
-            })
-            .collect::<Vec<_>>();
-        if let Some(&(dir, temp)) = candidates.choose(rng) {
-            let ct = temp.grow_celltype;
-            if ct == cur.cell_type {
-                cur
-            } else {
-                let mut cell = self.create_cell(ct);
-                cell.heading = -*dir;
-                cell
-            }
-        } else {
-            cur
-        }
-    }
-
-    pub fn wants_energy_transfer(&self, cur: Cell, next: Cell, _dir: Direction) -> bool {
-        let cur_ct = self[cur.cell_type];
-        // let next_ct = self[next.cell_type];
-        if cur.energy > 1 {
-            // those should be configurable by celltype
-            if next.cell_type == cur.cell_type {
-                true
-            } else {
-                cur_ct.grow_p != 0 && next.cell_type == cur_ct.grow_child_type
-            }
-        } else {
-            false
         }
     }
 }

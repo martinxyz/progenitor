@@ -131,7 +131,6 @@ impl World {
             transform_into: wall,
             grow_child_type: wall,
             grow_p: 80,
-            ..CellType::default()
         };
         types[wall] = CellType {
             priority: 20,

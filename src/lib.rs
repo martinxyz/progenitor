@@ -2,10 +2,12 @@
 use rand::thread_rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
-use std::{convert::TryInto, io::prelude::*};
+use rules::CellTemp;
+use std::io::prelude::*;
 use tile::iterate_rectangle;
 mod cell;
 pub mod coords;
+mod rules;
 mod tile;
 pub use coords::{Direction, DirectionSet};
 
@@ -14,8 +16,8 @@ mod py_wrap;
 // #[cfg(target_arch = "wasm32")]
 mod wasm_wrap;
 
-pub use cell::{Cell, CellTemp, CellType, CellTypeRef};
-use cell::{CellTypes, EnergyTransfer};
+use cell::CellTypes;
+pub use cell::{Cell, CellType, CellTypeRef};
 pub use tile::{Tile, SIZE};
 
 pub struct World {
@@ -64,79 +66,16 @@ impl World {
     pub fn tick(&mut self) {
         let types = &self.types;
         let mut rng = &mut self.rng;
-        // self.cells.mutate_with_radius_1(|cell, _neighbours| {
-        // *cell = types.self_transform(&mut rng, *cell);
-        // });
 
-        let cells_temp: Tile<(Cell, CellTemp)> = self
+        let cells_temp: Tile<CellTemp> = self
             .cells
             .iter_cells()
-            .map(|&cell| {
-                let next_cell = types.self_transform(&mut rng, cell);
-                let next_temp = types.prepare_growth(&mut rng, cell);
-                (next_cell, next_temp)
-            })
+            .map(|&cell| rules::prepare_step(&types, &mut rng, cell))
             .collect();
 
         self.cells = cells_temp
             .iter_radius_1()
-            .map(|((next_cell, _), neighbours)| {
-                let neighbours_temp: [_; 6] = neighbours
-                    .iter()
-                    .map(|&(dir, (_, temp))| (dir, temp))
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap();
-                types.execute_growth(&mut rng, next_cell, neighbours_temp)
-            })
-            .collect();
-
-        // request energy transfer
-        let cells_temp2: Tile<(Cell, EnergyTransfer)> = self
-            .cells
-            .iter_radius_1()
-            .map(|(cell, neighbours)| {
-                let request_out =
-                    neighbours
-                        .iter()
-                        .fold(DirectionSet::none(), |acc, &(dir, neigh)| {
-                            acc.with(dir, types.wants_energy_transfer(cell, neigh, dir))
-                        });
-                let request_in = DirectionSet::all();
-                (cell, EnergyTransfer {
-                    allow_out: if cell.energy >= request_out.count() {
-                        request_out
-                    } else {
-                        DirectionSet::none()
-                    },
-                    allow_in: if cell.energy <= 255 - request_in.count() {
-                        DirectionSet::all()
-                    } else {
-                        DirectionSet::none()
-                    },
-                })
-            })
-            .collect();
-
-        // transfer energy
-        self.cells = cells_temp2
-            .iter_radius_1()
-            .map(|((cell, this), neighbours)| {
-                let diff = neighbours
-                    .iter()
-                    .map(|&(dir, (_, other))| {
-                        let transfer_out =
-                            this.allow_out.contains(dir) && other.allow_in.contains(-dir);
-                        let transfer_in =
-                            this.allow_in.contains(dir) && other.allow_out.contains(-dir);
-                        (if transfer_out { -1 } else { 0 }) + (if transfer_in { 1 } else { 0 })
-                    })
-                    .sum::<i8>();
-                Cell {
-                    energy: ((cell.energy as i16) + (diff as i16)) as u8,
-                    ..cell
-                }
-            })
+            .map(|(temp, neighbours)| rules::execute_step(&types, &mut rng, temp.cell, neighbours))
             .collect();
     }
 
