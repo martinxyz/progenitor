@@ -256,7 +256,7 @@
             }
             ctx.restore()
 
-            if (showEnergy && d !== 0) {
+            if (showEnergy) {
                 if (e === 0) color = '#000';
                 if (e === 1) color = '#880';
                 if (e === 2) color = '#AA0';

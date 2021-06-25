@@ -29,7 +29,7 @@ bincode = "1.3"
 # hex2d = "0.2.0"  # wasm support currently only works with master
 hex2d = { git = "https://github.com/dpc/hex2d-rs.git", rev = "2ffc1f8da994b4c8ce0ce9b6d8141942b4f48eed" }
 
-wasm-bindgen = "0.2"
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"] }
 js-sys = "0.3"
 
 # [target.'cfg(target_arch = "wasm32")'.dependencies]

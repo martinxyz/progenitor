@@ -37,7 +37,7 @@ export default class Simulation {
     }
 
     get_cell_info(col: number, row: number): CellInfo {
-        return JSON.parse(this.w.get_cell_json(col, row))
+        return this.w.get_cell_info(col, row)
     }
 
     get_step() {

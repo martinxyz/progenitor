@@ -145,10 +145,10 @@ impl World {
             .set_cell(pos.into(), self.inner.types.create_cell(CellTypeRef(ct)));
     }
 
-    pub fn get_cell_json(&self, col: i32, row: i32) -> String {
+    pub fn get_cell_info(&self, col: i32, row: i32) -> JsValue {
         let pos = coords::Offset { col, row };
         let cell = self.inner.get_cell(pos.into());
-        serde_json::to_string(&cell).unwrap()
+        JsValue::from_serde(&cell).unwrap()
     }
 
     pub fn tick(&mut self) {
