@@ -70,12 +70,12 @@ impl World {
         let cells_temp: Tile<CellTemp> = self
             .cells
             .iter_cells()
-            .map(|&cell| rules::prepare_step(&types, &mut rng, cell))
+            .map(|&cell| rules::prepare_step(types, &mut rng, cell))
             .collect();
 
         self.cells = cells_temp
             .iter_radius_1()
-            .map(|(temp, neighbours)| rules::execute_step(&types, &mut rng, temp.cell, neighbours))
+            .map(|(temp, neighbours)| rules::execute_step(types, &mut rng, temp.cell, neighbours))
             .collect();
     }
 

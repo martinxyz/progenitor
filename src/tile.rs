@@ -73,7 +73,7 @@ impl<CellT: Copy> Tile<CellT> {
     pub fn iter_radius_1(&self) -> NeighbourIter<CellT> {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
         NeighbourIter {
-            tile: &self,
+            tile: self,
             q: 0,
             r: 0,
         }
