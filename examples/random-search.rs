@@ -117,22 +117,16 @@ fn main() {
             let bin = (score * scale_to_int).round() as i32;
             (bin, world)
         })
-        .fold(
-            || HashMap::new(),
-            |mut hs, (bin, world)| {
-                hs.insert(bin, world);
-                hs
-            },
-        )
-        .reduce(
-            || HashMap::new(),
-            |mut h1, h2| {
-                h1.extend(h2);
-                h1
-            },
-        );
+        .fold(HashMap::new, |mut hs, (bin, world)| {
+            hs.insert(bin, world);
+            hs
+        })
+        .reduce(HashMap::new, |mut h1, h2| {
+            h1.extend(h2);
+            h1
+        });
 
-    for (bin, world) in bins_found.into_iter() {
+    for (bin, world) in bins_found {
         let filename = format!("output_{}.dat", bin as f64 / scale_to_int);
         println!("found bin {}, writing {}", bin, filename);
         let data = world.export_snapshot();

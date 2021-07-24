@@ -1,4 +1,4 @@
-use crate::coords::Direction;
+use crate::coords::{Direction, DirectionSet};
 use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};
 
@@ -12,6 +12,7 @@ pub struct Cell {
     pub cell_type: CellTypeRef,
     pub energy: u8,
     pub heading: Direction,
+    pub particles: DirectionSet,
 }
 
 impl Default for Cell {
@@ -20,6 +21,7 @@ impl Default for Cell {
             cell_type: CellTypeRef(0),
             energy: 0,
             heading: Direction::YZ,
+            particles: DirectionSet::none(),
         }
     }
 }

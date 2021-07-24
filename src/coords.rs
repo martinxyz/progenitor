@@ -85,6 +85,9 @@ impl DirectionSet {
             },
         }
     }
+    pub fn mirrored(&self) -> Self {
+        DirectionSet::matching(|dir| self.contains(-dir))
+    }
     pub fn count(&self) -> u8 {
         self.mask.count_ones() as u8
     }

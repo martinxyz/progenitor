@@ -10,7 +10,7 @@ fn set_panic_hook() {
 }
 
 #[wasm_bindgen]
-#[allow(dead_code)] // it's actually not unused
+#[allow(dead_code)] // it's actually used
 pub fn get_size() -> u32 {
     SIZE
 }
@@ -79,7 +79,7 @@ impl World {
         };
         types[progenitor_cell] = CellType {
             priority: 40,
-            initial_energy: 6,
+            // initial_energy: 6,
             grow_child_type: progenitor_cell,
             transform_into: differentiated_cell,
             transform_at_random_p: 70,
@@ -126,15 +126,16 @@ impl World {
 
         types[pre_wall] = CellType {
             priority: 19,
-            initial_energy: 2,
+            // initial_energy: 2,
             transform_at_random_p: 128,
             transform_into: wall,
             grow_child_type: wall,
             grow_p: 80,
+            ..CellType::default()
         };
         types[wall] = CellType {
             priority: 20,
-            initial_energy: 2,
+            // initial_energy: 2,
             ..CellType::default()
         };
     }

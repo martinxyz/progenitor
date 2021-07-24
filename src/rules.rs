@@ -38,6 +38,15 @@ pub fn execute_step(
     cur: Cell,
     neighbours: [(Direction, CellTemp); 6],
 ) -> Cell {
+    // move particles
+    let mut cur = cur;
+    cur.particles = neighbours
+        .iter()
+        .fold(DirectionSet::none(), |ds, &(dir, temp)| {
+            ds.with(-dir, temp.cell.particles.contains(-dir))
+        });
+    let cur = cur;
+
     let growth_result: Option<Cell> = {
         let base_prio = types[cur.cell_type].priority;
         let candidates = neighbours
@@ -55,6 +64,7 @@ pub fn execute_step(
             } else {
                 let mut cell = types.create_cell(ct);
                 cell.heading = -*dir;
+                cell.particles = DirectionSet::all();
                 Some(cell)
             }
         })
@@ -63,7 +73,17 @@ pub fn execute_step(
         // hm. Nothing else to do yet? No counters to tick? no energy to absorb? no cells to swap?
         self_transform(types, rng, cur)
     };
-    growth_result.unwrap_or(tick_result)
+    let next = growth_result.unwrap_or(tick_result);
+    Cell {
+        energy: next.particles.count(),
+        particles: next.particles,
+        // particles: if next.cell_type == CellTypeRef(0) {
+        //     next.particles
+        // } else {
+        //     next.particles.mirrored()
+        // },
+        ..next
+    }
 }
 
 fn self_transform(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> Cell {
