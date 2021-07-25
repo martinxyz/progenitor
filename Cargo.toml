@@ -46,13 +46,15 @@ requires-dist = ["numpy~=1.17"]
 #[package.metadata.maturin.scripts]
 #get_42 = "my_project:DummyClass.get_42"
 
-# test this later, when doing optimizations:
-#[profile.release]
-#codegen-units = 1
-#debug = true
-#panic = 'abort'
-##lto = 'thin'
-#lto = "fat"
+[profile.release]
+lto = true  # ~30% .tick() speedup (most likely: inlining hex2d::Coordinate impl Neg)
+            # ("fat" or "thin" both had the same effect)
+codegen-units = 1  # ~40% .tick() speedup
+panic = "abort"  # ~7% .tick() speedup
+debug = 1  # no significant effect (less than 2%)
+# opt-level = 3  # no significant effect (less than 2%)
+# also: 9% speedup from 'export RUSTFLAGS="-C target-cpu=native"'
+# overall 2x faster than "cargo release" without profile.release or RUSTFLAGS
 
 [dev-dependencies]
 rayon = "1.4"
