@@ -44,7 +44,7 @@ export default class Simulation {
         return this.step
     }
 
-    reset() {
+    async reset() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 this.w.set_cell(y, x, 0)
@@ -57,10 +57,10 @@ export default class Simulation {
         this.step = 0
         this.snapshots = []
 
-        // const sshot = await fetch('assets/output_0.7.dat')
-        // if (sshot.status !== 200) throw sshot;
-        // const data = new Uint8Array(await sshot.arrayBuffer())
-        // this.w.import_snapshot(data)
+        const sshot = await fetch('assets/output_0.2.dat')
+        if (sshot.status !== 200) throw sshot;
+        const data = new Uint8Array(await sshot.arrayBuffer())
+        this.w.import_snapshot(data)
     }
 
     get_data(): Uint8Array[] {

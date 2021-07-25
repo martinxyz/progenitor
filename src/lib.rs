@@ -10,6 +10,7 @@ pub mod coords;
 mod rules;
 mod tile;
 pub use coords::{Direction, DirectionSet};
+pub mod world1;
 
 #[cfg(all(feature = "python", not(target_arch = "wasm32")))]
 mod py_wrap;

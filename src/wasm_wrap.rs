@@ -1,6 +1,8 @@
-use crate::coords;
+use crate::{coords, world1};
+use crate::world1::Params;
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
+use rand::thread_rng;
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
@@ -138,6 +140,12 @@ impl World {
             // initial_energy: 2,
             ..CellType::default()
         };
+    }
+
+    pub fn set_rules_demo4(&mut self) {
+        let mut params = Params::default();
+        params.mutate(&mut thread_rng());
+        self.inner.types = world1::rules(&params);
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
