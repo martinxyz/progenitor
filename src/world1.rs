@@ -46,9 +46,6 @@ impl Default for Params {
     }
 }
 
-// pub fn random_params() -> impl  {
-// }
-
 pub fn rules(params: &Params) -> CellTypes {
     let mut types = CellTypes::new();
 

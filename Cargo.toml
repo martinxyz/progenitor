@@ -58,6 +58,7 @@ debug = 1  # no significant effect (less than 2%)
 
 [dev-dependencies]
 rayon = "1.4"
+# ndarray = "0.13"
 
 [profile.bench]
 debug = true  # for better profiling

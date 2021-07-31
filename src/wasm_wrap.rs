@@ -2,6 +2,7 @@ use crate::{coords, world1};
 use crate::world1::Params;
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
+use js_sys::JsString;
 use rand::thread_rng;
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -201,5 +202,54 @@ impl World {
 impl Default for World {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+// #[wasm_bindgen]
+// pub struct Snapshot {
+//     bins: [i32; 2],
+//     pub data: Vec<u8>,
+// }
+
+#[wasm_bindgen]
+pub struct Snapshots(Vec<((i32, i32), Vec<u8>)>);
+
+#[wasm_bindgen]
+// there probably is a way to transfer the whole thing a once instead...
+impl Snapshots {
+    #[wasm_bindgen(constructor)]
+    pub fn new(data: &[u8]) -> Self {
+        Self(bincode::deserialize(data).unwrap_or_default())
+    }
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+    pub fn get_bin(&self, idx: usize) -> Vec<i32> {
+        let item = &self.0[idx].0;
+        vec![item.0, item.1]
+    }
+    pub fn get_data(&self, idx: usize) -> Vec<u8> {
+        self.0[idx].1.clone()
+    }
+
+    // that works:
+    // pub fn getall(&self) -> Box<[JsValue]> {
+    //     let data: Box<[JsValue]> = self.0.iter().map(|&((a, _), _)| JsValue::from(a)).collect();
+    //     data
+    // }
+    pub fn getall(&self) -> Box<[JsValue]> {
+        let data: Box<[JsValue]> = self.0.iter().map(|((f1, f2), _data)| {
+            // let data: Vec<u8> = data.clone();
+            let arr = js_sys::Array::new();
+            arr.push(&(*f1).into());
+            arr.push(&(*f2).into());
+            // let d2 = js_sys::Uint8Array::new(3);
+            // arr.push(&(*f2).into());
+            // arr.push(&data);
+            // let res: JsValue = js_sys::Uint8Array::from(data);
+            // res
+            arr.into()
+        }).collect();
+        data
     }
 }

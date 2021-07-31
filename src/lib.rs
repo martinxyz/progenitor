@@ -117,6 +117,10 @@ impl World {
     pub fn iter_cells(&self) -> impl ExactSizeIterator<Item = &Cell> {
         self.cells.iter_cells()
     }
+
+    pub fn iter_cells_with_neighbours(&self) -> tile::NeighbourIter<Cell> {
+        self.cells.iter_radius_1()
+    }
 }
 
 impl Default for World {
