@@ -98,7 +98,7 @@ fn main() {
         .into_par_iter()
         .map(|params| {
             let score: [f64; 2] = evaluate(&params).map(|v| v.into());
-            eprintln!("score: {:.6}, {:.6} params: {:?}", score[0], score[1], params);
+            eprintln!("{:?}", params);
             println!("{:.6} {:.6}", score[0], score[1]);
             let world = run(&params);
 

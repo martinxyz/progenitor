@@ -2,12 +2,16 @@
     import Simulation from './Simulation.svelte'
     import RuleSelector from './RuleSelector.svelte'
     import Container from './Container.svelte'
+    import MapSelector from './MapSelector.svelte'
 
     let rule
 </script>
 
 <div class="main">
     <div>
+        <Container>
+            <MapSelector/>
+        </Container>
         <Container>
             <RuleSelector bind:rule/>
         </Container>

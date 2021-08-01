@@ -57,25 +57,6 @@ export default class Simulation {
         this.step = 0
         this.snapshots = []
 
-        // const sshot = await fetch('assets/output_0.2.dat')  /////
-        const sshot = await fetch('assets/output/map_bins.dat')
-        if (sshot.status !== 200) throw sshot;
-        const data = new Uint8Array(await sshot.arrayBuffer())
-        const snapshots = new Snapshots(data);
-        console.log("snapshots", snapshots.len())
-        // console.log("snapshots.getall()", snapshots.getall())
-
-        const map = [];
-        for (let i = 0; i < snapshots.len(); i++) {
-            map.push({
-                bin: [...snapshots.get_bin(i)],
-                data: snapshots.get_data(i),
-            })
-        }
-        // console.log("snapshots map:", map)
-        const i = Math.floor(Math.random() * map.length)
-        console.log('showing', map[i].bin)
-        this.w.import_snapshot(map[i].data)
     }
 
     get_data(): Uint8Array[] {

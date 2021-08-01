@@ -2,7 +2,6 @@ use crate::{coords, world1};
 use crate::world1::Params;
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
-use js_sys::JsString;
 use rand::thread_rng;
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -214,6 +213,10 @@ impl Default for World {
 #[wasm_bindgen]
 pub struct Snapshots(Vec<((i32, i32), Vec<u8>)>);
 
+
+// #[wasm_bindgen]
+// fn deserializeSnapshot()
+
 #[wasm_bindgen]
 // there probably is a way to transfer the whole thing a once instead...
 impl Snapshots {
@@ -238,16 +241,12 @@ impl Snapshots {
     //     data
     // }
     pub fn getall(&self) -> Box<[JsValue]> {
-        let data: Box<[JsValue]> = self.0.iter().map(|((f1, f2), _data)| {
-            // let data: Vec<u8> = data.clone();
+        let data: Box<[JsValue]> = self.0.iter().map(|((f1, f2), data)| {
             let arr = js_sys::Array::new();
             arr.push(&(*f1).into());
             arr.push(&(*f2).into());
-            // let d2 = js_sys::Uint8Array::new(3);
-            // arr.push(&(*f2).into());
-            // arr.push(&data);
-            // let res: JsValue = js_sys::Uint8Array::from(data);
-            // res
+            let data: js_sys::Uint8Array = data.as_slice().into();
+            arr.push(&data);
             arr.into()
         }).collect();
         data
