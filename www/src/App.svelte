@@ -5,18 +5,19 @@
     import MapSelector from './MapSelector.svelte'
 
     let rule
+    let sim: Simulation
 </script>
 
 <div class="main">
     <div>
         <Container>
-            <MapSelector/>
+            <MapSelector {sim}/>
         </Container>
         <Container>
             <RuleSelector bind:rule/>
         </Container>
         <Container>
-            <Simulation {rule}/>
+            <Simulation bind:this={sim} {rule}/>
         </Container>
     </div>
 </div>

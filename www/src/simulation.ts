@@ -24,6 +24,11 @@ export default class Simulation {
         this.w[fname]()
     }
 
+    load_state(state: Uint8Array) {
+        this.reset()
+        this.w.import_snapshot(state)
+    }
+
     tick() {
         this.snapshots = [...this.snapshots.slice(-100), this.w.export_snapshot()]
         this.w.tick()

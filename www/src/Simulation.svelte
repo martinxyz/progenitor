@@ -99,6 +99,11 @@
         }
     }
 
+    export function load_state(state: Uint8Array) {
+        sim.load_state(state)
+        renderSim()
+    }
+
     let stepButton: HTMLElement
 
     let canvas: HTMLCanvasElement
@@ -142,7 +147,7 @@
         onReset()
         onPlayNormal()
 
-        stepButton.focus()
+        // stepButton.focus()
     })
 
     const sim = new Simulation()

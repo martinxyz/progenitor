@@ -224,16 +224,6 @@ impl Snapshots {
     pub fn new(data: &[u8]) -> Self {
         Self(bincode::deserialize(data).unwrap_or_default())
     }
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-    pub fn get_bin(&self, idx: usize) -> Vec<i32> {
-        let item = &self.0[idx].0;
-        vec![item.0, item.1]
-    }
-    pub fn get_data(&self, idx: usize) -> Vec<u8> {
-        self.0[idx].1.clone()
-    }
 
     // that works:
     // pub fn getall(&self) -> Box<[JsValue]> {
