@@ -3,7 +3,7 @@ use crate::{
     coords::{Direction, DirectionSet},
     Cell, CellTypeRef,
 };
-use rand::{seq::SliceRandom, Rng};
+use rand::{seq::IteratorRandom, seq::SliceRandom, Rng};
 
 // Temporary state of cell (intermediate calculation)
 #[derive(Debug, Clone, Copy)]
@@ -49,25 +49,25 @@ pub fn execute_step(
 
     let growth_result: Option<Cell> = {
         let base_prio = types[cur.cell_type].priority;
-        let candidates = neighbours
+        neighbours
             .iter()
-            .filter(|&(dir, temp)| {
+            .filter(|(dir, temp)| {
                 temp.grow_directions.contains(-*dir)
                     && temp.grow_prio > base_prio
                     && temp.grow_prio >= types[temp.grow_celltype].priority
             })
-            .collect::<Vec<_>>();
-        candidates.choose(rng).and_then(|&(dir, temp)| {
-            let ct = temp.grow_celltype;
-            if ct == cur.cell_type {
-                None
-            } else {
-                let mut cell = types.create_cell(ct);
-                cell.heading = -*dir;
-                cell.particles = DirectionSet::all();
-                Some(cell)
-            }
-        })
+            .choose(rng)
+            .and_then(|(dir, temp)| {
+                let ct = temp.grow_celltype;
+                if ct == cur.cell_type {
+                    None
+                } else {
+                    let mut cell = types.create_cell(ct);
+                    cell.heading = -*dir;
+                    cell.particles = DirectionSet::all();
+                    Some(cell)
+                }
+            })
     };
     let tick_result: Cell = {
         // hm. Nothing else to do yet? No counters to tick? no energy to absorb? no cells to swap?
