@@ -8,6 +8,8 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::prelude::*;
 
+use crate::features::FEATURE_COUNT;
+
 mod features;
 
 fn run(params: &Params) -> World {
@@ -46,7 +48,7 @@ fn main() {
         .into_par_iter()
         .map(|params| {
             let repetitions = 32;
-            let score: [f64; 2] = features::evaluate(|| run(&params), repetitions);
+            let score: [f64; FEATURE_COUNT] = features::evaluate(|| run(&params), repetitions);
             eprintln!("{:?}", params);
             println!("{:.6} {:.6}", score[0], score[1]);
             let world = run(&params);

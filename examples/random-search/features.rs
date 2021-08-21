@@ -29,12 +29,14 @@ impl From<FeatureAccumulator> for f64 {
     }
 }
 
-fn calculate_features(world: World) -> [FeatureAccumulator; 2] {
+pub const FEATURE_COUNT: usize = 2;
+
+fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
     const EMPTY: CellTypeRef = CellTypeRef(1);
     fn cell2int(c: Cell) -> i32 {
         if c.cell_type == EMPTY { 0 } else { 1 }
     }
-    let mut features = [FeatureAccumulator::default(); 2];
+    let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
     for (cell, neighbours) in world.iter_cells_with_neighbours() {
         let center = cell2int(cell);
         let neighbours: i32 = neighbours.iter().map(|(_, c)| cell2int(*c)).sum();
@@ -44,7 +46,7 @@ fn calculate_features(world: World) -> [FeatureAccumulator; 2] {
     features
 }
 
-pub fn evaluate<F>(run: F, repetitions: i32) -> [f64; 2]
+pub fn evaluate<F>(run: F, repetitions: i32) -> [f64; FEATURE_COUNT]
 where F: Fn() -> World
 {
     (0..repetitions)

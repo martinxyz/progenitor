@@ -49,7 +49,7 @@ export default class Simulation {
         return this.step
     }
 
-    async reset() {
+    reset() {
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
                 this.w.set_cell(y, x, 0)
@@ -61,7 +61,6 @@ export default class Simulation {
         this.w.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
         this.step = 0
         this.snapshots = []
-
     }
 
     get_data(): Uint8Array[] {

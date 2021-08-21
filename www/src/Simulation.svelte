@@ -147,6 +147,7 @@
         onReset()
         onPlayNormal()
 
+        // makes the button scroll into view, which can be annoying
         // stepButton.focus()
     })
 
