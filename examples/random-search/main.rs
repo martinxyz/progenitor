@@ -58,6 +58,7 @@ fn main() {
             let bin = (bc1, bc2);
             (bin, world)
         })
+        // https://docs.rs/rayon/1.5.1/rayon/iter/trait.ParallelIterator.html#fold-vs-mapreduce
         .fold(HashMap::new, |mut hs, (bin, world)| {
             hs.insert(bin, world);
             hs
