@@ -44,7 +44,7 @@ fn main() {
 
     let map_resolution = (0.05, 0.02);
 
-    let bins_found = population
+    let bins_found: HashMap<_, _> = population
         .into_par_iter()
         .map(|params| {
             let repetitions = 32;
