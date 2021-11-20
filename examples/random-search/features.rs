@@ -34,7 +34,11 @@ pub const FEATURE_COUNT: usize = 2;
 fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
     const EMPTY: CellTypeRef = CellTypeRef(1);
     fn cell2int(c: Cell) -> i32 {
-        if c.cell_type == EMPTY { 0 } else { 1 }
+        if c.cell_type == EMPTY {
+            0
+        } else {
+            1
+        }
     }
     let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
     for (cell, neighbours) in world.iter_cells_with_neighbours() {
@@ -47,7 +51,8 @@ fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
 }
 
 pub fn evaluate<F>(run: F, repetitions: i32) -> [f64; FEATURE_COUNT]
-where F: Fn() -> World
+where
+    F: Fn() -> World,
 {
     (0..repetitions)
         .map(|_| run())

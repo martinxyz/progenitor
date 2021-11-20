@@ -1,5 +1,5 @@
-use crate::{coords, world1};
 use crate::world1::Params;
+use crate::{coords, world1};
 use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
 use rand::thread_rng;
@@ -213,7 +213,6 @@ impl Default for World {
 #[wasm_bindgen]
 pub struct Snapshots(Vec<((i32, i32), Vec<u8>)>);
 
-
 // #[wasm_bindgen]
 // fn deserializeSnapshot()
 
@@ -231,14 +230,18 @@ impl Snapshots {
     //     data
     // }
     pub fn getall(&self) -> Box<[JsValue]> {
-        let data: Box<[JsValue]> = self.0.iter().map(|((f1, f2), data)| {
-            let arr = js_sys::Array::new();
-            arr.push(&(*f1).into());
-            arr.push(&(*f2).into());
-            let data: js_sys::Uint8Array = data.as_slice().into();
-            arr.push(&data);
-            arr.into()
-        }).collect();
+        let data: Box<[JsValue]> = self
+            .0
+            .iter()
+            .map(|((f1, f2), data)| {
+                let arr = js_sys::Array::new();
+                arr.push(&(*f1).into());
+                arr.push(&(*f2).into());
+                let data: js_sys::Uint8Array = data.as_slice().into();
+                arr.push(&data);
+                arr.into()
+            })
+            .collect();
         data
     }
 }

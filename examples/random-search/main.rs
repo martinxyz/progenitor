@@ -1,6 +1,6 @@
 #![feature(array_zip)]
 use progenitor::world1::Params;
-use progenitor::{World, world1};
+use progenitor::{world1, World};
 use rand::thread_rng;
 use rayon::prelude::*;
 

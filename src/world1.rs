@@ -2,7 +2,7 @@ use std::cmp::max;
 
 use rand::Rng;
 
-use crate::{CellType, CellTypeRef, cell::CellTypes};
+use crate::{cell::CellTypes, CellType, CellTypeRef};
 
 #[derive(Debug)]
 pub struct Params {
@@ -16,12 +16,13 @@ fn mut_u8_p128(p: u8, rng: &mut impl Rng) -> u8 {
 }
 
 fn mut_grow_p(p: u8, rng: &mut impl Rng) -> u8 {
-    if rng.gen_bool(0.1) {  // type-changing mutation (note: should use enum for that...)
+    if rng.gen_bool(0.1) {
+        // type-changing mutation (note: should use enum for that...)
         match rng.gen_range(0..=6) {
-            0 => 128,  // grow always in all directions
-            1 => 129,  // grow always with current heading
-            2 => 255,  // grow always with random heading
-            _ => rng.gen_range(0..=127),  // grow with probability (note: should not be uniform...)
+            0 => 128,                    // grow always in all directions
+            1 => 129,                    // grow always with current heading
+            2 => 255,                    // grow always with random heading
+            _ => rng.gen_range(0..=127), // grow with probability (note: should not be uniform...)
         }
     } else if p < 128 {
         mut_u8_p128(p, rng)
@@ -38,7 +39,7 @@ impl Params {
 }
 
 impl Default for Params {
-   fn default() -> Self {
+    fn default() -> Self {
         Self {
             genesis_grow_p: 2,
             pre_wall_grow_p: 80,
