@@ -37,7 +37,7 @@ impl World {
         let cells = &self.inner.cells;
         cells
             .iter_cells()
-            .map(|cell| cell.particle)
+            .map(|cell| cell.particles.count() > 0)
             .collect::<Array1<_>>()
             .to_pyarray(py)
             .to_owned()
