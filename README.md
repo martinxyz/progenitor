@@ -21,13 +21,20 @@ Named after [progenitor cells](https://en.wikipedia.org/wiki/Progenitor_cell).
 
 Run `cargo build` and `cargo test`.
 
-TODO: how to create an optimized build
+Maybe try the `random-search` example:
+
+```bash
+cd crates/progenitor
+RUSTFLAGS="-C target-cpu=native" \
+    cargo run --release --example random-search
+```
 
 ### Webassembly Module
 
 Install [wasm-pack](https://rustwasm.github.io/wasm-pack/), e.g. `cargo install wasm-pack`.
 
 ```bash
+cd crates/wasm
 wasm-pack build
 ```
 
@@ -38,7 +45,7 @@ This will create a node package in the *pkg* directory.
 After the steps above, build and run the web application:
 
 ```bash
-cd www
+cd webapp
 npm install
 npm run dev
 ```
@@ -51,14 +58,15 @@ Install [maturin](https://github.com/PyO3/maturin), e.g. `pip3 install
 maturin`. Inside a virtualenv, run:
 
 ```bash
-maturin develop --cargo-extra-args="--features=python"
+maturin develop
 ```
 
 Or, for an optimized build:
 
 ```bash
+cd crates/python
 RUSTFLAGS="-C target-cpu=native" \
-    maturin develop --release --cargo-extra-args="--features=python"
+    maturin develop --release
 ```
 
 This will install the Python module into the virtualenv. You can then use

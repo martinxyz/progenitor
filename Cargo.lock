@@ -418,16 +418,43 @@ name = "progenitor"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "getrandom",
+ "hex2d",
+ "rand",
+ "rand_pcg",
+ "rayon",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "progenitor-py"
+version = "0.0.0"
+dependencies = [
+ "bincode",
+ "getrandom",
+ "ndarray",
+ "numpy",
+ "progenitor",
+ "pyo3",
+ "rand",
+ "rand_pcg",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "progenitor-wasm"
+version = "0.0.0"
+dependencies = [
+ "bincode",
  "console_error_panic_hook",
  "getrandom",
  "hex2d",
  "js-sys",
- "ndarray",
- "numpy",
- "pyo3",
+ "progenitor",
  "rand",
  "rand_pcg",
- "rayon",
  "serde",
  "serde_json",
  "wasm-bindgen",

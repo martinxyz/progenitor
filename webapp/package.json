@@ -12,7 +12,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^5.14.0",
     "honeycomb-grid": "^3.1.7",
-    "progenitor": "file:../pkg"
+    "progenitor": "file:../crates/wasm/pkg"
   },
   "devDependencies": {
     "@tsconfig/svelte": "^1.0.10",

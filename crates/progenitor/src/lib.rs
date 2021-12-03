@@ -8,21 +8,16 @@ use tile::iterate_rectangle;
 mod cell;
 pub mod coords;
 mod rules;
-mod tile;
+pub mod tile;
 pub use coords::{Direction, DirectionSet};
 pub mod world1;
-
-#[cfg(all(feature = "python", not(target_arch = "wasm32")))]
-mod py_wrap;
-// #[cfg(target_arch = "wasm32")]
-mod wasm_wrap;
 
 use cell::CellTypes;
 pub use cell::{Cell, CellType, CellTypeRef};
 pub use tile::{Tile, SIZE};
 
 pub struct World {
-    cells: Tile<Cell>,
+    pub cells: Tile<Cell>,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
     rng: Pcg32,

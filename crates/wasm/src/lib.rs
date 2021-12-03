@@ -1,13 +1,12 @@
 use crate::world1::Params;
-use crate::{coords, world1};
-use crate::{CellType, CellTypeRef, SIZE};
 pub use hex2d::{Coordinate, Direction};
+use progenitor::{coords, world1};
+use progenitor::{CellType, CellTypeRef, SIZE};
 use rand::thread_rng;
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
 fn set_panic_hook() {
-    #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 }
 
@@ -20,7 +19,7 @@ pub fn get_size() -> u32 {
 #[wasm_bindgen]
 // pub needed?
 pub struct World {
-    inner: crate::World,
+    inner: progenitor::World,
 }
 
 #[wasm_bindgen]
@@ -29,7 +28,7 @@ impl World {
     pub fn new() -> World {
         set_panic_hook();
         World {
-            inner: crate::World::new(),
+            inner: progenitor::World::new(),
         }
     }
 

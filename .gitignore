@@ -1,6 +1,6 @@
 /target
 __pycache__
-/progenitor/progenitor.*.so
+/crates/python/progenitor/progenitor.*.so
 /.log
 /.vscode
 output*.dat

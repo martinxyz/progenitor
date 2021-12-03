@@ -5,7 +5,7 @@ use rand::thread_rng;
 use rayon::prelude::*;
 
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 
 use crate::features::FEATURE_COUNT;
@@ -74,6 +74,7 @@ fn main() {
         .into_iter()
         .map(|(bin, world)| (bin, world.export_snapshot()))
         .collect();
+    create_dir_all("output").unwrap();
     let mut file = File::create("output/map_bins.dat").unwrap();
     let data = bincode::serialize(&snapshots).unwrap();
     file.write_all(&data).unwrap();
