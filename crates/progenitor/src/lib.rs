@@ -13,7 +13,7 @@ pub use coords::{Direction, DirectionSet};
 pub mod world1;
 
 use cell::CellTypes;
-pub use cell::{Cell, CellType, CellTypeRef};
+pub use cell::{Cell, CellType, CellTypeRef, GrowDirection};
 pub use tile::{Tile, SIZE};
 
 pub struct World {

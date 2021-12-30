@@ -37,7 +37,8 @@ pub struct CellType {
     pub transform_at_random_p: u8, // probability (0 = never, 128 = always)
     pub transform_into: CellTypeRef,
     pub grow_child_type: CellTypeRef,
-    pub grow_p: u8, // probability (0 = never, 128 = always) (XXX misnamed for values >128)
+    pub grow_p: u8, // probability (0 = never, 128 = always)
+    pub grow_dir: GrowDirection,
 }
 
 impl CellType {
@@ -49,8 +50,16 @@ impl CellType {
             transform_into: CellTypeRef(0),
             grow_child_type: CellTypeRef(0),
             grow_p: 0,
+            grow_dir: GrowDirection::All,
         }
     }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum GrowDirection {
+    All,
+    Forward,
+    RandomChoice,
 }
 
 pub const MAX_CELL_TYPES: usize = 256;

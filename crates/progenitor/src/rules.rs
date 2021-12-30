@@ -1,5 +1,5 @@
 use crate::{
-    cell::CellTypes,
+    cell::{CellTypes, GrowDirection},
     coords::{Direction, DirectionSet},
     Cell, CellTypeRef,
 };
@@ -16,14 +16,23 @@ pub struct CellTemp {
 
 pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTemp {
     let ct = types[cur.cell_type];
+
     let growth = match ct.grow_p {
         0 => DirectionSet::none(),
-        prob if prob < 128 => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
+        prob if prob < 128 => match ct.grow_dir {
+            GrowDirection::All => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
+            GrowDirection::Forward => match rng.gen_range(0..128) < prob {
+                false => DirectionSet::none(),
+                true => DirectionSet::single(cur.heading),
+            },
+            GrowDirection::RandomChoice => {
+                DirectionSet::single(*Direction::all().choose(rng).unwrap())
+            }
+        },
         128 => DirectionSet::all(),
-        129 => DirectionSet::single(cur.heading),
-        // Also allow a single random direction? But in a better way...
-        _ => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
+        _ => panic!("growth probability out of range"),
     };
+
     CellTemp {
         cell: cur,
         grow_celltype: ct.grow_child_type,
@@ -64,7 +73,7 @@ pub fn execute_step(
                 } else {
                     let mut cell = types.create_cell(ct);
                     cell.heading = -*dir;
-                    cell.particles = DirectionSet::all();
+                    cell.particles = DirectionSet::all(); // should depend on celltype?
                     Some(cell)
                 }
             })

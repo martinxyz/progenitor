@@ -1,6 +1,6 @@
 use crate::world1::Params;
 pub use hex2d::{Coordinate, Direction};
-use progenitor::{coords, world1};
+use progenitor::{coords, world1, GrowDirection};
 use progenitor::{CellType, CellTypeRef, SIZE};
 use rand::thread_rng;
 // use js_sys::Uint8Array;
@@ -65,7 +65,8 @@ impl World {
         let differentiated_cell = CellTypeRef(3);
         let base = CellType {
             priority: 50,
-            grow_p: 255, // 120
+            grow_p: 128,
+            grow_dir: GrowDirection::RandomChoice,
             // transaction_move_parent_p: 35,
             transform_at_random_p: 2,
             transform_into: empty,
