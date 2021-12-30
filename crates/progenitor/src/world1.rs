@@ -2,39 +2,43 @@ use std::cmp::max;
 
 use rand::Rng;
 
-use crate::{cell::CellTypes, CellType, CellTypeRef};
+use crate::{cell::CellTypes, CellType, CellTypeRef, GrowDirection};
 
 #[derive(Debug)]
 pub struct Params {
     genesis_grow_p: u8,
+    genesis_grow_dir: GrowDirection,
     pre_wall_grow_p: u8,
+    pre_wall_grow_dir: GrowDirection,
 }
 
-fn mut_u8_p128(p: u8, rng: &mut impl Rng) -> u8 {
+fn mutate_u8_p128(p: u8, rng: &mut impl Rng) -> u8 {
     let step = max(1, p / 8) as i8;
     (p as i16 + rng.gen_range(-step..=step) as i16).clamp(0, 128) as u8
 }
 
-fn mut_grow_p(p: u8, rng: &mut impl Rng) -> u8 {
+fn mutate_grow(p: &mut u8, dir: &mut GrowDirection, rng: &mut impl Rng) {
     if rng.gen_bool(0.1) {
-        // type-changing mutation (note: should use enum for that...)
-        match rng.gen_range(0..=6) {
-            0 => 128,                    // grow always in all directions
-            1 => 129,                    // grow always with current heading
-            2 => 255,                    // grow always with random heading
-            _ => rng.gen_range(0..=127), // grow with probability (note: should not be uniform...)
+        // type-changing mutation
+        *dir = match rng.gen_range(0..4) {
+            0 => GrowDirection::Forward,
+            1 => GrowDirection::RandomChoice,
+            _ => GrowDirection::All,
+        };
+        *p = match rng.gen_range(0..4) {
+            0 => 0,
+            1 => *p,
+            _ => rng.gen_range(0..=127), // (note: should not be uniform...)
         }
-    } else if p < 128 {
-        mut_u8_p128(p, rng)
     } else {
-        p
+        *p = mutate_u8_p128(*p, rng)
     }
 }
 
 impl Params {
     pub fn mutate(&mut self, rng: &mut impl Rng) {
-        self.genesis_grow_p = mut_grow_p(self.genesis_grow_p, rng);
-        self.pre_wall_grow_p = mut_grow_p(self.pre_wall_grow_p, rng);
+        mutate_grow(&mut self.genesis_grow_p, &mut self.genesis_grow_dir, rng);
+        mutate_grow(&mut self.pre_wall_grow_p, &mut self.pre_wall_grow_dir, rng);
     }
 }
 
@@ -42,7 +46,9 @@ impl Default for Params {
     fn default() -> Self {
         Self {
             genesis_grow_p: 2,
+            genesis_grow_dir: GrowDirection::All,
             pre_wall_grow_p: 80,
+            pre_wall_grow_dir: GrowDirection::All,
         }
     }
 }
