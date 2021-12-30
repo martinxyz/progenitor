@@ -58,12 +58,6 @@ Install [maturin](https://github.com/PyO3/maturin), e.g. `pip3 install
 maturin`. Inside a virtualenv, run:
 
 ```bash
-maturin develop
-```
-
-Or, for an optimized build:
-
-```bash
 cd crates/python
 RUSTFLAGS="-C target-cpu=native" \
     maturin develop --release

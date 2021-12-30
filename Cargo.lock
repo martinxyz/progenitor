@@ -432,13 +432,13 @@ name = "progenitor-py"
 version = "0.0.0"
 dependencies = [
  "bincode",
- "getrandom",
  "ndarray",
  "numpy",
  "progenitor",
  "pyo3",
  "rand",
  "rand_pcg",
+ "rayon",
  "serde",
  "serde_json",
 ]
