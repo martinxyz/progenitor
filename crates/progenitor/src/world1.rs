@@ -4,7 +4,7 @@ use rand::Rng;
 
 use crate::{cell::CellTypes, CellType, CellTypeRef, GrowDirection};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Params {
     genesis_grow_p: u8,
     genesis_grow_dir: GrowDirection,

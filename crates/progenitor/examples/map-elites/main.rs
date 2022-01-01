@@ -1,6 +1,7 @@
 #![feature(array_zip)]
 use progenitor::world1::Params;
 use progenitor::{world1, World};
+use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
 use rayon::prelude::*;
 
@@ -30,13 +31,14 @@ fn sample_initial_params(rng: &mut impl Rng) -> Params {
     p
 }
 
-fn process(params: &Params) -> ([f64; FEATURE_COUNT], World) {
+type EvalResult = ([f64; FEATURE_COUNT], Params, World);
+fn process(params: Params) -> EvalResult {
     let repetitions = 32;
-    let score: [f64; FEATURE_COUNT] = features::evaluate(|| run(params), repetitions);
-    eprintln!("{:?}", params);
-    println!("{:.6} {:.6}", score[0], score[1]);
-    let world = run(params);
-    (score, world)
+    let score: [f64; FEATURE_COUNT] = features::evaluate(|| run(&params), repetitions);
+    // eprintln!("{:?}", params);
+    // println!("{:.6} {:.6}", score[0], score[1]);
+    let world = run(&params);
+    (score, params, world)
 }
 
 fn main() {
@@ -51,7 +53,7 @@ fn main() {
 
     let mut rng = thread_rng();
 
-    let mut bins_found = HashMap::new();
+    let mut bins_found: HashMap<_, EvalResult> = HashMap::new();
     crossbeam::thread::scope(|s| {
         let (tasks_s, tasks_r) = crossbeam::channel::unbounded();
         let (results_s, results_r) = crossbeam::channel::unbounded();
@@ -65,7 +67,7 @@ fn main() {
         // process tasks (in background)
         s.spawn(move |_| {
             tasks_r.into_iter().par_bridge().for_each(|(i, params)| {
-                results_s.send((i, process(&params))).unwrap();
+                results_s.send((i, process(params))).unwrap();
             });
         });
 
@@ -83,19 +85,29 @@ fn main() {
                     );
                 }
             }
-            let (score, world) = ready_results.remove(&i).unwrap();
-
-            let params = sample_initial_params(&mut rng);
-            let task_i = i + POPULATION_LAG;
-            if task_i < EVALUATIONS {
-                tasks_s.send((task_i, params)).unwrap();
-            }
+            let eval_result = ready_results.remove(&i).unwrap();
 
             let map_resolution = (0.05, 0.02);
+            let score = eval_result.0;
             let bc1 = (score[0] / map_resolution.0).round() as i32;
             let bc2 = (score[1] / map_resolution.1).round() as i32;
             let bin = (bc1, bc2);
-            bins_found.insert(bin, world);
+            if bins_found.insert(bin, eval_result).is_none() {
+                eprintln!("evaluation {}: found {} bins", i, bins_found.len());
+                println!("{} {}", i, bins_found.len());
+            }
+
+            let task_i = i + POPULATION_LAG;
+            if task_i < EVALUATIONS {
+                let random_parent = bins_found.values().choose(&mut rng).unwrap();
+                let mut params = random_parent.1.clone();
+                params.mutate(&mut rng);
+                while rng.gen_bool(0.7) {
+                    params.mutate(&mut rng);
+                }
+                // params = sample_initial_params(&mut rng);  // for validation: converges ~40% slower
+                tasks_s.send((task_i, params)).unwrap();
+            }
         }
     })
     .unwrap();
@@ -103,7 +115,7 @@ fn main() {
 
     let snapshots: Vec<((i32, i32), Vec<u8>)> = bins_found
         .into_iter()
-        .map(|(bin, world)| (bin, world.export_snapshot()))
+        .map(|(bin, (_score, _params, world))| (bin, world.export_snapshot()))
         .collect();
     create_dir_all("output").unwrap();
     let mut file = File::create("output/map_bins.dat").unwrap();
