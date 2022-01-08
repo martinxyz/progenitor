@@ -3,9 +3,8 @@ use progenitor::world1::Params;
 use progenitor::{world1, World};
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
-use rayon::prelude::*;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 
@@ -54,28 +53,38 @@ fn main() {
     let mut rng = thread_rng();
 
     let mut bins_found: HashMap<_, EvalResult> = HashMap::new();
-    crossbeam::thread::scope(|s| {
-        let (tasks_s, tasks_r) = crossbeam::channel::unbounded();
+    rayon::in_place_scope(|s| {
+        // Without this max_tasks limit, we are ~6% slower. (Maybe something
+        // with rayon task order. But schedule_fifo() doesn't seem to help. Or
+        // maybe some AMD hyperthreading thing.) (2xVCPUs: 6% slower)
+        let max_tasks = num_cpus::get() * 1; // 1xVCPUs
+
+        let mut tasks = VecDeque::new();
         let (results_s, results_r) = crossbeam::channel::unbounded();
 
         // add initial tasks
         for i in 0..POPULATION_LAG {
             let params = sample_initial_params(&mut rng);
-            tasks_s.send((i, params)).unwrap();
+            tasks.push_back((i, params));
         }
-
-        // process tasks (in background)
-        s.spawn(move |_| {
-            tasks_r.into_iter().par_bridge().for_each(|(i, params)| {
-                results_s.send((i, process(params))).unwrap();
-            });
-        });
 
         // consume each result, add task that depend on this result
         let mut ready_results = HashMap::new();
+        let mut tasks_scheduled = 0;
         for i in 0..EVALUATIONS {
             while !ready_results.contains_key(&i) {
+                // schedule more tasks
+                while tasks_scheduled < max_tasks && !tasks.is_empty() {
+                    tasks_scheduled += 1;
+                    let results_s = results_s.clone();
+                    let (i, params) = tasks.pop_front().unwrap();
+                    s.spawn(move |_| {
+                        results_s.send((i, process(params))).unwrap();
+                    });
+                }
+                // pop results
                 let (i, res) = results_r.recv().unwrap();
+                tasks_scheduled -= 1;
                 ready_results.insert(i, res);
                 if ready_results.len() > POPULATION_LAG / 2 {
                     eprintln!(
@@ -106,11 +115,10 @@ fn main() {
                     params.mutate(&mut rng);
                 }
                 // params = sample_initial_params(&mut rng);  // for validation: converges ~40% slower
-                tasks_s.send((task_i, params)).unwrap();
+                tasks.push_back((task_i, params));
             }
         }
-    })
-    .unwrap();
+    });
     eprintln!("found {} bins: {:?}", bins_found.len(), bins_found.keys());
 
     let snapshots: Vec<((i32, i32), Vec<u8>)> = bins_found
