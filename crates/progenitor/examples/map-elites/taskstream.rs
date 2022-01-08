@@ -20,10 +20,10 @@ pub fn run_stream<T, R, FT, FR>(
     FR: FnMut((usize, R)) -> Option<T>,
 {
     rayon::in_place_scope(|s| {
-        // Without this max_tasks limit, we are ~6% slower. (Maybe something
-        // with rayon task order. But schedule_fifo() doesn't seem to help. Or
-        // maybe some AMD hyperthreading thing.) (2xVCPUs: 6% slower)
-        let max_pending_tasks = num_cpus::get(); // 1xVCPUs
+        // Without this limit, rayon tends to leave some old tasks unfinished,
+        // making us store more inputs/outputs. Previously this value affected
+        // performance, but now (since using mpsc) it seems not to matter much.
+        let max_pending_tasks = num_cpus::get() * 2;
 
         let mut tasks: VecDeque<(usize, T)> = initial_tasks.into_iter().enumerate().collect();
         let mut total_tasks_queued = tasks.len();
