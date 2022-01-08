@@ -1,4 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    sync::mpsc,
+};
 
 /// Run a stream of tasks in parallel, with dependencies.
 ///
@@ -24,7 +27,7 @@ pub fn run_stream<T, R, FT, FR>(
 
         let mut tasks: VecDeque<(usize, T)> = initial_tasks.into_iter().enumerate().collect();
         let mut total_tasks_queued = tasks.len();
-        let (results_s, results_r) = crossbeam::channel::unbounded();
+        let (results_s, results_r) = mpsc::channel();
 
         let mut results = HashMap::<usize, R>::new();
         let mut tasks_pending = 0;
