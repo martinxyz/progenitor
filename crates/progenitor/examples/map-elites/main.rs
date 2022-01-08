@@ -3,7 +3,6 @@ use progenitor::world1::Params;
 use progenitor::{world1, World};
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
-use rayon::prelude::*;
 
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
@@ -55,35 +54,42 @@ fn main() {
 
     let mut bins_found: HashMap<_, EvalResult> = HashMap::new();
     crossbeam::thread::scope(|s| {
+        // thread pool for evaluations
         let (tasks_s, tasks_r) = crossbeam::channel::unbounded();
         let (results_s, results_r) = crossbeam::channel::unbounded();
 
-        // add initial tasks
+        // initial tasks
         for i in 0..POPULATION_LAG {
             let params = sample_initial_params(&mut rng);
             tasks_s.send((i, params)).unwrap();
         }
 
-        // process tasks (in background)
-        s.spawn(move |_| {
-            tasks_r.into_iter().par_bridge().for_each(|(i, params)| {
-                results_s.send((i, process(params))).unwrap();
+        let num_threads = num_cpus::get();
+        for _ in 0..num_threads {
+            let tasks_r = tasks_r.clone();
+            let results_s = results_s.clone();
+            s.spawn(move |_| {
+                for (i, params) in tasks_r.into_iter() {
+                    let result = (i, process(params));
+                    results_s.send(result).unwrap();
+                }
             });
-        });
+        }
+
+        if POPULATION_LAG < 2 * num_threads {
+            eprintln!(
+                "Warning: POPULATION_LAG {} is too low for {} threads",
+                POPULATION_LAG, num_threads
+            );
+        }
 
         // consume each result, add task that depend on this result
         let mut ready_results = HashMap::new();
         for i in 0..EVALUATIONS {
+            // wait for result i
             while !ready_results.contains_key(&i) {
                 let (i, res) = results_r.recv().unwrap();
                 ready_results.insert(i, res);
-                if ready_results.len() > POPULATION_LAG / 2 {
-                    eprintln!(
-                        "Warning: LAG too low? ready_results / LAG: {} / {}",
-                        ready_results.len(),
-                        POPULATION_LAG
-                    );
-                }
             }
             let eval_result = ready_results.remove(&i).unwrap();
 

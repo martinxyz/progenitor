@@ -445,9 +445,9 @@ dependencies = [
  "crossbeam",
  "getrandom",
  "hex2d",
+ "num_cpus",
  "rand",
  "rand_pcg",
- "rayon",
  "serde",
  "serde_json",
 ]
