@@ -23,40 +23,44 @@ pub fn run_stream<T, R, FT, FR>(
         // Without this limit, rayon tends to leave some old tasks unfinished,
         // making us store more inputs/outputs. Previously this value affected
         // performance, but now (since using mpsc) it seems not to matter much.
-        let max_pending_tasks = num_cpus::get() * 2;
+        let tasks_spawned_max = num_cpus::get() * 2;
 
-        let mut tasks: VecDeque<(usize, T)> = initial_tasks.into_iter().enumerate().collect();
-        let mut total_tasks_queued = tasks.len();
-        let (results_s, results_r) = mpsc::channel();
-
+        let mut tasks: VecDeque<T> = initial_tasks.into_iter().collect();
         let mut results = HashMap::<usize, R>::new();
-        let mut tasks_pending = 0;
+        let (channel_s, channel_r) = mpsc::channel();
 
-        // Ugh. Simplify loop conditions?
-        let mut i = 0;
-        while !tasks.is_empty() || !results.is_empty() || tasks_pending > 0 {
-            while !results.contains_key(&i) {
-                // schedule more tasks
-                while tasks_pending < max_pending_tasks && !tasks.is_empty() {
-                    tasks_pending += 1;
-                    let results_s = results_s.clone();
-                    let (j, params) = tasks.pop_front().unwrap();
-                    s.spawn(move |_| {
-                        results_s.send((j, process_task(params))).unwrap();
-                    });
+        let mut task_i = 0;
+        let mut result_i = 0;
+        let mut tasks_spawned = 0;
+        while result_i < task_i || !tasks.is_empty() {
+            while !results.contains_key(&result_i) {
+                // spawn tasks
+                while tasks_spawned < tasks_spawned_max {
+                    if let Some(task) = tasks.pop_front() {
+                        let channel_s = channel_s.clone();
+                        s.spawn(move |_| {
+                            channel_s.send((task_i, process_task(task))).unwrap();
+                        });
+                        tasks_spawned += 1;
+                        task_i += 1;
+                    } else {
+                        break;
+                    }
                 }
-                // pop one result
-                let (j, res) = results_r.recv().unwrap();
-                tasks_pending -= 1;
-                results.insert(j, res);
+                // wait for a result
+                let (i, result) = channel_r.recv().unwrap();
+                results.insert(i, result);
+                tasks_spawned -= 1;
             }
-            let result = results.remove(&i).unwrap();
-
-            if let Some(new_task) = process_result((i, result)) {
-                tasks.push_back((total_tasks_queued, new_task));
-                total_tasks_queued += 1;
+            let result = results.remove(&result_i).unwrap();
+            result_i += 1;
+            // process result
+            if let Some(new_task) = process_result((result_i, result)) {
+                tasks.push_back(new_task);
             }
-            i += 1;
         }
+        assert_eq!(tasks_spawned, 0);
+        assert_eq!(task_i, result_i);
+        assert!(results.is_empty());
     });
 }
