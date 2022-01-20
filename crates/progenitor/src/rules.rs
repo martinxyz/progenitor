@@ -56,28 +56,22 @@ pub fn execute_step(
         });
     let cur = cur;
 
-    let growth_result: Option<Cell> = {
-        let base_prio = types[cur.cell_type].priority;
-        neighbours
-            .iter()
-            .filter(|(dir, temp)| {
-                temp.grow_directions.contains(-*dir)
-                    && temp.grow_prio > base_prio
-                    && temp.grow_prio >= types[temp.grow_celltype].priority
-            })
-            .choose(rng)
-            .and_then(|(dir, temp)| {
-                let ct = temp.grow_celltype;
-                if ct == cur.cell_type {
-                    None
-                } else {
-                    let mut cell = types.create_cell(ct);
-                    cell.heading = -*dir;
-                    cell.particles = DirectionSet::all(); // should depend on celltype?
-                    Some(cell)
-                }
-            })
-    };
+    let growth_result: Option<Cell> = neighbours
+        .iter()
+        .filter(|(dir, temp)| {
+            let base_prio = types[cur.cell_type].priority;
+            temp.grow_directions.contains(-*dir)
+                && temp.grow_prio > base_prio
+                && temp.grow_prio >= types[temp.grow_celltype].priority
+        })
+        .filter(|(_, temp)| temp.grow_celltype != cur.cell_type)
+        .choose(rng)
+        .and_then(|(dir, temp)| {
+            let mut cell = types.create_cell(temp.grow_celltype);
+            cell.heading = -*dir;
+            cell.particles = DirectionSet::all(); // should depend on celltype?
+            Some(cell)
+        });
     let tick_result: Cell = {
         // hm. Nothing else to do yet? No counters to tick? no energy to absorb? no cells to swap?
         self_transform(types, rng, cur)
