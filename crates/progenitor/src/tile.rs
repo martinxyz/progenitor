@@ -112,9 +112,7 @@ pub fn iterate_rectangle(
     width: i32,
     height: i32,
 ) -> impl Iterator<Item = coords::Cube> {
-    (0..height)
-        .map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
-        .flatten()
+    (0..height).flat_map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
 }
 
 pub struct NeighbourIter<'t, CellT: Copy> {

@@ -76,6 +76,7 @@ impl DirectionSet {
         let dir_mask = 1 << (dir as u8);
         self.mask & dir_mask != 0
     }
+    #[must_use]
     pub fn with(&self, dir: Direction, present: bool) -> Self {
         DirectionSet {
             mask: if present {
@@ -85,6 +86,7 @@ impl DirectionSet {
             },
         }
     }
+    #[must_use]
     pub fn mirrored(&self) -> Self {
         DirectionSet::matching(|dir| self.contains(-dir))
     }

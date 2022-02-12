@@ -66,11 +66,11 @@ pub fn execute_step(
         })
         .filter(|(_, temp)| temp.grow_celltype != cur.cell_type)
         .choose(rng)
-        .and_then(|(dir, temp)| {
+        .map(|(dir, temp)| {
             let mut cell = types.create_cell(temp.grow_celltype);
             cell.heading = -*dir;
             cell.particles = DirectionSet::all(); // should depend on celltype?
-            Some(cell)
+            cell
         });
     let tick_result: Cell = {
         // hm. Nothing else to do yet? No counters to tick? no energy to absorb? no cells to swap?

@@ -11,7 +11,6 @@ fn set_panic_hook() {
 }
 
 #[wasm_bindgen]
-#[allow(dead_code)] // it's actually used
 pub fn get_size() -> u32 {
     SIZE
 }
