@@ -16,135 +16,141 @@ pub fn get_size() -> u32 {
 }
 
 #[wasm_bindgen]
-// pub needed?
-pub struct World {
+pub fn demo_simple() -> Simulation {
+    let mut sim = Simulation::new();
+
+    let c1 = CellTypeRef(1);
+    let c2 = CellTypeRef(2);
+    sim.inner.types[c1] = CellType {
+        priority: 110,
+        grow_p: 128,
+        grow_child_type: c2,
+        ..CellType::default()
+    };
+    sim.inner.types[c2] = CellType {
+        priority: 110,
+        grow_p: 128,
+        grow_child_type: c1,
+        ..CellType::default()
+    };
+    sim
+}
+
+#[wasm_bindgen]
+pub fn demo_progenitor() -> Simulation {
+    let mut sim = Simulation::new();
+    let types = &mut sim.inner.types;
+    // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
+    // of tumorous neurosphere growth: Roles of developmental maturity and cell death"
+
+    let empty = CellTypeRef(0);
+    types[empty] = CellType {
+        priority: -1, // cells with priority 0 may replace "empty" cells with their children
+        ..CellType::default()
+    };
+
+    let stem_cell = CellTypeRef(1);
+    let progenitor_cell = CellTypeRef(2);
+    let differentiated_cell = CellTypeRef(3);
+    let base = CellType {
+        priority: 50,
+        grow_p: 128,
+        grow_dir: GrowDirection::RandomChoice,
+        // transaction_move_parent_p: 35,
+        transform_at_random_p: 2,
+        transform_into: empty,
+        ..CellType::default()
+    };
+    types[stem_cell] = CellType {
+        priority: 100,
+        // max_children: 255,
+        grow_child_type: progenitor_cell,
+        transform_at_random_p: 0,
+        ..base
+    };
+    types[progenitor_cell] = CellType {
+        priority: 40,
+        // initial_energy: 6,
+        grow_child_type: progenitor_cell,
+        transform_into: differentiated_cell,
+        transform_at_random_p: 70,
+        ..base
+    };
+    types[differentiated_cell] = CellType {
+        grow_p: 0, // XXX required to prevent leaking energy into air (FIXME)
+        // e.g. we could either call grow_t somethig else ("friend_t?") and decouple it from growth. Or just disallow setting a grow_p without also setting a grow_type (e.g. proper typing... with option, disallow using the grow_type if it implies zero growth)
+        transform_at_random_p: 2,
+        ..base
+    };
+    sim
+}
+
+#[wasm_bindgen]
+pub fn demo_blobs() -> Simulation {
+    let mut sim = Simulation::new();
+    let types = &mut sim.inner.types;
+
+    let mut ref_iterator = (0..255u8).map(CellTypeRef);
+    let mut new_ref = || ref_iterator.next().unwrap();
+
+    let genesis = new_ref();
+    let air = new_ref();
+    let wall = new_ref();
+    let pre_wall = new_ref();
+
+    types[genesis] = CellType {
+        priority: -128,
+        transform_at_random_p: 128,
+        transform_into: air,
+        grow_child_type: pre_wall,
+        grow_p: 2,
+        ..CellType::default()
+    };
+
+    types[air] = CellType {
+        priority: -1,
+        ..CellType::default()
+    };
+
+    types[pre_wall] = CellType {
+        priority: 19,
+        // initial_energy: 2,
+        transform_at_random_p: 128,
+        transform_into: wall,
+        grow_child_type: wall,
+        grow_p: 80,
+        ..CellType::default()
+    };
+    types[wall] = CellType {
+        priority: 20,
+        // initial_energy: 2,
+        ..CellType::default()
+    };
+    sim
+}
+
+#[wasm_bindgen]
+pub fn demo_map() -> Simulation {
+    let mut sim = Simulation::new();
+    let mut params = Params::default();
+    params.mutate(&mut thread_rng());
+    sim.inner.types = world1::rules(&params);
+    sim
+}
+
+#[wasm_bindgen]
+pub struct Simulation {
     inner: progenitor::World,
 }
 
 #[wasm_bindgen]
-impl World {
+impl Simulation {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> World {
+    pub fn new() -> Simulation {
         set_panic_hook();
-        World {
+        Simulation {
             inner: progenitor::World::new(),
         }
-    }
-
-    pub fn set_rules_demo1(&mut self) {
-        let c1 = CellTypeRef(1);
-        let c2 = CellTypeRef(2);
-        self.inner.types[c1] = CellType {
-            priority: 110,
-            grow_p: 128,
-            grow_child_type: c2,
-            ..CellType::default()
-        };
-        self.inner.types[c2] = CellType {
-            priority: 110,
-            grow_p: 128,
-            grow_child_type: c1,
-            ..CellType::default()
-        };
-    }
-
-    pub fn set_rules_demo2(&mut self) {
-        let types = &mut self.inner.types;
-        // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
-        // of tumorous neurosphere growth: Roles of developmental maturity and cell death"
-
-        let empty = CellTypeRef(0);
-        types[empty] = CellType {
-            priority: -1, // cells with priority 0 may replace "empty" cells with their children
-            ..CellType::default()
-        };
-
-        let stem_cell = CellTypeRef(1);
-        let progenitor_cell = CellTypeRef(2);
-        let differentiated_cell = CellTypeRef(3);
-        let base = CellType {
-            priority: 50,
-            grow_p: 128,
-            grow_dir: GrowDirection::RandomChoice,
-            // transaction_move_parent_p: 35,
-            transform_at_random_p: 2,
-            transform_into: empty,
-            ..CellType::default()
-        };
-        types[stem_cell] = CellType {
-            priority: 100,
-            // max_children: 255,
-            grow_child_type: progenitor_cell,
-            transform_at_random_p: 0,
-            ..base
-        };
-        types[progenitor_cell] = CellType {
-            priority: 40,
-            // initial_energy: 6,
-            grow_child_type: progenitor_cell,
-            transform_into: differentiated_cell,
-            transform_at_random_p: 70,
-            ..base
-        };
-        types[differentiated_cell] = CellType {
-            grow_p: 0, // XXX required to prevent leaking energy into air (FIXME)
-            // e.g. we could either call grow_t somethig else ("friend_t?") and decouple it from growth. Or just disallow setting a grow_p without also setting a grow_type (e.g. proper typing... with option, disallow using the grow_type if it implies zero growth)
-            transform_at_random_p: 2,
-            ..base
-        };
-    }
-
-    pub fn set_rules_demo3(&mut self) {
-        let types = &mut self.inner.types;
-
-        let mut ref_iterator = (0..255u8).map(CellTypeRef);
-        let mut new_ref = || ref_iterator.next().unwrap();
-
-        // let mut id = 0;
-        // fn next_ref() {
-        //     id = id + 1;
-        //     CellTypeRef(id)
-        // }
-
-        let genesis = new_ref();
-        let air = new_ref();
-        let wall = new_ref();
-        let pre_wall = new_ref();
-
-        types[genesis] = CellType {
-            priority: -128,
-            transform_at_random_p: 128,
-            transform_into: air,
-            grow_child_type: pre_wall,
-            grow_p: 2,
-            ..CellType::default()
-        };
-
-        types[air] = CellType {
-            priority: -1,
-            ..CellType::default()
-        };
-
-        types[pre_wall] = CellType {
-            priority: 19,
-            // initial_energy: 2,
-            transform_at_random_p: 128,
-            transform_into: wall,
-            grow_child_type: wall,
-            grow_p: 80,
-            ..CellType::default()
-        };
-        types[wall] = CellType {
-            priority: 20,
-            // initial_energy: 2,
-            ..CellType::default()
-        };
-    }
-
-    pub fn set_rules_demo4(&mut self) {
-        let mut params = Params::default();
-        params.mutate(&mut thread_rng());
-        self.inner.types = world1::rules(&params);
     }
 
     pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
@@ -197,7 +203,7 @@ impl World {
     }
 }
 
-impl Default for World {
+impl Default for Simulation {
     fn default() -> Self {
         Self::new()
     }

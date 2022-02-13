@@ -1,12 +1,12 @@
 <script>
-    export let rule
+    import { rules, default_rule_idx } from './simulation'
+    export let rule = default_rule_idx
 </script>
 
 <div>
     <select bind:value={rule}>
-        <option value={'demo1'}>1 - simple pattern</option>
-        <option value={'demo2'}>2 - progrenitor cells</option>
-        <option value={'demo3'}>3 - noisy blobs</option>
-        <option value={'demo4'} selected>4 - experiment results (click map above)</option>
+        {#each rules as r, idx}
+            <option value={idx}>{r.label}</option>
+        {/each}
     </select>
 </div>

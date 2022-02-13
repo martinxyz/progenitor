@@ -2,7 +2,7 @@
     {#each bins_rows as row}
         <div class="row">
             {#each bins_cols as col}
-                <div class="cell" class:full={map_bins[row][col] != null} on:click={loadbin(map_bins[row][col])}>
+                <div class="cell" class:full={map_bins[row][col] != null} on:click={() => loadbin(map_bins[row][col])}>
                     <div title={`${row}, ${col}`} class="inner">
                     </div>
                 </div>

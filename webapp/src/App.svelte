@@ -4,7 +4,7 @@
     import Container from './Container.svelte'
     import MapSelector from './MapSelector.svelte'
 
-    let rule
+    let rule: number
     let sim: Simulation
 </script>
 

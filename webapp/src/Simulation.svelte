@@ -91,9 +91,9 @@
     import { get_size } from "progenitor"
     import type { Hex as HexType } from 'honeycomb-grid'
 
-    export let rule
+    export let rule: number
     $: {
-        if (rule) {
+        if (rule !== undefined) {
             sim.set_rules(rule)
             onReset()
         }

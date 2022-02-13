@@ -1,4 +1,3 @@
-#[cfg(not(target_arch = "wasm32"))]
 use rand::thread_rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
@@ -23,31 +22,9 @@ pub struct World {
     rng: Pcg32,
 }
 
-/* maybe?
-trait CellChannel {
-    fn extract(c: Cell) -> u8;
-    fn update(c: &mut Cell);
-}
-
-struct CellTypeChannel {}
-
-impl CellChannel for CellTypeChannel {
-    fn extract(c: Cell) -> u8;
-    fn update(c: &mut Cell)
-}
-
-pub enum Channels {
-    Particles,
-    CellTypes,
-}
-*/
-
 impl World {
     pub fn new() -> World {
-        #[cfg(not(target_arch = "wasm32"))]
         let rng = Pcg32::from_rng(thread_rng()).unwrap();
-        #[cfg(target_arch = "wasm32")] // no thread_rng
-        let rng = Pcg32::seed_from_u64(0);
         World {
             cells: Tile::new(Default::default()),
             types: CellTypes::new(),
