@@ -25,11 +25,18 @@ pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTem
                 false => DirectionSet::none(),
                 true => DirectionSet::single(cur.heading),
             },
+            GrowDirection::RandomChoice => match rng.gen_range(0..128) < prob {
+                false => DirectionSet::none(),
+                true => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
+            },
+        },
+        128 => match ct.grow_dir {
+            GrowDirection::All => DirectionSet::all(),
+            GrowDirection::Forward => DirectionSet::single(cur.heading),
             GrowDirection::RandomChoice => {
                 DirectionSet::single(*Direction::all().choose(rng).unwrap())
             }
         },
-        128 => DirectionSet::all(),
         _ => panic!("growth probability out of range"),
     };
 
