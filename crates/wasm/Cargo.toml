@@ -11,6 +11,7 @@ repository = "https://github.com/martinxyz/progenitor"
 [lib]
 name = "progenitor_wasm"
 crate-type = ["cdylib"]
+doc = false
 
 [dependencies]
 progenitor = { path = "../progenitor" }
