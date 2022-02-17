@@ -1,88 +1,3 @@
-<div class="host" on:keydown={onKey}>
-    <div>
-        <div class="canvasDiv">
-            <canvas class="mainCanvas" bind:this={canvas} />
-            <canvas
-                class="overlayCanvas"
-                bind:this={overlayCanvas}
-                on:mousemove={onMouseMove}
-                on:mouseleave={onMouseLeave}
-                on:click={onClick}
-            />
-        </div>
-        <div class="button-row">
-            <button on:click={onReset} title="Reset (Backspace)">
-                <i class="fas fa-fast-backward"></i>
-            </button>
-            <button on:click={onUndoStep} title="Step Back (Arrow Left)">
-                <i class="fas fa-step-backward"></i>
-            </button>
-            <button on:click={onStep} bind:this={stepButton} title="Single Step (Arrow Right)">
-                {#if intervalId}
-                    <i class="fas fa-pause"></i>
-                {:else}
-                    <i class="fas fa-step-forward"></i>
-                {/if}
-            </button>
-            <button on:click={onPlayNormal} title="Play Slow">
-                <i class="fas fa-play"></i>
-            </button>
-            <button on:click={onPlayFast} title="Play Fast">
-                <i class="fas fa-forward"></i>
-            </button>
-            <div class="spacer"></div>
-            <div class="step">
-                {step}
-            </div>
-        </div>
-    </div>
-    <div>
-        <Sidebar {cell} bind:showEnergy bind:showHeading/>
-    </div>
-</div>
-
-<style lang="scss">
-    .host {
-        display: inline-flex;
-        flex-direction: row;
-    }
-    .canvasDiv {
-        position: relative;
-    }
-    .overlayCanvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        background-color: transparent;
-    }
-    .mainCanvas {
-        background-color: #2E170E;
-    }
-    .button-row {
-        padding-top: 7px;
-        display: flex;
-    }
-    button {
-        margin: 0 0.2em 0 0;
-        min-width: 3.8em;
-        color: #2E170ED5;
-    }
-    .spacer {
-        flex-grow: 1;
-    }
-    .step {
-        color: #2E170E80;
-        display: inline-block;
-        background-color: transparent;
-        border: 1px solid #2E170E40;
-        border-radius: 5px;
-        min-width: 3.5em;
-        padding: .15em .35em;
-        align-self: center;
-        text-align: center;
-   }
-</style>
-
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import type Simulation from './simulation'
@@ -348,3 +263,88 @@
         ctx.restore()
     }
 </script>
+
+<div class="host" on:keydown={onKey}>
+    <div>
+        <div class="canvasDiv">
+            <canvas class="mainCanvas" bind:this={canvas} />
+            <canvas
+                class="overlayCanvas"
+                bind:this={overlayCanvas}
+                on:mousemove={onMouseMove}
+                on:mouseleave={onMouseLeave}
+                on:click={onClick}
+            />
+        </div>
+        <div class="button-row">
+            <button on:click={onReset} title="Reset (Backspace)">
+                <i class="fas fa-fast-backward"></i>
+            </button>
+            <button on:click={onUndoStep} title="Step Back (Arrow Left)">
+                <i class="fas fa-step-backward"></i>
+            </button>
+            <button on:click={onStep} bind:this={stepButton} title="Single Step (Arrow Right)">
+                {#if intervalId}
+                    <i class="fas fa-pause"></i>
+                {:else}
+                    <i class="fas fa-step-forward"></i>
+                {/if}
+            </button>
+            <button on:click={onPlayNormal} title="Play Slow">
+                <i class="fas fa-play"></i>
+            </button>
+            <button on:click={onPlayFast} title="Play Fast">
+                <i class="fas fa-forward"></i>
+            </button>
+            <div class="spacer"></div>
+            <div class="step">
+                {step}
+            </div>
+        </div>
+    </div>
+    <div>
+        <Sidebar {cell} bind:showEnergy bind:showHeading/>
+    </div>
+</div>
+
+<style lang="scss">
+    .host {
+        display: inline-flex;
+        flex-direction: row;
+    }
+    .canvasDiv {
+        position: relative;
+    }
+    .overlayCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: transparent;
+    }
+    .mainCanvas {
+        background-color: #2E170E;
+    }
+    .button-row {
+        padding-top: 7px;
+        display: flex;
+    }
+    button {
+        margin: 0 0.2em 0 0;
+        min-width: 3.8em;
+        color: #2E170ED5;
+    }
+    .spacer {
+        flex-grow: 1;
+    }
+    .step {
+        color: #2E170E80;
+        display: inline-block;
+        background-color: transparent;
+        border: 1px solid #2E170E40;
+        border-radius: 5px;
+        min-width: 3.5em;
+        padding: .15em .35em;
+        align-self: center;
+        text-align: center;
+   }
+</style>

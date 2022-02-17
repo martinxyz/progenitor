@@ -1,49 +1,3 @@
-<div class="table">
-    {#each bins_rows as row}
-        <div class="row">
-            {#each bins_cols as col}
-                <div class="cell" class:full={map_bins[row][col] != null} on:click={() => loadbin(map_bins[row][col])}>
-                    <div title={`${row}, ${col}`} class="inner">
-                    </div>
-                </div>
-            {/each}
-        </div>
-    {/each}
-</div>
-
-<style lang="scss">
-    .table {
-        width: 100%;
-        height: 20em;
-        display: flex;
-        flex-direction: column;
-    }
-    .row {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: row;
-    }
-    .cell {
-        flex-grow: 1;
-        padding: 1px;
-    }
-    .inner {
-        background-color: #2E170E80;
-        width: 100%;
-        height: 100%;
-    }
-    .full > .inner {
-        background-color: #000;
-    }
-    .full:hover {
-        cursor: pointer;
-        & > .inner {
-            background-color: #055;
-        }
-    }
-
-</style>
-
 <script lang="ts">
     import { onMount } from 'svelte';
     import { demo_map, Snapshots } from 'progenitor';
@@ -102,3 +56,49 @@
         selectHandler(sim)
     }
 </script>
+
+<div class="table">
+    {#each bins_rows as row}
+        <div class="row">
+            {#each bins_cols as col}
+                <div class="cell" class:full={map_bins[row][col] != null} on:click={() => loadbin(map_bins[row][col])}>
+                    <div title={`${row}, ${col}`} class="inner">
+                    </div>
+                </div>
+            {/each}
+        </div>
+    {/each}
+</div>
+
+<style lang="scss">
+    .table {
+        width: 100%;
+        height: 20em;
+        display: flex;
+        flex-direction: column;
+    }
+    .row {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: row;
+    }
+    .cell {
+        flex-grow: 1;
+        padding: 1px;
+    }
+    .inner {
+        background-color: #2E170E80;
+        width: 100%;
+        height: 100%;
+    }
+    .full > .inner {
+        background-color: #000;
+    }
+    .full:hover {
+        cursor: pointer;
+        & > .inner {
+            background-color: #055;
+        }
+    }
+
+</style>
