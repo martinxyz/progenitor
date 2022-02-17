@@ -16,6 +16,11 @@ pub fn get_size() -> u32 {
 }
 
 #[wasm_bindgen]
+pub fn is_debug_build() -> bool {
+    cfg!(debug_assertions)
+}
+
+#[wasm_bindgen]
 pub fn demo_simple() -> Simulation {
     let mut sim = Simulation::new();
 

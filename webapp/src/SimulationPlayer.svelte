@@ -85,26 +85,21 @@
 
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
-    import Simulation from './simulation'
+    import type Simulation from './simulation'
     import { defineGrid, extendHex, PointCoordinates } from 'honeycomb-grid'
     import { onMount } from 'svelte'
     import { get_size } from "progenitor"
     import type { Hex as HexType } from 'honeycomb-grid'
 
-    export let rule: number
+    export let sim: Simulation
+
+    let autoplay = true
     $: {
-        if (rule !== undefined) {
-            sim.set_rules(rule)
-            onReset()
+        if (sim && autoplay) {
+            autoplay = false
+            onPlayNormal()
         }
     }
-
-    export function load_state(state: Uint8Array) {
-        sim.load_state(state)
-        renderSim()
-    }
-
-    let stepButton: HTMLElement
 
     let canvas: HTMLCanvasElement
     let overlayCanvas: HTMLCanvasElement
@@ -112,7 +107,7 @@
     let cursorSelected = null
     $: renderCursors(cursorSelected, cursorHover)
     $: cursor = cursorSelected || cursorHover
-    $: cell = cursor ? sim.get_cell_info(cursor.x, cursor.y) : null
+    $: cell = (sim && cursor) ? sim.get_cell_info(cursor.x, cursor.y) : null
 
     let showEnergy = false
     let showHeading = false
@@ -129,9 +124,13 @@
     let overlayCtx: CanvasRenderingContext2D
 
     $: {
+        // rendering triggers
+        sim
         showEnergy
         showHeading
-        if (ctx) renderSim()
+        // This causes an infinite re-triggering of the rendering:
+        //   requestAnimationFrame(renderSim)
+        renderSim()
     }
 
     onMount(() => {
@@ -143,15 +142,8 @@
         overlayCanvas.width = canvas.width
         overlayCanvas.height = canvas.height
         overlayCtx = overlayCanvas.getContext('2d')
-
-        onReset()
-        onPlayNormal()
-
-        // makes the button scroll into view, which can be annoying
-        // stepButton.focus()
     })
 
-    const sim = new Simulation()
     let step = -1
 
     let intervalId = null
@@ -159,16 +151,16 @@
 
     function onReset() {
         sim.reset()
-        renderSim()
+        sim = sim
     }
     function onStep() {
+        console.log('onstep', intervalId)
         if (intervalId) {
             clearInterval(intervalId)
             intervalId = null
         }
         sim.tick()
-        // requestAnimationFrame(() => renderSim(w))
-        renderSim()
+        sim = sim
     }
     function onUndoStep() {
         if (intervalId) {
@@ -176,7 +168,7 @@
             intervalId = null
         }
         sim.tick_undo()
-        renderSim()
+        sim = sim
     }
     function onPlayNormal() {
         playSpeed = 'normal'
@@ -198,15 +190,20 @@
     }
 
     function intervalCallback() {
-        const ticks = playSpeed === 'normal' ? 1 : 8
-        for (let i=0; i<ticks; i++) {
-            sim.tick()
+        try {
+            if (document.hidden) return
+            const ticks = playSpeed === 'normal' ? 1 : 8
+            for (let i=0; i<ticks; i++) {
+                sim.tick()
+            }
+            sim = sim
+        } catch (e) {
+            stop()
+            throw e
         }
-        // requestAnimationFrame(() => renderWorld(w))
-        renderSim()
     }
 
-    function onKey(ev) {
+    function onKey(ev: KeyboardEvent) {
         const fn = {
             'ArrowRight': onStep,
             'ArrowLeft': onUndoStep,
@@ -222,13 +219,16 @@
     }
 
     function renderSim() {
-        // trigger updates (maybe not the most ellegant way...)
+        if (!ctx) return
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+        if (!sim) return
+        // console.log('renderSim')
+
+        // to trigger updates (maybe not the most ellegant way...)
         cell = cell
         step = sim.get_step()
 
         const [data_cell_type, data_energy, data_heading] = sim.get_data()
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
         myGrid.forEach(renderHex)
 
         function renderHex(hex: HexType<object>) {
@@ -263,13 +263,13 @@
             ctx.restore()
 
             if (showEnergy) {
-                if (e === 0) color = '#000';
-                if (e === 1) color = '#880';
-                if (e === 2) color = '#AA0';
-                if (e === 3) color = '#CC0';
-                if (e === 4) color = '#DD0';
-                if (e === 5) color = '#EE2';
-                if (e >= 6) color = '#FF6';
+                if (e === 0) color = '#000'
+                if (e === 1) color = '#880'
+                if (e === 2) color = '#AA0'
+                if (e === 3) color = '#CC0'
+                if (e === 4) color = '#DD0'
+                if (e === 5) color = '#EE2'
+                if (e >= 6) color = '#FF6'
                 ctx.save()
                 ctx.translate(position.x, position.y)
                 ctx.scale(0.97, 0.97)
@@ -314,8 +314,8 @@
     function onClick({offsetX, offsetY}) {
         const p = offsetToHex(offsetX, offsetY)
         if (p && p.equals(cursorSelected)) {
-            cursorSelected = null;
-            cursorHover = null;
+            cursorSelected = null
+            cursorHover = null
         } else {
             cursorSelected = p
         }

@@ -1,6 +1,10 @@
-import { get_size, Snapshots, demo_simple, demo_progenitor, demo_blobs, demo_map } from "progenitor"
-import { prevent_default, prop_dev } from "svelte/internal";
+import { is_debug_build, get_size, demo_simple, demo_progenitor, demo_blobs, demo_map } from "progenitor"
+import type { Simulation as ProgenitorSimulation } from 'progenitor'
 const gridSize = get_size()
+
+if (is_debug_build()) {
+    console.warn("the rust wasm module was built in debug mode and will run ~100x slower")
+}
 
 export interface CellInfo {
     cell_type: number,
@@ -11,38 +15,46 @@ export interface CellInfo {
 
 export interface Rule {
     label: string,
-    create: () => any
+    create: () => any,
+    show_map?: boolean,
+}
+
+function with_three_cells(sim: ProgenitorSimulation): ProgenitorSimulation {
+    sim.set_cell(gridSize / 2, gridSize / 2, 1)
+    sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 0, 1)
+    sim.set_cell(gridSize / 2 + 1, gridSize / 2 - 8, 1)
+    sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
+    return sim
 }
 
 export const rules: Rule[] = [{
     label: '1 - simple pattern',
-    create: () => demo_simple(),
+    create: () => with_three_cells(demo_simple()),
 }, {
     label: '2 - progenitor cells',
-    create: () => demo_progenitor(),
+    create: () => with_three_cells(demo_progenitor()),
 }, {
     label: '3 - noisy blobs',
-    create: () => demo_blobs(),
+    create: () => with_three_cells(demo_blobs()),
 }, {
-    label: '4 - experiment results (click map above)',
+    label: '4 - experiment results (select from map)',
     create: () => demo_map(),
+    show_map: true,
 }];
 export const default_rule_idx = 1
 
 export default class Simulation {
-    private sim = demo_simple()
-    private step: number
+    constructor(private sim: ProgenitorSimulation) {
+        console.log('Simulation constructor')
+    }
+    private step: number = 0
     private snapshots = []
+    private snapshot0 = this.sim.export_snapshot()
 
     set_rules(ruleIdx: number) {
         let rule = rules[ruleIdx]
         console.log('rule:', rule.label)
         this.sim = rule.create()
-    }
-
-    load_state(state: Uint8Array) {
-        this.reset()
-        this.sim.import_snapshot(state)
     }
 
     tick() {
@@ -52,7 +64,7 @@ export default class Simulation {
     }
 
     tick_undo() {
-        if (this.snapshots.length == 0) return;
+        if (this.snapshots.length == 0) return
         this.sim.import_snapshot(this.snapshots.pop())
         this.step -= 1
     }
@@ -66,15 +78,8 @@ export default class Simulation {
     }
 
     reset() {
-        for (let y = 0; y < gridSize; y++) {
-            for (let x = 0; x < gridSize; x++) {
-                this.sim.set_cell(y, x, 0)
-            }
-        }
-        this.sim.set_cell(gridSize / 2, gridSize / 2, 1)
-        this.sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 0, 1)
-        this.sim.set_cell(gridSize / 2 + 1, gridSize / 2 - 8, 1)
-        this.sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
+        console.log(`Simulation reset from step {this.step} to step 0.`);
+        this.sim.import_snapshot(this.snapshot0)
         this.step = 0
         this.snapshots = []
     }

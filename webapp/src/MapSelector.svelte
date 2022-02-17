@@ -46,14 +46,14 @@
 
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { Snapshots } from 'progenitor';
-    import type Simulation from './Simulation.svelte'
+    import { demo_map, Snapshots } from 'progenitor';
+    import Simulation from './simulation'
 
     let map_bins: Uint8Array[][] = []
     let bins_rows: number[] = []
     let bins_cols: number[] = []
 
-    export let sim: Simulation
+    export let selectHandler: (sim: Simulation) => void = () => {}
 
     onMount(async () => {
         const sshot = await fetch('assets/output/map_bins.dat')
@@ -61,22 +61,21 @@
         const data = new Uint8Array(await sshot.arrayBuffer())
         const snapshots = new Snapshots(data);
 
-        var f1_values = [];
-        var f2_values = [];
-        const map = snapshots.getall();
+        var f1_values = []
+        var f2_values = []
+        const map = snapshots.getall()
         for (const item of map) {
-            const f1: number = item[0];
-            const f2: number = item[1];
-            // const data: Uint8Array = item[2];
-            f1_values.push(f1);
-            f2_values.push(f2);
+            const f1: number = item[0]
+            const f2: number = item[1]
+            f1_values.push(f1)
+            f2_values.push(f2)
         }
-        const f1_min = Math.min(...f1_values);
-        const f1_max = Math.max(...f1_values);
-        const f2_min = Math.min(...f2_values);
-        const f2_max = Math.max(...f2_values);
-        for (let i=f1_min; i <= f1_max; i++) bins_cols.push(i);
-        for (let i=f2_min; i <= f2_max; i++) bins_rows.push(i);
+        const f1_min = Math.min(...f1_values)
+        const f1_max = Math.max(...f1_values)
+        const f2_min = Math.min(...f2_values)
+        const f2_max = Math.max(...f2_values)
+        for (let i=f1_min; i <= f1_max; i++) bins_cols.push(i)
+        for (let i=f2_min; i <= f2_max; i++) bins_rows.push(i)
         bins_rows.reverse()
 
         map_bins = []
@@ -88,20 +87,18 @@
             }
         }
         for (const item of map) {
-            const f1: number = item[0];
-            const f2: number = item[1];
-            const data: Uint8Array = item[2];
-            map_bins[f2][f1] = data;
+            const f1: number = item[0]
+            const f2: number = item[1]
+            const data: Uint8Array = item[2]
+            map_bins[f2][f1] = data
         }
-        console.log('map_bins', map_bins)
-
-        // const i = Math.floor(Math.random() * map.length)
-        // console.log('showing', map[i].bin)
-        // this.w.import_snapshot(map[i].data)
     })
 
     function loadbin(bin: (Uint8Array|null)) {
-        if (!bin) return;
-        sim.load_state(bin)
+        if (!bin) return
+        let sim_rust = demo_map()
+        sim_rust.import_snapshot(bin)
+        let sim = new Simulation(sim_rust)
+        selectHandler(sim)
     }
 </script>
