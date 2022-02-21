@@ -13,3 +13,6 @@ debug = 1  # no significant effect (less than 2%)
 
 [profile.bench]
 debug = true  # for better profiling
+
+[patch.crates-io]
+wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", branch = "main" }
