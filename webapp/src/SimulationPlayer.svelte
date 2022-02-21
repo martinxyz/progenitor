@@ -283,7 +283,7 @@
             <button on:click={onUndoStep} title="Step Back (Arrow Left)">
                 <i class="fas fa-step-backward"></i>
             </button>
-            <button on:click={onStep} bind:this={stepButton} title="Single Step (Arrow Right)">
+            <button on:click={onStep} title="Single Step (Arrow Right)">
                 {#if intervalId}
                     <i class="fas fa-pause"></i>
                 {:else}
