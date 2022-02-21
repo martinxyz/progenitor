@@ -20,9 +20,23 @@ pub fn is_debug_build() -> bool {
     cfg!(debug_assertions)
 }
 
+fn progenitor_world_empty() -> Simulation {
+    Simulation::new()
+}
+
+fn progenitor_world_with_seeds() -> Simulation {
+    let mut sim = progenitor_world_empty();
+    let positions = [(0, 0), (3, 0), (1, -8), (3, -2)];
+    for (x, y) in positions {
+        const C: i32 = (SIZE / 2) as i32;
+        sim.set_cell(C + x, C + y, 1);
+    }
+    sim
+}
+
 #[wasm_bindgen]
 pub fn demo_simple() -> Simulation {
-    let mut sim = Simulation::new();
+    let mut sim = progenitor_world_with_seeds();
 
     let c1 = CellTypeRef(1);
     let c2 = CellTypeRef(2);
@@ -43,7 +57,7 @@ pub fn demo_simple() -> Simulation {
 
 #[wasm_bindgen]
 pub fn demo_progenitor() -> Simulation {
-    let mut sim = Simulation::new();
+    let mut sim = progenitor_world_with_seeds();
     let types = &mut sim.inner.types;
     // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
     // of tumorous neurosphere growth: Roles of developmental maturity and cell death"
@@ -92,7 +106,7 @@ pub fn demo_progenitor() -> Simulation {
 
 #[wasm_bindgen]
 pub fn demo_blobs() -> Simulation {
-    let mut sim = Simulation::new();
+    let mut sim = progenitor_world_with_seeds();
     let types = &mut sim.inner.types;
 
     let mut ref_iterator = (0..255u8).map(CellTypeRef);
@@ -136,7 +150,7 @@ pub fn demo_blobs() -> Simulation {
 
 #[wasm_bindgen]
 pub fn demo_map() -> Simulation {
-    let mut sim = Simulation::new();
+    let mut sim = progenitor_world_empty();
     let mut params = Params::default();
     params.mutate(&mut thread_rng());
     sim.inner.types = world1::rules(&params);

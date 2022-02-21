@@ -19,23 +19,15 @@ export interface Rule {
     show_map?: boolean,
 }
 
-function with_three_cells(sim: ProgenitorSimulation): ProgenitorSimulation {
-    sim.set_cell(gridSize / 2, gridSize / 2, 1)
-    sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 0, 1)
-    sim.set_cell(gridSize / 2 + 1, gridSize / 2 - 8, 1)
-    sim.set_cell(gridSize / 2 + 3, gridSize / 2 - 2, 1)
-    return sim
-}
-
 export const rules: Rule[] = [{
     label: '1 - simple pattern',
-    create: () => with_three_cells(demo_simple()),
+    create: () => demo_simple(),
 }, {
     label: '2 - progenitor cells',
-    create: () => with_three_cells(demo_progenitor()),
+    create: () => demo_progenitor(),
 }, {
     label: '3 - noisy blobs',
-    create: () => with_three_cells(demo_blobs()),
+    create: () => demo_blobs(),
 }, {
     label: '4 - experiment results (select from map)',
     create: () => demo_map(),
