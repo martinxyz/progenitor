@@ -1,4 +1,4 @@
-use progenitor::{Cell, CellTypeRef, World};
+use progenitor::world1::{Cell, CellTypeRef, World};
 
 #[derive(Default, Clone, Copy)]
 struct FeatureAccumulator {

@@ -1,6 +1,5 @@
 #![feature(array_zip)]
-use progenitor::world1::Params;
-use progenitor::{world1, World};
+use progenitor::world1::{rules, Params, World};
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
 
@@ -15,7 +14,7 @@ mod taskstream;
 
 fn run(params: &Params) -> World {
     let mut world = World::new();
-    world.types = world1::rules(params);
+    world.types = rules(params);
     let iterations = 10;
     for _ in 0..iterations {
         world.tick();

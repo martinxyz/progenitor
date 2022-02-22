@@ -2,7 +2,8 @@ use std::cmp::max;
 
 use rand::Rng;
 
-use crate::{cell::CellTypes, CellType, CellTypeRef, GrowDirection};
+pub use crate::sim1::World;
+pub use crate::sim1::{Cell, CellType, CellTypeRef, CellTypes, GrowDirection};
 
 #[derive(Debug, Clone)]
 pub struct Params {

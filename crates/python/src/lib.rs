@@ -8,12 +8,13 @@ use ndarray::prelude::*;
 use numpy::{PyArray1, ToPyArray};
 // use numpy::{IntoPyArray, PyArray2, PyArrayDyn};
 
+use progenitor::sim1;
 use progenitor::tile;
 // use cell::Cell;
 
 #[pyclass]
 pub(crate) struct World {
-    inner: progenitor::World,
+    inner: sim1::World,
 
     #[pyo3(get)]
     size: u32,
@@ -26,7 +27,7 @@ impl World {
     #[new]
     fn new() -> Self {
         Self {
-            inner: progenitor::World::new(),
+            inner: sim1::World::new(),
             size: tile::SIZE,
         }
     }

@@ -1,8 +1,9 @@
 use crate::world1::Params;
 pub use hex2d::{Coordinate, Direction};
-use progenitor::{coords, world1, GrowDirection};
-use progenitor::{CellType, CellTypeRef, SIZE};
+use progenitor::sim1;
+use progenitor::{coords, world1, SIZE};
 use rand::thread_rng;
+use sim1::{CellType, CellTypeRef, GrowDirection};
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
@@ -159,7 +160,7 @@ pub fn demo_map() -> Simulation {
 
 #[wasm_bindgen]
 pub struct Simulation {
-    inner: progenitor::World,
+    inner: sim1::World,
 }
 
 #[wasm_bindgen]
@@ -167,7 +168,7 @@ impl Simulation {
     fn new() -> Simulation {
         set_panic_hook();
         Simulation {
-            inner: progenitor::World::new(),
+            inner: sim1::World::new(),
         }
     }
 

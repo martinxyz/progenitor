@@ -1,8 +1,6 @@
-use crate::{
-    cell::{CellTypes, GrowDirection},
-    coords::{Direction, DirectionSet},
-    Cell, CellTypeRef,
-};
+use crate::coords::{Direction, DirectionSet};
+
+use super::cell::{Cell, CellTypeRef, CellTypes, GrowDirection};
 use rand::{seq::IteratorRandom, seq::SliceRandom, Rng};
 
 // Temporary state of cell (intermediate calculation)
