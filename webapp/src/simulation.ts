@@ -1,6 +1,5 @@
-import { is_debug_build, get_size, demo_simple, demo_progenitor, demo_blobs, demo_map } from "progenitor"
+import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map } from "progenitor"
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
-const gridSize = get_size()
 
 if (is_debug_build()) {
     console.warn("the rust wasm module was built in debug mode and will run ~100x slower")
@@ -42,12 +41,6 @@ export default class Simulation {
     private step: number = 0
     private snapshots = []
     private snapshot0 = this.sim.export_snapshot()
-
-    set_rules(ruleIdx: number) {
-        let rule = rules[ruleIdx]
-        console.log('rule:', rule.label)
-        this.sim = rule.create()
-    }
 
     tick() {
         this.snapshots = [...this.snapshots.slice(-100), this.sim.export_snapshot()]

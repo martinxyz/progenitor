@@ -3,8 +3,8 @@
     import RuleSelector from './RuleSelector.svelte'
     import Container from './Container.svelte'
     import MapSelector from './MapSelector.svelte'
-    import Simulation, { default_rule_idx, Rule, rules } from './simulation';
-    import { demo_simple } from 'progenitor';
+    import Simulation, { default_rule_idx, Rule, rules } from './simulation'
+    import { demo_simple } from 'progenitor'
 
     let rule: Rule = rules[default_rule_idx]
     let sim: Simulation = new Simulation(demo_simple())

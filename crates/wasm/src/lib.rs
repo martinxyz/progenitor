@@ -164,8 +164,7 @@ pub struct Simulation {
 
 #[wasm_bindgen]
 impl Simulation {
-    #[wasm_bindgen(constructor)]
-    pub fn new() -> Simulation {
+    fn new() -> Simulation {
         set_panic_hook();
         Simulation {
             inner: progenitor::World::new(),
