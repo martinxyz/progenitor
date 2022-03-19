@@ -74,7 +74,7 @@
             clearInterval(intervalId)
             intervalId = null
         }
-        sim.tick()
+        sim.step()
         sim = sim
     }
     function onUndoStep() {
@@ -82,7 +82,7 @@
             clearInterval(intervalId)
             intervalId = null
         }
-        sim.tick_undo()
+        sim.step_undo()
         sim = sim
     }
     function onPlayNormal() {
@@ -107,9 +107,9 @@
     function intervalCallback() {
         try {
             if (document.hidden) return
-            const ticks = playSpeed === 'normal' ? 1 : 8
-            for (let i=0; i<ticks; i++) {
-                sim.tick()
+            const steps = playSpeed === 'normal' ? 1 : 8
+            for (let i=0; i<steps; i++) {
+                sim.step()
             }
             sim = sim
         } catch (e) {
@@ -141,7 +141,7 @@
 
         // to trigger updates (maybe not the most ellegant way...)
         cell = cell
-        step = sim.get_step()
+        step = sim.get_step_no()
 
         const [data_cell_type, data_energy, data_heading] = sim.get_data()
         myGrid.forEach(renderHex)

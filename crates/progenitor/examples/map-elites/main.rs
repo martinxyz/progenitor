@@ -18,7 +18,7 @@ fn run(params: &Params) -> World {
     world.types = rules(params);
     let iterations = 10;
     for _ in 0..iterations {
-        world.tick();
+        world.step();
     }
     world
 }

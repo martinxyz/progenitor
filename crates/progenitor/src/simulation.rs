@@ -1,7 +1,7 @@
 use hex2d::Direction;
 
 pub trait Simulation<Cell: CellView> {
-    fn tick(&mut self); // TODO: rename tick() --> step()
+    fn step(&mut self);
     fn get_cells_rectangle(&self) -> Vec<Cell>;
 }
 

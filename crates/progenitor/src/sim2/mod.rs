@@ -28,7 +28,7 @@ impl World {
 }
 
 impl Simulation<bool> for World {
-    fn tick(&mut self) {
+    fn step(&mut self) {
         self.alive = self
             .alive
             .iter_radius_1()

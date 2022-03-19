@@ -8,7 +8,7 @@ fn initialization_should_be_inert() {
     let mut w = World::new();
     let pos = Cube { x: 5, y: 5 };
     assert_eq!(w.get_cell(pos), Cell::default());
-    w.tick();
+    w.step();
     assert_eq!(w.get_cell(pos), Cell::default());
 }
 
@@ -33,7 +33,7 @@ fn simple_self_transformation() {
     assert_eq!(w.get_cell(pos1).cell_type, dying_cell);
     assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
     for i in 0..10 {
-        w.tick();
+        w.step();
         assert_eq!(w.get_cell(pos0), Cell::default(), "at step {}", i);
         assert_eq!(w.get_cell(pos1), Cell::default(), "at step {}", i);
         assert_eq!(w.get_cell(pos2).cell_type, persistent_cell, "at step {}", i);
@@ -58,9 +58,9 @@ fn simple_growth() {
             .count()
     };
     assert_eq!(1, count_growing_cells(&w));
-    w.tick();
+    w.step();
     assert_eq!(1 + 6, count_growing_cells(&w));
-    w.tick();
+    w.step();
     assert_eq!(1 + 6 + 12, count_growing_cells(&w));
 }
 
@@ -84,5 +84,5 @@ fn benchtest(b: &mut Bencher) {
     };
     b.iter(|| count_growing_cells(&w));
     */
-    b.iter(|| w.tick());
+    b.iter(|| w.step());
 }

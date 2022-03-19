@@ -2,10 +2,10 @@
 members = ["crates/*"]
 
 [profile.release]
-lto = true  # ~30% .tick() speedup (most likely: inlining hex2d::Coordinate impl Neg)
+lto = true  # ~30% .step() speedup (most likely: inlining hex2d::Coordinate impl Neg)
             # ("fat" or "thin" both had the same effect)
-codegen-units = 1  # ~40% .tick() speedup
-panic = "abort"  # ~7% .tick() speedup
+codegen-units = 1  # ~40% .step() speedup
+panic = "abort"  # ~7% .step() speedup
 debug = 1  # no slowdown (certainly less than 2%)
 # debug = true  # ~1% slower than debug=1 (seems to be statistically significant)
 # opt-level = 3  # no significant effect (less than 2%)

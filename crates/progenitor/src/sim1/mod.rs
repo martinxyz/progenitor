@@ -69,7 +69,7 @@ impl World {
 }
 
 impl Simulation<Cell> for World {
-    fn tick(&mut self) {
+    fn step(&mut self) {
         let types = &self.types;
         let mut rng = &mut self.rng;
 

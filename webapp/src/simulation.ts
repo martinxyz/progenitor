@@ -42,34 +42,34 @@ export default class Simulation {
     constructor(private sim: ProgenitorSimulation) {
         console.log('Simulation constructor')
     }
-    private step: number = 0
+    private step_no: number = 0
     private snapshots = []
     private snapshot0 = this.sim.export_snapshot()
 
-    tick() {
+    step() {
         this.snapshots = [...this.snapshots.slice(-100), this.sim.export_snapshot()]
-        this.sim.tick()
-        this.step += 1
+        this.sim.step()
+        this.step_no += 1
     }
 
-    tick_undo() {
+    step_undo() {
         if (this.snapshots.length == 0) return
         this.sim.import_snapshot(this.snapshots.pop())
-        this.step -= 1
+        this.step_no -= 1
     }
 
     get_cell_info(col: number, row: number): CellInfo {
         return this.sim.get_cell_info(col, row)
     }
 
-    get_step() {
-        return this.step
+    get_step_no() {
+        return this.step_no
     }
 
     reset() {
-        console.log(`Simulation reset from step {this.step} to step 0.`);
+        console.log(`Simulation reset from step {this.step_no} to step 0.`);
         this.sim.import_snapshot(this.snapshot0)
-        this.step = 0
+        this.step_no = 0
         this.snapshots = []
     }
 

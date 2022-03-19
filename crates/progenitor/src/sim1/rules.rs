@@ -77,11 +77,11 @@ pub fn execute_step(
             cell.particles = DirectionSet::all(); // should depend on celltype?
             cell
         });
-    let tick_result: Cell = {
+    let step_result: Cell = {
         // hm. Nothing else to do yet? No counters to tick? no energy to absorb? no cells to swap?
         self_transform(types, rng, cur)
     };
-    let next = growth_result.unwrap_or(tick_result);
+    let next = growth_result.unwrap_or(step_result);
     Cell {
         energy: next.particles.count(),
         particles: next.particles,

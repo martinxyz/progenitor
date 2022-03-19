@@ -185,8 +185,8 @@ impl JsSimulation {
         JsValue::from_serde(&cell).unwrap()
     }
 
-    pub fn tick(&mut self) {
-        self.inner.tick();
+    pub fn step(&mut self) {
+        self.inner.step();
     }
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
