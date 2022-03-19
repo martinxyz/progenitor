@@ -2,6 +2,7 @@ use crate::world1::Params;
 pub use hex2d::{Coordinate, Direction};
 use progenitor::sim1;
 use progenitor::{coords, world1, SIZE};
+use progenitor::{CellView, Simulation};
 use rand::thread_rng;
 use sim1::{CellType, CellTypeRef, GrowDirection};
 // use js_sys::Uint8Array;
@@ -22,11 +23,11 @@ pub fn is_debug_build() -> bool {
     cfg!(debug_assertions)
 }
 
-fn progenitor_world_empty() -> Simulation {
-    Simulation::new()
+fn progenitor_world_empty() -> JsSimulation {
+    JsSimulation::new()
 }
 
-fn progenitor_world_with_seeds() -> Simulation {
+fn progenitor_world_with_seeds() -> JsSimulation {
     let mut sim = progenitor_world_empty();
     let positions = [(0, 0), (3, 0), (1, -8), (3, -2)];
     for (x, y) in positions {
@@ -37,7 +38,7 @@ fn progenitor_world_with_seeds() -> Simulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_simple() -> Simulation {
+pub fn demo_simple() -> JsSimulation {
     let mut sim = progenitor_world_with_seeds();
 
     let c1 = CellTypeRef(1);
@@ -58,7 +59,7 @@ pub fn demo_simple() -> Simulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_progenitor() -> Simulation {
+pub fn demo_progenitor() -> JsSimulation {
     let mut sim = progenitor_world_with_seeds();
     let types = &mut sim.inner.types;
     // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
@@ -107,7 +108,7 @@ pub fn demo_progenitor() -> Simulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_blobs() -> Simulation {
+pub fn demo_blobs() -> JsSimulation {
     let mut sim = progenitor_world_with_seeds();
     let types = &mut sim.inner.types;
 
@@ -151,7 +152,7 @@ pub fn demo_blobs() -> Simulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_map() -> Simulation {
+pub fn demo_map() -> JsSimulation {
     let mut sim = progenitor_world_empty();
     let mut params = Params::default();
     params.mutate(&mut thread_rng());
@@ -159,15 +160,15 @@ pub fn demo_map() -> Simulation {
     sim
 }
 
-#[wasm_bindgen]
-pub struct Simulation {
+#[wasm_bindgen(js_name = Simulation)]
+pub struct JsSimulation {
     inner: sim1::World,
 }
 
-#[wasm_bindgen]
-impl Simulation {
-    fn new() -> Simulation {
-        Simulation {
+#[wasm_bindgen(js_class = Simulation)]
+impl JsSimulation {
+    fn new() -> JsSimulation {
+        JsSimulation {
             inner: sim1::World::new(),
         }
     }
@@ -193,9 +194,12 @@ impl Simulation {
             .get_cells_rectangle()
             .iter()
             .map(|cell| match channel {
-                0 => cell.cell_type.0,
-                1 => cell.energy,
-                2 => cell.heading as u8,
+                0 => cell.cell_type(),
+                1 => cell.energy().unwrap_or(0),
+                2 => match cell.direction() {
+                    Some(dir) => dir as u8,
+                    None => 0, // better API contract required...
+                },
                 _ => panic!("invalid channel"),
             })
             .collect()
@@ -222,7 +226,7 @@ impl Simulation {
     }
 }
 
-impl Default for Simulation {
+impl Default for JsSimulation {
     fn default() -> Self {
         Self::new()
     }

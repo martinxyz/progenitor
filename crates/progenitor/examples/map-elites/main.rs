@@ -1,5 +1,6 @@
 #![feature(array_zip)]
 use progenitor::world1::{rules, Params, World};
+use progenitor::Simulation;
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
 
