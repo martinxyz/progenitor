@@ -1,5 +1,9 @@
-import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map } from "progenitor"
+import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map, set_panic_hook } from "progenitor"
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
+
+// Required to see rust panic message and backtrace on JS console.
+// (Without it we only get the JS backtrace, saying "unreachable executed".)
+set_panic_hook()
 
 if (is_debug_build()) {
     console.warn("the rust wasm module was built in debug mode and will run ~100x slower")

@@ -6,7 +6,8 @@ lto = true  # ~30% .tick() speedup (most likely: inlining hex2d::Coordinate impl
             # ("fat" or "thin" both had the same effect)
 codegen-units = 1  # ~40% .tick() speedup
 panic = "abort"  # ~7% .tick() speedup
-debug = 1  # no significant effect (less than 2%)
+debug = 1  # no slowdown (certainly less than 2%)
+# debug = true  # ~1% slower than debug=1 (seems to be statistically significant)
 # opt-level = 3  # no significant effect (less than 2%)
 # also: 9% speedup from 'export RUSTFLAGS="-C target-cpu=native"'
 # overall 2x faster than "cargo release" without the stuff above

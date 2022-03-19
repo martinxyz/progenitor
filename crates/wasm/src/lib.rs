@@ -7,7 +7,8 @@ use sim1::{CellType, CellTypeRef, GrowDirection};
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
 
-fn set_panic_hook() {
+#[wasm_bindgen]
+pub fn set_panic_hook() {
     console_error_panic_hook::set_once();
 }
 
@@ -166,7 +167,6 @@ pub struct Simulation {
 #[wasm_bindgen]
 impl Simulation {
     fn new() -> Simulation {
-        set_panic_hook();
         Simulation {
             inner: sim1::World::new(),
         }
