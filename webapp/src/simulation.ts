@@ -1,4 +1,4 @@
-import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map, set_panic_hook } from "progenitor"
+import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map, set_panic_hook, demo_sim2 } from "progenitor"
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 
 // Required to see rust panic message and backtrace on JS console.
@@ -35,7 +35,11 @@ export const rules: Rule[] = [{
     label: '4 - experiment results (select from map)',
     create: () => demo_map(),
     show_map: true,
+}, {
+    label: '5 - sim2',
+    create: () => demo_sim2(),
 }];
+
 export const default_rule_idx = 1
 
 export default class Simulation {

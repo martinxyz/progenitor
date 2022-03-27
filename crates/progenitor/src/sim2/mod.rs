@@ -1,4 +1,5 @@
 use rand::thread_rng;
+use rand::Rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
@@ -8,6 +9,7 @@ use crate::tile;
 use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
+use crate::SIZE;
 
 #[derive(Serialize, Deserialize)]
 pub struct World {
@@ -17,9 +19,12 @@ pub struct World {
 
 impl World {
     pub fn new() -> World {
-        let rng = Pcg32::from_rng(thread_rng()).unwrap();
+        let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
         World {
-            alive: Tile::new(false),
+            alive: (0..SIZE * SIZE)
+                .into_iter()
+                .map(|_| rng.gen_bool(0.03))
+                .collect(),
             rng,
         }
     }
