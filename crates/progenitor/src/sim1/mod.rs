@@ -72,7 +72,7 @@ impl Simulation for World {
         tile::iterate_rectangle(pos, tile::SIZE as i32, tile::SIZE as i32)
             .map(|coord| self.get_cell(coord))
             // .into()
-            .map(|cell| CellView::from(cell))
+            .map(CellView::from)
             .collect()
     }
 

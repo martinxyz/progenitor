@@ -1,6 +1,4 @@
 use rand::thread_rng;
-use std::borrow::BorrowMut;
-use std::rc::Rc;
 
 use crate::world1::Params;
 pub use hex2d::{Coordinate, Direction};
@@ -63,7 +61,7 @@ pub fn demo_simple() -> JsSimulation {
         grow_child_type: c1,
         ..CellType::default()
     };
-    JsSimulation(Rc::new(sim))
+    sim.into()
 }
 
 #[wasm_bindgen]
@@ -112,7 +110,7 @@ pub fn demo_progenitor() -> JsSimulation {
         transform_at_random_p: 2,
         ..base
     };
-    JsSimulation(Rc::new(sim))
+    sim.into()
 }
 
 #[wasm_bindgen]
@@ -156,7 +154,7 @@ pub fn demo_blobs() -> JsSimulation {
         // initial_energy: 2,
         ..CellType::default()
     };
-    JsSimulation(Rc::new(sim))
+    sim.into()
 }
 
 #[wasm_bindgen]
@@ -165,11 +163,20 @@ pub fn demo_map() -> JsSimulation {
     let mut params = Params::default();
     params.mutate(&mut thread_rng());
     sim.types = world1::rules(&params);
-    JsSimulation(Rc::new(sim))
+    sim.into()
 }
 
 #[wasm_bindgen(js_name = Simulation)]
 pub struct JsSimulation(Box<dyn Simulation>);
+
+impl<T> From<T> for JsSimulation
+where
+    T: Simulation + 'static,
+{
+    fn from(sim: T) -> JsSimulation {
+        JsSimulation(Box::new(sim))
+    }
+}
 
 #[wasm_bindgen(js_class = Simulation)]
 impl JsSimulation {
@@ -185,7 +192,7 @@ impl JsSimulation {
     }
 
     pub fn step(&mut self) {
-        self.0.borrow_mut().step();
+        self.0.step();
     }
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
