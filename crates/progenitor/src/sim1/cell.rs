@@ -1,6 +1,6 @@
 use crate::{
     coords::{Direction, DirectionSet},
-    simulation::CellView,
+    CellView,
 };
 use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};
@@ -25,6 +25,16 @@ impl Default for Cell {
             energy: 0,
             heading: Direction::YZ,
             particles: DirectionSet::none(),
+        }
+    }
+}
+
+impl From<Cell> for CellView {
+    fn from(cell: Cell) -> Self {
+        CellView {
+            cell_type: cell.cell_type.0,
+            energy: Some(cell.energy),
+            direction: Some(cell.heading),
         }
     }
 }
@@ -104,19 +114,5 @@ impl CellTypes {
 impl Default for CellTypes {
     fn default() -> Self {
         CellTypes::new()
-    }
-}
-
-impl CellView for Cell {
-    fn cell_type(&self) -> u8 {
-        self.cell_type.0
-    }
-
-    fn energy(&self) -> Option<u8> {
-        Some(self.energy)
-    }
-
-    fn direction(&self) -> Option<Direction> {
-        Some(self.heading)
     }
 }

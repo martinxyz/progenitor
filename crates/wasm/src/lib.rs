@@ -1,9 +1,12 @@
+use rand::thread_rng;
+use std::borrow::BorrowMut;
+use std::rc::Rc;
+
 use crate::world1::Params;
 pub use hex2d::{Coordinate, Direction};
 use progenitor::sim1;
+use progenitor::Simulation;
 use progenitor::{coords, world1, SIZE};
-use progenitor::{CellView, Simulation};
-use rand::thread_rng;
 use sim1::{CellType, CellTypeRef, GrowDirection};
 // use js_sys::Uint8Array;
 use wasm_bindgen::prelude::*;
@@ -23,16 +26,21 @@ pub fn is_debug_build() -> bool {
     cfg!(debug_assertions)
 }
 
-fn progenitor_world_empty() -> JsSimulation {
-    JsSimulation::new()
+fn progenitor_world_empty() -> sim1::World {
+    sim1::World::new()
 }
 
-fn progenitor_world_with_seeds() -> JsSimulation {
+fn progenitor_world_with_seeds() -> sim1::World {
     let mut sim = progenitor_world_empty();
     let positions = [(0, 0), (3, 0), (1, -8), (3, -2)];
+    let seed_cell = sim.types.create_cell(CellTypeRef(1));
     for (x, y) in positions {
         const C: i32 = (SIZE / 2) as i32;
-        sim.set_cell(C + x, C + y, 1);
+        let pos = coords::Offset {
+            col: C + x,
+            row: C + y,
+        };
+        sim.set_cell(pos.into(), seed_cell);
     }
     sim
 }
@@ -43,25 +51,25 @@ pub fn demo_simple() -> JsSimulation {
 
     let c1 = CellTypeRef(1);
     let c2 = CellTypeRef(2);
-    sim.inner.types[c1] = CellType {
+    sim.types[c1] = CellType {
         priority: 110,
         grow_p: 128,
         grow_child_type: c2,
         ..CellType::default()
     };
-    sim.inner.types[c2] = CellType {
+    sim.types[c2] = CellType {
         priority: 110,
         grow_p: 128,
         grow_child_type: c1,
         ..CellType::default()
     };
-    sim
+    JsSimulation(Rc::new(sim))
 }
 
 #[wasm_bindgen]
 pub fn demo_progenitor() -> JsSimulation {
     let mut sim = progenitor_world_with_seeds();
-    let types = &mut sim.inner.types;
+    let types = &mut sim.types;
     // Very loosely based on Zupanc et al., 2019: "Stochastic cellular automata model
     // of tumorous neurosphere growth: Roles of developmental maturity and cell death"
 
@@ -104,13 +112,13 @@ pub fn demo_progenitor() -> JsSimulation {
         transform_at_random_p: 2,
         ..base
     };
-    sim
+    JsSimulation(Rc::new(sim))
 }
 
 #[wasm_bindgen]
 pub fn demo_blobs() -> JsSimulation {
     let mut sim = progenitor_world_with_seeds();
-    let types = &mut sim.inner.types;
+    let types = &mut sim.types;
 
     let mut ref_iterator = (0..255u8).map(CellTypeRef);
     let mut new_ref = || ref_iterator.next().unwrap();
@@ -148,7 +156,7 @@ pub fn demo_blobs() -> JsSimulation {
         // initial_energy: 2,
         ..CellType::default()
     };
-    sim
+    JsSimulation(Rc::new(sim))
 }
 
 #[wasm_bindgen]
@@ -156,47 +164,38 @@ pub fn demo_map() -> JsSimulation {
     let mut sim = progenitor_world_empty();
     let mut params = Params::default();
     params.mutate(&mut thread_rng());
-    sim.inner.types = world1::rules(&params);
-    sim
+    sim.types = world1::rules(&params);
+    JsSimulation(Rc::new(sim))
 }
 
 #[wasm_bindgen(js_name = Simulation)]
-pub struct JsSimulation {
-    inner: sim1::World,
-}
+pub struct JsSimulation(Box<dyn Simulation>);
 
 #[wasm_bindgen(js_class = Simulation)]
 impl JsSimulation {
-    fn new() -> JsSimulation {
-        JsSimulation {
-            inner: sim1::World::new(),
-        }
-    }
-
-    pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
-        let pos = coords::Offset { col, row };
-        self.inner
-            .set_cell(pos.into(), self.inner.types.create_cell(CellTypeRef(ct)));
-    }
+    // pub fn set_cell(&mut self, col: i32, row: i32, ct: u8) {
+    //     let pos = coords::Offset { col, row };
+    //     self.set_cell(pos.into(), self.types.create_cell(CellTypeRef(ct)));
+    // }
 
     pub fn get_cell_info(&self, col: i32, row: i32) -> JsValue {
         let pos = coords::Offset { col, row };
-        let cell = self.inner.get_cell(pos.into());
+        let cell = self.0.get_cell_view(pos.into());
         JsValue::from_serde(&cell).unwrap()
     }
 
     pub fn step(&mut self) {
-        self.inner.step();
+        self.0.borrow_mut().step();
     }
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
-        self.inner
+        self.0
             .get_cells_rectangle()
             .iter()
             .map(|cell| match channel {
-                0 => cell.cell_type(),
-                1 => cell.energy().unwrap_or(0),
-                2 => match cell.direction() {
+                0 => cell.cell_type,
+                1 => cell.energy.unwrap_or(0),
+                2 => match cell.direction {
                     Some(dir) => dir as u8,
                     None => 0, // better API contract required...
                 },
@@ -216,19 +215,11 @@ impl JsSimulation {
     */
 
     pub fn export_snapshot(&self) -> Vec<u8> {
-        // FIXME: this gets converted to a JS Uint8Array, but:
-        // I think (hope) it's a copy, not a reference to the wasm memory. XXX
-        self.inner.export_snapshot()
+        self.0.save_state()
     }
 
     pub fn import_snapshot(&mut self, data: &[u8]) {
-        self.inner.import_snapshot(data);
-    }
-}
-
-impl Default for JsSimulation {
-    fn default() -> Self {
-        Self::new()
+        self.0.load_state(data);
     }
 }
 
