@@ -88,7 +88,7 @@ fn main() {
 
     let snapshots: Vec<((i32, i32), Vec<u8>)> = bins_found
         .into_iter()
-        .map(|(bin, (_score, _params, world))| (bin, world.export_snapshot()))
+        .map(|(bin, (_score, _params, world))| (bin, world.save_state()))
         .collect();
     create_dir_all("output").unwrap();
     let mut file = File::create("output/map_bins.dat").unwrap();
