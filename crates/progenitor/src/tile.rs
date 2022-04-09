@@ -61,12 +61,26 @@ impl<CellT: Copy> Tile<CellT> {
         (r * SIZE + q) as usize
     }
 
+    pub fn is_same_pos(&self, pos1: coords::Cube, pos2: coords::Cube) -> bool {
+        Self::get_index(pos1) == Self::get_index(pos2)
+    }
+
     pub fn set_cell(&mut self, pos: coords::Cube, cell: CellT) {
         self.data[Self::get_index(pos)] = cell;
     }
 
     pub fn get_cell(&self, pos: coords::Cube) -> CellT {
         self.data[Self::get_index(pos)]
+    }
+
+    pub fn get_neighbours(&self, center_pos: coords::Cube) -> [(Direction, CellT); 6] {
+        // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
+        let neigh = |idx| {
+            let dir = Direction::from_int(idx);
+            let pos = center_pos + dir;
+            (dir, self.get_cell(pos))
+        };
+        [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
 
     /// Iterate over all cells (in axial-storage order), yielding the cell and its 6 neighbours
@@ -143,14 +157,7 @@ where
 
         // axial to cube
         let center_pos = coords::Cube { x: q, y: -r - q };
-
-        // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
-        let neigh = |idx| {
-            let dir = Direction::from_int(idx);
-            let pos = center_pos + dir;
-            (dir, self.tile.get_cell(pos))
-        };
-        let neighbours = [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)];
+        let neighbours = self.tile.get_neighbours(center_pos);
         let center = self.tile.get_cell(center_pos);
         Some((center, neighbours))
     }

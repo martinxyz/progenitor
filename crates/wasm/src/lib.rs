@@ -6,8 +6,8 @@ pub use crate::simulation::*;
 mod sim1;
 pub use crate::sim1::*;
 
-mod sim2;
-pub use crate::sim2::*;
+mod sim23;
+pub use crate::sim23::*;
 
 #[wasm_bindgen]
 pub fn set_panic_hook() {
