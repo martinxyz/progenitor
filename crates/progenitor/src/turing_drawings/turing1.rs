@@ -72,10 +72,11 @@ impl Simulation for Turing1 {
 
         self.alive.set_cell(self.pos, command.next_value);
         self.pos = self.pos + command.next_move;
+        self.state = command.next_state;
 
-        if self.rng.gen_bool(0.02) {
-            self.rule_lut = random_rule(&mut self.rng);
-        }
+        // if self.rng.gen_bool(0.002) {
+        //     self.rule_lut = random_rule(&mut self.rng);
+        // }
     }
 
     // FIXME: duplicated code (same for every Simulation using Tile storage)
