@@ -1,11 +1,11 @@
-import { is_debug_build, demo_simple, demo_progenitor, demo_blobs, demo_map, set_panic_hook, demo_sim2, demo_turing } from "progenitor"
+import * as progenitor from "progenitor";
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 
 // Required to see rust panic message and backtrace on JS console.
 // (Without it we only get the JS backtrace, saying "unreachable executed".)
-set_panic_hook()
+progenitor.set_panic_hook()
 
-if (is_debug_build()) {
+if (progenitor.is_debug_build()) {
     console.warn("the rust wasm module was built in debug mode and will run ~100x slower")
 }
 
@@ -24,26 +24,29 @@ export interface Rule {
 
 export const rules: Rule[] = [{
     label: '1 - simple pattern',
-    create: () => demo_simple(),
+    create: () => progenitor.demo_simple(),
 }, {
     label: '2 - progenitor cells',
-    create: () => demo_progenitor(),
+    create: () => progenitor.demo_progenitor(),
 }, {
     label: '3 - noisy blobs',
-    create: () => demo_blobs(),
+    create: () => progenitor.demo_blobs(),
 }, {
     label: '4 - experiment results (select from map)',
-    create: () => demo_map(),
+    create: () => progenitor.demo_map(),
     show_map: true,
 }, {
     label: '5 - sim2',
-    create: () => demo_sim2(),
+    create: () => progenitor.demo_sim2(),
 }, {
-    label: '6 - turing drawings',
-    create: () => demo_turing(),
+    label: '6a - turing drawings 1',
+    create: () => progenitor.demo_turing1(),
+}, {
+    label: '6b - turing drawings 2',
+    create: () => progenitor.demo_turing2(),
 }];
 
-export const default_rule_idx = 1
+export const default_rule_idx = 6
 
 export default class Simulation {
     constructor(private sim: ProgenitorSimulation) {
