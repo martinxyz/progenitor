@@ -25,6 +25,10 @@ impl JsSimulation {
         let cell = self.0.get_cell_view(pos.into());
         JsValue::from_serde(&cell).unwrap()
     }
+    pub fn get_cell_text(&self, col: i32, row: i32) -> String {
+        let pos = coords::Offset { col, row };
+        self.0.get_cell_text(pos.into())
+    }
 
     pub fn step(&mut self) {
         self.0.step();

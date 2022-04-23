@@ -72,6 +72,10 @@ export default class Simulation {
         return this.sim.get_cell_info(col, row)
     }
 
+    get_cell_text(col: number, row: number): string {
+        return this.sim.get_cell_text(col, row)
+    }
+
     get_step_no() {
         return this.step_no
     }

@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { CellInfo } from "./simulation"
-    export let cell: CellInfo | null
+    export let cellText: string | null
     export let showEnergy: boolean
     export let showHeading: boolean
 </script>
@@ -19,6 +19,9 @@
     p {
         margin-bottom: 1.2em;
     }
+    .text {
+        white-space: pre-wrap;
+    }
 </style>
 
 <div class="infobar">
@@ -35,13 +38,8 @@
         </label>
     </p>
     <h3>Info</h3>
-    {#if cell}
-        CellType: {cell.cell_type}
-        <!-- <br /> Value1: {cell.value1}
-             <br /> Heading: {cell.heading}
-             <br /> Particle: {cell.particle}
-             <br /> -->
-        <pre>{JSON.stringify(cell, null, 2)}</pre>
+    {#if cellText}
+        <p class="text">{cellText}</p>
     {:else}
         Select a cell.
     {/if}

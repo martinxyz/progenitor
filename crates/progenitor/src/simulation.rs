@@ -10,6 +10,18 @@ pub trait Simulation {
     // completely wasted. This API is for rendering; an extra copy or five of
     // this Vec<SmallThing> will be neglegible compared to rendering.
     fn get_cell_view(&self, pos: coords::Cube) -> CellView;
+    fn get_cell_text(&self, pos: coords::Cube) -> String {
+        let cv = self.get_cell_view(pos);
+        let mut lines = Vec::with_capacity(3);
+        lines.push(format!("Type: {}", cv.cell_type));
+        if let Some(e) = cv.energy {
+            lines.push(format!("Energy: {}", e));
+        }
+        if let Some(dir) = cv.direction {
+            lines.push(format!("Direction: {}", coords::compass_str(dir)));
+        }
+        lines.join("\n")
+    }
     fn save_state(&self) -> Vec<u8>;
     fn load_state(&mut self, data: &[u8]);
 
@@ -21,7 +33,7 @@ pub trait Simulation {
     }
 }
 
-#[derive(Default, Serialize)]
+#[derive(Default, Serialize, Debug)]
 pub struct CellView {
     pub cell_type: u8,
     pub energy: Option<u8>,

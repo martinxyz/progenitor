@@ -22,7 +22,7 @@
     let cursorSelected = null
     $: renderCursors(cursorSelected, cursorHover)
     $: cursor = cursorSelected || cursorHover
-    $: cell = (sim && cursor) ? sim.get_cell_info(cursor.x, cursor.y) : null
+    $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.x, cursor.y) : null
 
     let showEnergy = false
     let showHeading = false
@@ -140,7 +140,6 @@
         // console.log('renderSim')
 
         // to trigger updates (maybe not the most ellegant way...)
-        cell = cell
         step = sim.get_step_no()
 
         const [data_cell_type, data_energy, data_heading] = sim.get_data()
@@ -198,7 +197,7 @@
                 ctx.save()
                 ctx.translate(position.x, position.y)
                 ctx.translate(hex.center().x, hex.center().y)
-                ctx.rotate((h+1) / 6 * 2*Math.PI)
+                ctx.rotate((h+4) / 6 * 2*Math.PI)
                 ctx.translate(4.0, 0)
                 ctx.beginPath()
                 ctx.arc(0, 0, 1.5, 0, 2*Math.PI)
@@ -303,7 +302,7 @@
         </div>
     </div>
     <div>
-        <Sidebar {cell} bind:showEnergy bind:showHeading/>
+        <Sidebar {cellText} bind:showEnergy bind:showHeading/>
     </div>
 </div>
 

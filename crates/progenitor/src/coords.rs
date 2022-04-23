@@ -21,6 +21,17 @@ pub use hex2d::Coordinate as Cube;
 ///
 pub use hex2d::Direction;
 
+pub fn compass_str(dir: Direction) -> &'static str {
+    match dir {
+        Direction::YZ => "North-West",
+        Direction::XZ => "North-East",
+        Direction::XY => "East",
+        Direction::ZY => "South-East",
+        Direction::ZX => "South-West",
+        Direction::YX => "West",
+    }
+}
+
 /// A set of directions
 ///
 /// It can be empty or contain at most all 6 directions.
