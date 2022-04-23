@@ -5,7 +5,6 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile;
 use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
@@ -43,23 +42,8 @@ impl Simulation for World {
             .collect();
     }
 
-    fn get_cells_rectangle(&self) -> Vec<CellView> {
-        let pos = coords::Cube { x: 0, y: 0 };
-        tile::iterate_rectangle(pos, tile::SIZE as i32, tile::SIZE as i32)
-            .map(|coord| self.alive.get_cell(coord))
-            .map(|alive| CellView {
-                cell_type: match alive {
-                    false => 0,
-                    true => 1,
-                },
-                ..Default::default()
-            })
-            .collect()
-    }
-
     fn get_cell_view(&self, pos: coords::Cube) -> CellView {
         CellView {
-            // FIXME: duplication
             cell_type: match self.alive.get_cell(pos) {
                 false => 0,
                 true => 1,

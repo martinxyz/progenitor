@@ -67,15 +67,6 @@ impl Simulation for World {
             .collect();
     }
 
-    fn get_cells_rectangle(&self) -> Vec<CellView> {
-        let pos = coords::Cube { x: 0, y: 0 };
-        tile::iterate_rectangle(pos, tile::SIZE as i32, tile::SIZE as i32)
-            .map(|coord| self.get_cell(coord))
-            // .into()
-            .map(CellView::from)
-            .collect()
-    }
-
     fn get_cell_view(&self, pos: coords::Cube) -> CellView {
         self.get_cell(pos).into()
     }

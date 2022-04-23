@@ -7,7 +7,6 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile;
 use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
@@ -75,14 +74,6 @@ impl Simulation for Turing2 {
         // if self.rng.gen_bool(0.02) {
         //     self.rule_lut = random_rule(&mut self.rng);
         // }
-    }
-
-    // FIXME: duplicated code (same for every Simulation using Tile storage)
-    fn get_cells_rectangle(&self) -> Vec<CellView> {
-        let pos = coords::Cube { x: 0, y: 0 };
-        tile::iterate_rectangle(pos, tile::SIZE as i32, tile::SIZE as i32)
-            .map(|coord| self.get_cell_view(coord))
-            .collect()
     }
 
     fn get_cell_view(&self, pos: coords::Cube) -> CellView {
