@@ -14,7 +14,7 @@ pub struct CellTypeRef(pub u8);
 pub struct Cell {
     pub cell_type: CellTypeRef,
     pub energy: u8,
-    pub heading: Direction,
+    pub direction: Direction,
     pub particles: DirectionSet,
 }
 
@@ -23,7 +23,7 @@ impl Default for Cell {
         Cell {
             cell_type: CellTypeRef(0),
             energy: 0,
-            heading: Direction::YZ,
+            direction: Direction::YZ,
             particles: DirectionSet::none(),
         }
     }
@@ -34,7 +34,7 @@ impl From<Cell> for CellView {
         CellView {
             cell_type: cell.cell_type.0,
             energy: Some(cell.energy),
-            direction: Some(cell.heading),
+            direction: Some(cell.direction),
         }
     }
 }

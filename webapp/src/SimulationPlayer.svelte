@@ -25,7 +25,7 @@
     $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.x, cursor.y) : null
 
     let showEnergy = false
-    let showHeading = false
+    let showDirection = false
 
     const gridSize = get_size()
 
@@ -42,7 +42,7 @@
         // rendering triggers
         sim
         showEnergy
-        showHeading
+        showDirection
         // This causes an infinite re-triggering of the rendering:
         //   requestAnimationFrame(renderSim)
         renderSim()
@@ -142,7 +142,7 @@
         // to trigger updates (maybe not the most ellegant way...)
         step = sim.get_step_no()
 
-        const [data_cell_type, data_energy, data_heading] = sim.get_data()
+        const [data_cell_type, data_energy, data_direction] = sim.get_data()
         myGrid.forEach(renderHex)
 
         function renderHex(hex: HexType<object>) {
@@ -150,18 +150,18 @@
 
             let {x, y} = hex.cartesian()
             let idx = y * gridSize + x
-            let d = data_cell_type[idx]
+            let ct = data_cell_type[idx]
             let e = data_energy[idx]
-            let h = data_heading[idx]
+            let dir = data_direction[idx]
 
             // let color = '#FFF'
             let color = '#188'
-            if (d == 0) color = '#AAA'
-            if (d == 1) color = '#292'
-            if (d == 2) color = '#357'
-            if (d == 3) color = '#188'
-            if (d == 4) color = '#FFF'
-            if (d == 5) color = '#799'
+            if (ct == 0) color = '#AAA'
+            if (ct == 1) color = '#292'
+            if (ct == 2) color = '#357'
+            if (ct == 3) color = '#188'
+            if (ct == 4) color = '#FFF'
+            if (ct == 5) color = '#799'
 
             ctx.save()
             ctx.translate(position.x, position.y)
@@ -193,11 +193,11 @@
                 ctx.fill()
                 ctx.restore()
             }
-            if (showHeading && d !== 0) {
+            if (showDirection && ct !== 0) {
                 ctx.save()
                 ctx.translate(position.x, position.y)
                 ctx.translate(hex.center().x, hex.center().y)
-                ctx.rotate((h+4) / 6 * 2*Math.PI)
+                ctx.rotate((dir+4) / 6 * 2*Math.PI)
                 ctx.translate(4.0, 0)
                 ctx.beginPath()
                 ctx.arc(0, 0, 1.5, 0, 2*Math.PI)
@@ -302,7 +302,7 @@
         </div>
     </div>
     <div>
-        <Sidebar {cellText} bind:showEnergy bind:showHeading/>
+        <Sidebar {cellText} bind:showEnergy bind:showDirection/>
     </div>
 </div>
 

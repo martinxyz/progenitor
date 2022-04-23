@@ -12,7 +12,7 @@ if (progenitor.is_debug_build()) {
 export interface CellInfo {
     cell_type: number,
     value1: number,
-    heading: number,
+    direction: number,
     particle: boolean,
 }
 

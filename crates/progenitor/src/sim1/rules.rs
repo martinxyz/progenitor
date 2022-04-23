@@ -21,7 +21,7 @@ pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTem
             GrowDirection::All => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
             GrowDirection::Forward => match rng.gen_range(0..128) < prob {
                 false => DirectionSet::none(),
-                true => DirectionSet::single(cur.heading),
+                true => DirectionSet::single(cur.direction),
             },
             GrowDirection::RandomChoice => match rng.gen_range(0..128) < prob {
                 false => DirectionSet::none(),
@@ -30,7 +30,7 @@ pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTem
         },
         128 => match ct.grow_dir {
             GrowDirection::All => DirectionSet::all(),
-            GrowDirection::Forward => DirectionSet::single(cur.heading),
+            GrowDirection::Forward => DirectionSet::single(cur.direction),
             GrowDirection::RandomChoice => {
                 DirectionSet::single(*Direction::all().choose(rng).unwrap())
             }
@@ -73,7 +73,7 @@ pub fn execute_step(
         .choose(rng)
         .map(|(dir, temp)| {
             let mut cell = types.create_cell(temp.grow_celltype);
-            cell.heading = -*dir;
+            cell.direction = -*dir;
             cell.particles = DirectionSet::all(); // should depend on celltype?
             cell
         });
@@ -109,7 +109,7 @@ fn self_transform(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> Cell {
     };
     if trigger1 || trigger2 {
         Cell {
-            heading: cur.heading,
+            direction: cur.direction,
             ..types.create_cell(ct.transform_into)
         }
     } else {

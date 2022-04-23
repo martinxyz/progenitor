@@ -23,12 +23,12 @@ pub use hex2d::Direction;
 
 pub fn compass_str(dir: Direction) -> &'static str {
     match dir {
-        Direction::YZ => "North-West",
-        Direction::XZ => "North-East",
-        Direction::XY => "East",
-        Direction::ZY => "South-East",
-        Direction::ZX => "South-West",
-        Direction::YX => "West",
+        Direction::YZ => "NW",
+        Direction::XZ => "NE",
+        Direction::XY => "E",
+        Direction::ZY => "SE",
+        Direction::ZX => "SW",
+        Direction::YX => "W",
     }
 }
 
