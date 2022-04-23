@@ -48,24 +48,38 @@ export const rules: Rule[] = [{
 
 export const default_rule_idx = 6
 
+const steps_between_snapshots = 500
+
 export default class Simulation {
     constructor(private sim: ProgenitorSimulation) {
         console.log('Simulation constructor')
     }
-    private step_no: number = 0
-    private snapshots = []
-    private snapshot0 = this.sim.export_snapshot()
+    private step_no = 0
+    private snapshot0: [number, Uint8Array] = [0, this.sim.export_snapshot()]
+    private snapshot1: [number, Uint8Array] = this.snapshot0
+    private snapshot2: [number, Uint8Array] = this.snapshot0
 
     step() {
-        this.snapshots = [...this.snapshots.slice(-100), this.sim.export_snapshot()]
         this.sim.step()
         this.step_no += 1
+        if (this.step_no >= this.snapshot2[0] + steps_between_snapshots) {
+            this.snapshot1 = this.snapshot2
+            this.snapshot2 = [this.step_no, this.sim.export_snapshot()]
+        }
     }
 
     step_undo() {
-        if (this.snapshots.length == 0) return
-        this.sim.import_snapshot(this.snapshots.pop())
-        this.step_no -= 1
+        let step = this.step_no - 1
+        let snapshot = this.snapshot0
+        if (this.snapshot1[0] <= step) snapshot = this.snapshot1
+        if (this.snapshot2[0] <= step) snapshot = this.snapshot2
+        let count = step - snapshot[0]
+        console.log('replay steps:', count)
+        if (count > steps_between_snapshots) return
+
+        this.sim.import_snapshot(snapshot[1])
+        for (let i=0; i<count; i++) this.sim.step()
+        this.step_no = step
     }
 
     get_cell_info(col: number, row: number): CellInfo {
@@ -82,9 +96,10 @@ export default class Simulation {
 
     reset() {
         console.log(`Simulation reset from step {this.step_no} to step 0.`);
-        this.sim.import_snapshot(this.snapshot0)
+        this.sim.import_snapshot(this.snapshot0[1])
         this.step_no = 0
-        this.snapshots = []
+        this.snapshot1 = this.snapshot0
+        this.snapshot2 = this.snapshot0
     }
 
     get_data(): Uint8Array[] {
