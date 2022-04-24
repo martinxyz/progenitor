@@ -4,12 +4,11 @@
     import Container from './Container.svelte'
     import MapSelector from './MapSelector.svelte'
     import Simulation, { default_rule_idx, Rule, rules } from './simulation'
-    import { demo_simple } from 'progenitor'
 
     let rule: Rule = rules[default_rule_idx]
-    let sim: Simulation = new Simulation(demo_simple())
+    let sim: Simulation
 
-    $: sim = new Simulation(rule.create())
+    $: sim = new Simulation(rule)
 
     function onMapSelected(sim2: Simulation) {
         sim = sim2

@@ -18,7 +18,7 @@ export interface CellInfo {
 
 export interface Rule {
     label: string,
-    create: () => any,
+    create: () => ProgenitorSimulation,
     show_map?: boolean,
 }
 
@@ -39,10 +39,10 @@ export const rules: Rule[] = [{
     label: '5 - sim2',
     create: () => progenitor.demo_sim2(),
 }, {
-    label: '6a - turing drawings 1',
+    label: '6a - turing drawings (complex)',
     create: () => progenitor.demo_turing1(),
 }, {
-    label: '6b - turing drawings 2',
+    label: '6b - turing drawings (simple)',
     create: () => progenitor.demo_turing2(),
 }];
 
@@ -51,13 +51,30 @@ export const default_rule_idx = 6
 const steps_between_snapshots = 500
 
 export default class Simulation {
-    constructor(private sim: ProgenitorSimulation) {
-        console.log('Simulation constructor')
+    constructor(private rule: Rule) {
+        this.restart()
     }
-    private step_no = 0
-    private snapshot0: [number, Uint8Array] = [0, this.sim.export_snapshot()]
-    private snapshot1: [number, Uint8Array] = this.snapshot0
-    private snapshot2: [number, Uint8Array] = this.snapshot0
+    private sim: ProgenitorSimulation
+    private step_no: number
+    private snapshot0: [number, Uint8Array]
+    private snapshot1: [number, Uint8Array]
+    private snapshot2: [number, Uint8Array]
+
+    restart() {
+        console.log('new simulation');
+        this.sim = this.rule.create()
+        this.snapshot0 = [0, this.sim.export_snapshot()]
+        this.step_no = 0
+        this.snapshot1 = this.snapshot0
+        this.snapshot2 = this.snapshot0
+    }
+
+    rewind() {
+        this.sim.import_snapshot(this.snapshot0[1])
+        this.step_no = 0
+        this.snapshot1 = this.snapshot0
+        this.snapshot2 = this.snapshot0
+    }
 
     step() {
         this.sim.step()
@@ -92,14 +109,6 @@ export default class Simulation {
 
     get_step_no() {
         return this.step_no
-    }
-
-    reset() {
-        console.log(`Simulation reset from step {this.step_no} to step 0.`);
-        this.sim.import_snapshot(this.snapshot0[1])
-        this.step_no = 0
-        this.snapshot1 = this.snapshot0
-        this.snapshot2 = this.snapshot0
     }
 
     get_data(): Uint8Array[] {

@@ -64,12 +64,15 @@
     let intervalId = null
     let playSpeed: 'fast' | 'normal' = 'normal'
 
-    function onReset() {
-        sim.reset()
+    function onRestart() {
+        sim.restart()
+        sim = sim
+    }
+    function onRewind() {
+        sim.rewind()
         sim = sim
     }
     function onStep() {
-        console.log('onstep', intervalId)
         if (intervalId) {
             clearInterval(intervalId)
             intervalId = null
@@ -124,7 +127,7 @@
             'ArrowLeft': onUndoStep,
             'h': onStep,
             'l': onUndoStep,
-            'Backspace': onReset,
+            'Backspace': onRestart,
         }[ev.key]
         if (fn) {
             fn()
@@ -276,7 +279,10 @@
             />
         </div>
         <div class="button-row">
-            <button on:click={onReset} title="Reset (Backspace)">
+            <button on:click={onRestart} title="Restart (Backspace)">
+                <i class="fas fa-sync"></i>
+            </button>
+            <button on:click={onRewind} title="Rewind">
                 <i class="fas fa-fast-backward"></i>
             </button>
             <button on:click={onUndoStep} title="Step Back (Arrow Left)">
