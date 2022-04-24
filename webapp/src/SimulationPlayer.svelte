@@ -153,14 +153,13 @@
             let e = data_energy[idx]
             let dir = data_direction[idx]
 
-            // let color = '#FFF'
-            let color = '#188'
+            let color = '#000'
             if (ct == 0) color = '#AAA'
             if (ct == 1) color = '#292'
-            if (ct == 2) color = '#357'
+            if (ct == 2) color = '#268'
             if (ct == 3) color = '#188'
-            if (ct == 4) color = '#FFF'
-            if (ct == 5) color = '#799'
+            if (ct == 4) color = '#843'
+            if (ct == 5) color = '#87c'
 
             ctx.save()
             ctx.translate(position.x, position.y)

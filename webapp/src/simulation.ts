@@ -79,11 +79,10 @@ export default class Simulation {
     step_undo() {
         let step = this.step_no - 1
         let snapshot = this.snapshot1
-        if (this.snapshot1[0] <= step) snapshot = this.snapshot1
         if (this.snapshot2[0] <= step) snapshot = this.snapshot2
         let count = step - snapshot[0]
-        console.log('replay steps:', count)
         if (count < 0 || count > steps_between_snapshots) return
+        console.log(`replaying {count} steps`)
 
         this.sim.import_snapshot(snapshot[1])
         for (let i=0; i<count; i++) this.sim.step()
