@@ -1,13 +1,13 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { demo_map, Snapshots } from 'progenitor';
-    import Simulation from './simulation'
+    import type { Rule } from './simulation'
 
     let map_bins: Uint8Array[][] = []
     let bins_rows: number[] = []
     let bins_cols: number[] = []
 
-    export let selectHandler: (sim: Simulation) => void = () => {}
+    export let selectHandler: (rule: Rule) => void = () => {}
 
     onMount(async () => {
         const sshot = await fetch('assets/output/map_bins.dat')
@@ -50,10 +50,15 @@
 
     function loadbin(bin: (Uint8Array|null)) {
         if (!bin) return
-        let sim_rust = demo_map()
-        sim_rust.import_snapshot(bin)
-        let sim = new Simulation(sim_rust)
-        selectHandler(sim)
+        let rule: Rule = {
+            label: '(selected from map)',
+            create: () => {
+                let sim_rust = demo_map()
+                sim_rust.import_snapshot(bin)
+                return sim_rust
+            }
+        }
+        selectHandler(rule)
     }
 </script>
 

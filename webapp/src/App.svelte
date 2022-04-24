@@ -10,8 +10,8 @@
 
     $: sim = new Simulation(rule)
 
-    function onMapSelected(sim2: Simulation) {
-        sim = sim2
+    function onMapSelected(derivedRule: Rule) {
+        sim = new Simulation(derivedRule)
     }
 </script>
 
