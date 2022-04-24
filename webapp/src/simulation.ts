@@ -56,24 +56,15 @@ export default class Simulation {
     }
     private sim: ProgenitorSimulation
     private step_no: number
-    private snapshot0: [number, Uint8Array]
     private snapshot1: [number, Uint8Array]
     private snapshot2: [number, Uint8Array]
 
     restart() {
         console.log('new simulation');
         this.sim = this.rule.create()
-        this.snapshot0 = [0, this.sim.export_snapshot()]
         this.step_no = 0
-        this.snapshot1 = this.snapshot0
-        this.snapshot2 = this.snapshot0
-    }
-
-    rewind() {
-        this.sim.import_snapshot(this.snapshot0[1])
-        this.step_no = 0
-        this.snapshot1 = this.snapshot0
-        this.snapshot2 = this.snapshot0
+        this.snapshot1 = [0, this.sim.export_snapshot()]
+        this.snapshot2 = this.snapshot1
     }
 
     step() {
@@ -87,12 +78,12 @@ export default class Simulation {
 
     step_undo() {
         let step = this.step_no - 1
-        let snapshot = this.snapshot0
+        let snapshot = this.snapshot1
         if (this.snapshot1[0] <= step) snapshot = this.snapshot1
         if (this.snapshot2[0] <= step) snapshot = this.snapshot2
         let count = step - snapshot[0]
         console.log('replay steps:', count)
-        if (count > steps_between_snapshots) return
+        if (count < 0 || count > steps_between_snapshots) return
 
         this.sim.import_snapshot(snapshot[1])
         for (let i=0; i<count; i++) this.sim.step()

@@ -3,7 +3,7 @@
     import type Simulation from './simulation'
     import { defineGrid, extendHex, PointCoordinates } from 'honeycomb-grid'
     import { onMount } from 'svelte'
-    import { get_size } from "progenitor"
+    import { get_size } from 'progenitor'
     import type { Hex as HexType } from 'honeycomb-grid'
 
     export let sim: Simulation
@@ -66,10 +66,6 @@
 
     function onRestart() {
         sim.restart()
-        sim = sim
-    }
-    function onRewind() {
-        sim.rewind()
         sim = sim
     }
     function onStep() {
@@ -281,9 +277,6 @@
         <div class="button-row">
             <button on:click={onRestart} title="Restart (Backspace)">
                 <i class="fas fa-sync"></i>
-            </button>
-            <button on:click={onRewind} title="Rewind">
-                <i class="fas fa-fast-backward"></i>
             </button>
             <button on:click={onUndoStep} title="Step Back (Arrow Left)">
                 <i class="fas fa-step-backward"></i>
