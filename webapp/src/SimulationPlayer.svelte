@@ -67,6 +67,8 @@
     function onRestart() {
         sim.restart()
         sim = sim
+        // if already playing, restart the timer
+        if (intervalId) play()
     }
     function onStep() {
         if (intervalId) {
