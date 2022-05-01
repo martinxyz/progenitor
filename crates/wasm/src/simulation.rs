@@ -30,8 +30,8 @@ impl JsSimulation {
         self.0.get_cell_text(pos.into())
     }
 
-    pub fn step(&mut self) {
-        self.0.step();
+    pub fn steps(&mut self, count: usize) {
+        self.0.steps(count);
     }
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {

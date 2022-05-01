@@ -31,6 +31,12 @@ pub trait Simulation {
             .map(|coord| self.get_cell_view(coord))
             .collect()
     }
+    // useful when called via trait object (allows loop unrolling)
+    fn steps(&mut self, count: usize) {
+        for _ in 0..count {
+            self.step()
+        }
+    }
 }
 
 #[derive(Default, Serialize, Debug)]

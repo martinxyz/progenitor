@@ -67,10 +67,11 @@ export default class Simulation {
         this.snapshot2 = this.snapshot1
     }
 
-    step() {
-        this.sim.step()
-        this.step_no += 1
-        if (this.step_no >= this.snapshot2[0] + steps_between_snapshots) {
+    steps(count: number) {
+        count = Math.round(count)
+        this.sim.steps(count)
+        this.step_no += count
+        if (this.step_no >= this.snapshot2[0] + count * steps_between_snapshots) {
             this.snapshot1 = this.snapshot2
             this.snapshot2 = [this.step_no, this.sim.export_snapshot()]
         }
@@ -81,11 +82,11 @@ export default class Simulation {
         let snapshot = this.snapshot1
         if (this.snapshot2[0] <= step) snapshot = this.snapshot2
         let count = step - snapshot[0]
-        if (count < 0 || count > steps_between_snapshots) return
+        if (count < 0) return
         console.log(`replaying {count} steps`)
 
         this.sim.import_snapshot(snapshot[1])
-        for (let i=0; i<count; i++) this.sim.step()
+        this.sim.steps(count)
         this.step_no = step
     }
 

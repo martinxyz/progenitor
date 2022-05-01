@@ -12,7 +12,7 @@
     $: {
         if (sim && autoplay) {
             autoplay = false
-            onPlayNormal()
+            onPlay()
         }
     }
 
@@ -60,39 +60,42 @@
     })
 
     let step = -1
-
     let intervalId = null
-    let playSpeed: 'fast' | 'normal' = 'normal'
+    let playSpeed = 1
+
+    $: playing = (intervalId != null)
 
     function onRestart() {
         sim.restart()
         sim = sim
         // if already playing, restart the timer
-        if (intervalId) play()
+        if (!playing) play()
+    }
+    function onPlay() {
+        play()
+    }
+    function onPause() {
+        stop()
     }
     function onStep() {
-        if (intervalId) {
-            clearInterval(intervalId)
-            intervalId = null
-        }
-        sim.step()
+        stop()
+        sim.steps(1)
         sim = sim
     }
     function onUndoStep() {
-        if (intervalId) {
-            clearInterval(intervalId)
-            intervalId = null
-        }
+        stop()
         sim.step_undo()
         sim = sim
     }
-    function onPlayNormal() {
-        playSpeed = 'normal'
-        play()
-    }
-    function onPlayFast() {
-        playSpeed = 'fast'
-        play()
+    function onPlaySpeed() {
+        if (playSpeed == 1) {
+            playSpeed = 3
+        } else if (playSpeed < 10_000) {
+            playSpeed *= 10
+        } else {
+            playSpeed = 1
+        }
+        if (playing) play()
     }
     function stop() {
         if (intervalId) {
@@ -102,16 +105,13 @@
     }
     function play() {
         stop()
-        intervalId = setInterval(intervalCallback, playSpeed === 'normal' ? 300 : 100)
+        intervalId = setInterval(intervalCallback, playSpeed == 1 ? 300 : 100)
     }
 
     function intervalCallback() {
         try {
             if (document.hidden) return
-            const steps = playSpeed === 'normal' ? 1 : 8
-            for (let i=0; i<steps; i++) {
-                sim.step()
-            }
+            sim.steps(playSpeed == 1 ? playSpeed : playSpeed / 3)
             sim = sim
         } catch (e) {
             stop()
@@ -283,17 +283,23 @@
                 <i class="fas fa-step-backward"></i>
             </button>
             <button on:click={onStep} title="Single Step (Arrow Right)">
-                {#if intervalId}
+                <i class="fas fa-step-forward"></i>
+            </button>
+            {#if playing}
+                <button on:click={onPause} title="Pause">
                     <i class="fas fa-pause"></i>
+                </button>
+            {:else}
+                <button on:click={onPlay} title="Play">
+                    <i class="fas fa-play"></i>
+                </button>
+            {/if}
+            <button on:click={onPlaySpeed} title="Play Speed">
+                {#if playSpeed < 2000}
+                    x{playSpeed}
                 {:else}
-                    <i class="fas fa-step-forward"></i>
+                    x{Math.round(playSpeed / 1000)}k
                 {/if}
-            </button>
-            <button on:click={onPlayNormal} title="Play Slow">
-                <i class="fas fa-play"></i>
-            </button>
-            <button on:click={onPlayFast} title="Play Fast">
-                <i class="fas fa-forward"></i>
             </button>
             <div class="spacer"></div>
             <div class="step">

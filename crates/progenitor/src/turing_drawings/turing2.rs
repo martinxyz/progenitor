@@ -34,7 +34,7 @@ pub struct Turing2 {
     grid: Tile<u8>,
     pos: coords::Cube,
     state: u8,
-    rule_lut: Vec<Command>, // uh, I didn't want to serialize() this for every step() snapshot... but it's needed since it's mutable
+    rule_lut: Vec<Command>,
 }
 
 fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
