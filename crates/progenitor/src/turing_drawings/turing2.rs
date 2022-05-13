@@ -2,6 +2,7 @@ use hex2d::Direction;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
+use rand::RngCore;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
@@ -18,7 +19,7 @@ K symbols (grid cell types)
 6 actions (hexgrid directions)
 N x K -> N x K x A
  */
-const STATES: usize = 5; // states of agent
+const STATES: usize = 4; // states of agent
 const SYMBOLS: usize = 4; // distinct cell types
 const LUT_SIZE: usize = STATES * SYMBOLS;
 
@@ -31,7 +32,7 @@ struct Command {
 
 #[derive(Serialize, Deserialize)]
 pub struct Turing2 {
-    grid: Tile<u8>,
+    pub grid: Tile<u8>,
     pos: coords::Cube,
     state: u8,
     rule_lut: Vec<Command>,
@@ -48,8 +49,8 @@ fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
 }
 
 impl Turing2 {
-    pub fn new() -> Turing2 {
-        let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+    pub fn new_with_seed(seed: u64) -> Turing2 {
+        let mut rng = Pcg32::seed_from_u64(seed);
         Turing2 {
             grid: Tile::new(0),
             rule_lut: random_rule(&mut rng),
@@ -57,6 +58,11 @@ impl Turing2 {
             state: 0,
         }
     }
+    pub fn new() -> Turing2 {
+        Self::new_with_seed(thread_rng().next_u64())
+    }
+    pub const SYMBOLS: usize = SYMBOLS;
+    pub const STATES: usize = STATES;
 }
 
 impl Simulation for Turing2 {

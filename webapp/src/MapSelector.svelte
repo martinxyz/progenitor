@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { demo_map, Snapshots } from 'progenitor';
+    import { demo_turing2, Snapshots } from 'progenitor';
     import type { Rule } from './simulation'
 
     let map_bins: Uint8Array[][] = []
@@ -10,7 +10,8 @@
     export let selectHandler: (rule: Rule) => void = () => {}
 
     onMount(async () => {
-        const sshot = await fetch('assets/output/map_bins.dat')
+        // const sshot = await fetch('assets/output/map_bins.dat')
+        const sshot = await fetch('assets/output/turing_bins.dat')
         if (sshot.status !== 200) throw sshot;
         const data = new Uint8Array(await sshot.arrayBuffer())
         const snapshots = new Snapshots(data);
@@ -53,13 +54,15 @@
         let rule: Rule = {
             label: '(selected from map)',
             create: () => {
-                let sim_rust = demo_map()
+                // let sim_rust = demo_map()
+                let sim_rust = demo_turing2()
                 sim_rust.import_snapshot(bin)
                 return sim_rust
             }
         }
         selectHandler(rule)
     }
+
 </script>
 
 <div class="table">
