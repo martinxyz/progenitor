@@ -29,8 +29,8 @@
         const f1_max = Math.max(...f1_values)
         const f2_min = Math.min(...f2_values)
         const f2_max = Math.max(...f2_values)
-        for (let i=f1_min; i <= f1_max; i++) bins_cols.push(i)
-        for (let i=f2_min; i <= f2_max; i++) bins_rows.push(i)
+        for (let i=0; i <= f1_max-f1_min; i++) bins_cols.push(i)
+        for (let i=0; i <= f2_max-f2_min; i++) bins_rows.push(i)
         bins_rows.reverse()
 
         map_bins = []
@@ -42,8 +42,8 @@
             }
         }
         for (const item of map) {
-            const f1: number = item[0]
-            const f2: number = item[1]
+            const f1: number = item[0] - f1_min
+            const f2: number = item[1] - f2_min
             const data: Uint8Array = item[2]
             map_bins[f2][f1] = data
         }
