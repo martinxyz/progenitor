@@ -427,6 +427,7 @@ dependencies = [
  "rayon",
  "serde",
  "serde_json",
+ "utils",
 ]
 
 [[package]]
@@ -670,6 +671,14 @@ name = "unindent"
 version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "514672a55d7380da379785a4d70ca8386c8883ff7eaae877be4d2081cebe73d8"
+
+[[package]]
+name = "utils"
+version = "0.0.0"
+dependencies = [
+ "num_cpus",
+ "rayon",
+]
 
 [[package]]
 name = "wasi"

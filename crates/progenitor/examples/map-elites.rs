@@ -1,5 +1,5 @@
 #![feature(array_zip)]
-use progenitor::world1::{rules, Params, World};
+use progenitor::world1::{rules, Cell, CellTypeRef, Params, World};
 use progenitor::Simulation;
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
@@ -8,11 +8,40 @@ use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 
-use crate::features::FEATURE_COUNT;
+use utils::{run_taskstream, FeatureAccumulator};
 
-mod features;
-mod taskstream;
+pub const FEATURE_COUNT: usize = 2;
 
+fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
+    const EMPTY: CellTypeRef = CellTypeRef(1);
+    fn cell2int(c: Cell) -> i32 {
+        if c.cell_type == EMPTY {
+            0
+        } else {
+            1
+        }
+    }
+    let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
+    for (cell, neighbours) in world.iter_cells_with_neighbours() {
+        let center = cell2int(cell);
+        let neighbours: i32 = neighbours.iter().map(|(_, c)| cell2int(*c)).sum();
+        features[0].push(center);
+        features[1].push_weighted((neighbours - 6 * center).abs(), 6);
+    }
+    features
+}
+
+pub fn evaluate<F>(run: F, repetitions: i32) -> [f64; FEATURE_COUNT]
+where
+    F: Fn() -> World,
+{
+    (0..repetitions)
+        .map(|_| run())
+        .map(calculate_features)
+        .reduce(|a, b| a.zip(b).map(FeatureAccumulator::merge))
+        .unwrap()
+        .map(|fa| fa.into())
+}
 fn run(params: &Params) -> World {
     let mut world = World::new();
     world.types = rules(params);
@@ -34,7 +63,7 @@ fn sample_initial_params(rng: &mut impl Rng) -> Params {
 type EvalResult = ([f64; FEATURE_COUNT], Params, World);
 fn process(params: Params) -> EvalResult {
     let repetitions = 32;
-    let score: [f64; FEATURE_COUNT] = features::evaluate(|| run(&params), repetitions);
+    let score: [f64; FEATURE_COUNT] = evaluate(|| run(&params), repetitions);
     // eprintln!("{:?}", params);
     // println!("{:.6} {:.6}", score[0], score[1]);
     let world = run(&params);
@@ -59,7 +88,7 @@ fn main() {
         .map(|_| sample_initial_params(&mut rng))
         .collect();
     let mut total_tasks = init.len();
-    taskstream::run_stream(init, process, |(i, eval_result)| {
+    run_taskstream(init, process, |(i, eval_result)| {
         let map_resolution = (0.05, 0.02);
         let score = eval_result.0;
         let bc1 = (score[0] / map_resolution.0).round() as i32;
