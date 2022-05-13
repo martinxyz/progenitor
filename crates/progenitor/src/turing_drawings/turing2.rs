@@ -19,9 +19,12 @@ K symbols (grid cell types)
 6 actions (hexgrid directions)
 N x K -> N x K x A
  */
-const STATES: usize = 4; // states of agent
-const SYMBOLS: usize = 4; // distinct cell types
-const LUT_SIZE: usize = STATES * SYMBOLS;
+impl Turing2 {
+    pub const STATES: usize = 5; // states of agent
+    pub const SYMBOLS: usize = 4; // distinct cell types
+    pub const LUT_SIZE: usize = Self::STATES * Self::SYMBOLS;
+    pub const CENTER: coords::Offset = coords::Offset { col: 5, row: 5 };
+}
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 struct Command {
@@ -39,10 +42,10 @@ pub struct Turing2 {
 }
 
 fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
-    (0..LUT_SIZE)
+    (0..Turing2::LUT_SIZE)
         .map(|_| Command {
-            next_state: rng.gen_range(0..STATES as u8),
-            next_symbol: rng.gen_range(0..SYMBOLS as u8),
+            next_state: rng.gen_range(0..Turing2::STATES as u8),
+            next_symbol: rng.gen_range(0..Turing2::SYMBOLS as u8),
             next_action: *Direction::all().choose(rng).unwrap(),
         })
         .collect()
@@ -54,22 +57,20 @@ impl Turing2 {
         Turing2 {
             grid: Tile::new(0),
             rule_lut: random_rule(&mut rng),
-            pos: coords::Offset { col: 5, row: 5 }.into(),
+            pos: Turing2::CENTER.into(),
             state: 0,
         }
     }
     pub fn new() -> Turing2 {
         Self::new_with_seed(thread_rng().next_u64())
     }
-    pub const SYMBOLS: usize = SYMBOLS;
-    pub const STATES: usize = STATES;
 }
 
 impl Simulation for Turing2 {
     fn step(&mut self) {
         let command = {
             let symbol = self.grid.get_cell(self.pos);
-            let key: usize = self.state as usize * SYMBOLS + symbol as usize;
+            let key: usize = self.state as usize * Turing2::SYMBOLS + symbol as usize;
             self.rule_lut[key]
         };
 
