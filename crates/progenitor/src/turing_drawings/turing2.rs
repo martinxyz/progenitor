@@ -69,7 +69,7 @@ impl Simulation for Turing2 {
     fn step(&mut self) {
         let command = {
             let symbol = self.grid.get_cell(self.pos);
-            let key: usize = self.state as usize * symbol as usize;
+            let key: usize = self.state as usize * SYMBOLS + symbol as usize;
             self.rule_lut[key]
         };
 
