@@ -18,7 +18,10 @@
 <div class="main">
     <div>
         <Container>
-            <RuleSelector bind:rule/>
+            <div class="row">
+                <RuleSelector bind:rule/>
+                <a href="https://github.com/martinxyz/progenitor">{'{src}'}</a>
+            </div>
         </Container>
         {#if rule.load_map}
             <Container>
@@ -36,5 +39,13 @@
         padding: 1em;
         display: flex;
         justify-content: center;
+    }
+    .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    a {
+        padding: 0 1em;
     }
 </style>
