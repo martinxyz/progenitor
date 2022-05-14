@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { demo_turing2, Snapshots } from 'progenitor';
+    import { demo_turing, Snapshots } from 'progenitor';
     import type { Rule } from './simulation'
 
     let map_bins: Uint8Array[][] = []
@@ -55,7 +55,7 @@
             label: '(selected from map)',
             create: () => {
                 // let sim_rust = demo_map()
-                let sim_rust = demo_turing2()
+                let sim_rust = demo_turing()
                 sim_rust.import_snapshot(bin)
                 return sim_rust
             }

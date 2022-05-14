@@ -19,7 +19,7 @@ K symbols (grid cell types)
 6 actions (hexgrid directions)
 N x K -> N x K x A
  */
-impl Turing2 {
+impl Turing {
     pub const STATES: usize = 5; // states of agent
     pub const SYMBOLS: usize = 4; // distinct cell types
     pub const LUT_SIZE: usize = Self::STATES * Self::SYMBOLS;
@@ -34,7 +34,7 @@ struct Command {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Turing2 {
+pub struct Turing {
     pub grid: Tile<u8>,
     pos: coords::Cube,
     state: u8,
@@ -42,35 +42,35 @@ pub struct Turing2 {
 }
 
 fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
-    (0..Turing2::LUT_SIZE)
+    (0..Turing::LUT_SIZE)
         .map(|_| Command {
-            next_state: rng.gen_range(0..Turing2::STATES as u8),
-            next_symbol: rng.gen_range(0..Turing2::SYMBOLS as u8),
+            next_state: rng.gen_range(0..Turing::STATES as u8),
+            next_symbol: rng.gen_range(0..Turing::SYMBOLS as u8),
             next_action: *Direction::all().choose(rng).unwrap(),
         })
         .collect()
 }
 
-impl Turing2 {
-    pub fn new_with_seed(seed: u64) -> Turing2 {
+impl Turing {
+    pub fn new_with_seed(seed: u64) -> Turing {
         let mut rng = Pcg32::seed_from_u64(seed);
-        Turing2 {
+        Turing {
             grid: Tile::new(0),
             rule_lut: random_rule(&mut rng),
-            pos: Turing2::CENTER.into(),
+            pos: Turing::CENTER.into(),
             state: 0,
         }
     }
-    pub fn new() -> Turing2 {
+    pub fn new() -> Turing {
         Self::new_with_seed(thread_rng().next_u64())
     }
 }
 
-impl Simulation for Turing2 {
+impl Simulation for Turing {
     fn step(&mut self) {
         let command = {
             let symbol = self.grid.get_cell(self.pos);
-            let key: usize = self.state as usize * Turing2::SYMBOLS + symbol as usize;
+            let key: usize = self.state as usize * Turing::SYMBOLS + symbol as usize;
             self.rule_lut[key]
         };
 
@@ -103,7 +103,7 @@ impl Simulation for Turing2 {
     }
 }
 
-impl Default for Turing2 {
+impl Default for Turing {
     fn default() -> Self {
         Self::new()
     }

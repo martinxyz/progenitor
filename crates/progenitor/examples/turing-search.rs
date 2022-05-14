@@ -1,6 +1,6 @@
 #![feature(array_zip)]
 use hex2d::Coordinate;
-use progenitor::turing_drawings::Turing2;
+use progenitor::turing::Turing;
 use progenitor::{Direction, Simulation, SIZE};
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
@@ -34,12 +34,12 @@ impl Params {
     }
 }
 
-fn is_interesting(params: &Params) -> (bool, Turing2) {
-    let mut sim = Turing2::new_with_seed(params.seed);
+fn is_interesting(params: &Params) -> (bool, Turing) {
+    let mut sim = Turing::new_with_seed(params.seed);
     sim.steps(16);
     let mut cnt = 0;
     for radius in 2..4 {
-        let center: Coordinate = Turing2::CENTER.into();
+        let center: Coordinate = Turing::CENTER.into();
         for pos in center.ring_iter(radius, hex2d::Spin::CW(Direction::YZ)) {
             if sim.grid.get_cell(pos) != 0 {
                 cnt += 1;
@@ -51,14 +51,14 @@ fn is_interesting(params: &Params) -> (bool, Turing2) {
     (interesting, sim)
 }
 
-fn calculate_features(sim: Turing2) -> [FeatureAccumulator; FEATURE_COUNT] {
+fn calculate_features(sim: Turing) -> [FeatureAccumulator; FEATURE_COUNT] {
     let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
 
-    let mut histogram = [0i64; Turing2::SYMBOLS];
+    let mut histogram = [0i64; Turing::SYMBOLS];
     sim.grid.iter_cells().for_each(|&c| {
         histogram[c as usize] += 1;
     });
-    let mut sorted: Vec<_> = (0..Turing2::SYMBOLS as u8).zip(histogram).collect();
+    let mut sorted: Vec<_> = (0..Turing::SYMBOLS as u8).zip(histogram).collect();
     sorted.sort_by_key(|&(_idx, cnt)| -cnt);
 
     // features[0] measures "how much a single color dominates"
@@ -80,18 +80,18 @@ fn calculate_features(sim: Turing2) -> [FeatureAccumulator; FEATURE_COUNT] {
 
 pub fn evaluate<F>(run: F) -> [f64; FEATURE_COUNT]
 where
-    F: Fn() -> Turing2,
+    F: Fn() -> Turing,
 {
     let features = calculate_features(run());
     features.map(|fa| fa.into())
 }
-fn run(params: &Params) -> Turing2 {
-    let mut sim = Turing2::new_with_seed(params.seed);
+fn run(params: &Params) -> Turing {
+    let mut sim = Turing::new_with_seed(params.seed);
     sim.steps(params.iterations.try_into().unwrap());
     sim
 }
 
-type EvalResult = ([f64; FEATURE_COUNT], Params, Turing2);
+type EvalResult = ([f64; FEATURE_COUNT], Params, Turing);
 fn process(params: Params) -> EvalResult {
     if let (false, sim) = is_interesting(&params) {
         return ([0.; FEATURE_COUNT], params, sim);

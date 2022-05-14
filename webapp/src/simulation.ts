@@ -39,18 +39,12 @@ export const rules: Rule[] = [{
     label: '5 - sim2',
     create: () => progenitor.demo_sim2(),
 }, {
-    label: '6a - turing drawings (complex)',
-    create: () => progenitor.demo_turing1(),
-}, {
-    label: '6b - turing drawings (simple)',
-    create: () => progenitor.demo_turing2(),
-}, {
-    label: '6c - turing search results (select from map)',
-    create: () => progenitor.demo_turing2(),
+    label: '6 - turing drawings (search results)',
+    create: () => progenitor.demo_turing(),
     show_map: true,
 }];
 
-export const default_rule_idx = 7
+export const default_rule_idx = 5
 
 const steps_between_snapshots = 500
 
