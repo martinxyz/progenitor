@@ -1,7 +1,6 @@
 #![feature(array_zip)]
-use hex2d::Coordinate;
 use progenitor::turing::Turing;
-use progenitor::{Direction, Simulation, SIZE};
+use progenitor::{Simulation, SIZE};
 use rand::prelude::IteratorRandom;
 use rand::{thread_rng, Rng};
 
@@ -32,23 +31,6 @@ impl Params {
         self.iterations = ((self.iterations as f32 * fac).clamp(10., 1e6).round()) as u64;
         self.seed = rng.next_u64();
     }
-}
-
-fn is_interesting(params: &Params) -> (bool, Turing) {
-    let mut sim = Turing::new_with_seed(params.seed);
-    sim.steps(16);
-    let mut cnt = 0;
-    for radius in 2..4 {
-        let center: Coordinate = Turing::CENTER.into();
-        for pos in center.ring_iter(radius, hex2d::Spin::CW(Direction::YZ)) {
-            if sim.grid.get_cell(pos) != 0 {
-                cnt += 1;
-            }
-        }
-    }
-    // does this check really improve things? I guess not
-    let interesting = cnt > 3;
-    (interesting, sim)
 }
 
 fn calculate_features(sim: Turing) -> [FeatureAccumulator; FEATURE_COUNT] {
@@ -93,9 +75,6 @@ fn run(params: &Params) -> Turing {
 
 type EvalResult = ([f64; FEATURE_COUNT], Params, Turing);
 fn process(params: Params) -> EvalResult {
-    if let (false, sim) = is_interesting(&params) {
-        return ([0.; FEATURE_COUNT], params, sim);
-    }
     let score: [f64; FEATURE_COUNT] = evaluate(|| run(&params));
     let sim = run(&params);
     (score, params, sim)
@@ -119,7 +98,7 @@ fn main() {
         .collect();
     let mut total_tasks = init.len();
     run_taskstream(init, process, |(i, eval_result)| {
-        let map_resolution = (0.03, 0.03);
+        let map_resolution = (0.02, 0.02);
         let score = eval_result.0;
         let bc1 = (score[0] / map_resolution.0).round() as i32;
         let bc2 = (score[1] / map_resolution.1).round() as i32;
