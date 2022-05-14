@@ -20,9 +20,9 @@
         <Container>
             <RuleSelector bind:rule/>
         </Container>
-        {#if rule.show_map}
+        {#if rule.load_map}
             <Container>
-                <MapSelector selectHandler={onMapSelected}/>
+                <MapSelector selectHandler={onMapSelected} {rule} />
             </Container>
         {/if}
         <Container>

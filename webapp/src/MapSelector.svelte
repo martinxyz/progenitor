@@ -1,17 +1,24 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
     import { demo_turing, Snapshots } from 'progenitor';
     import type { Rule } from './simulation'
 
-    let map_bins: Uint8Array[][] = []
-    let bins_rows: number[] = []
-    let bins_cols: number[] = []
+    let map_bins: Uint8Array[][]
+    let bins_rows: number[]
+    let bins_cols: number[]
 
     export let selectHandler: (rule: Rule) => void = () => {}
+    export let rule: Rule
 
-    onMount(async () => {
-        // const sshot = await fetch('assets/output/map_bins.dat')
-        const sshot = await fetch('assets/output/turing_bins.dat')
+    $: filename = rule.load_map
+    $: loadData(filename)
+
+    async function loadData(filename: string) {
+        map_bins = []
+        bins_rows = []
+        bins_cols = []
+        if (!filename) return;
+
+        const sshot = await fetch(filename)
         if (sshot.status !== 200) throw sshot;
         const data = new Uint8Array(await sshot.arrayBuffer())
         const snapshots = new Snapshots(data);
@@ -47,20 +54,19 @@
             const data: Uint8Array = item[2]
             map_bins[f2][f1] = data
         }
-    })
+    }
 
     function loadbin(bin: (Uint8Array|null)) {
         if (!bin) return
-        let rule: Rule = {
+        let rule2: Rule = {
             label: '(selected from map)',
             create: () => {
-                // let sim_rust = demo_map()
-                let sim_rust = demo_turing()
+                let sim_rust = rule.create()
                 sim_rust.import_snapshot(bin)
                 return sim_rust
             }
         }
-        selectHandler(rule)
+        selectHandler(rule2)
     }
 
 </script>

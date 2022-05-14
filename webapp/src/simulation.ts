@@ -19,7 +19,7 @@ export interface CellInfo {
 export interface Rule {
     label: string,
     create: () => ProgenitorSimulation,
-    show_map?: boolean,
+    load_map?: string,
 }
 
 export const rules: Rule[] = [{
@@ -34,14 +34,14 @@ export const rules: Rule[] = [{
 }, {
     label: '4 - experiment results (select from map)',
     create: () => progenitor.demo_map(),
-    show_map: true,
+    load_map: 'assets/output/map_bins.dat',
 }, {
     label: '5 - sim2',
     create: () => progenitor.demo_sim2(),
 }, {
     label: '6 - turing drawings (search results)',
     create: () => progenitor.demo_turing(),
-    show_map: true,
+    load_map: 'assets/output/turing_bins.dat',
 }];
 
 export const default_rule_idx = 5
