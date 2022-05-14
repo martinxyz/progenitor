@@ -36,10 +36,10 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_map(),
     load_map: 'assets/output/map_bins.dat',
 }, {
-    label: '5 - sim2',
+    label: '5 - sim2 - simple test',
     create: () => progenitor.demo_sim2(),
 }, {
-    label: '6 - turing drawings (search results)',
+    label: '6 - turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
     load_map: 'assets/output/turing_bins.dat',
 }];

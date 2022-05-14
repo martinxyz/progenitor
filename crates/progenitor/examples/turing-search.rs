@@ -22,13 +22,20 @@ impl Params {
     fn init(rng: &mut impl Rng) -> Params {
         Params {
             seed: rng.next_u64(),
-            iterations: 1 << rng.gen_range(13..21),
+            // high number of iterations: many bins will be static or oscillating
+            // low number of iterations: interesting to play, but most bins look just random
+            // widely varied number of iterations: low iteration counts get selected (see above)
+            // iterations: 1 << rng.gen_range(12..18),
+            iterations: rng.gen_range(10_000..15_000),
         }
     }
     pub fn mutate(&mut self, rng: &mut impl Rng) {
-        let fac_max: f32 = 2.;
+        /*
+        // This just tends to converge to small number of iterations (boring).
+        let fac_max: f32 = 1.2;
         let fac = rng.gen_range(-fac_max.log2()..fac_max.log2()).exp2();
         self.iterations = ((self.iterations as f32 * fac).clamp(10., 1e6).round()) as u64;
+        */
         self.seed = rng.next_u64();
     }
 }
@@ -98,14 +105,25 @@ fn main() {
         .collect();
     let mut total_tasks = init.len();
     run_taskstream(init, process, |(i, eval_result)| {
-        let map_resolution = (0.02, 0.02);
+        let map_resolution = (0.025, 0.025);
         let score = eval_result.0;
         let bc1 = (score[0] / map_resolution.0).round() as i32;
         let bc2 = (score[1] / map_resolution.1).round() as i32;
         let bin = (bc1, bc2);
 
         if bins_found.insert(bin, eval_result).is_none() {
-            eprintln!("evaluation {}: found {} bins", i, bins_found.len());
+            // print diagnostics:
+            let avg_iterations = bins_found
+                .values()
+                .map(|(_, params, _)| params.iterations as f32)
+                .sum::<f32>()
+                / (bins_found.len() as f32);
+            eprintln!(
+                "evaluation {}: found {} bins (avg iterations: {:.1})",
+                i,
+                bins_found.len(),
+                avg_iterations
+            );
             println!("{} {}", i, bins_found.len());
         }
 
@@ -114,11 +132,7 @@ fn main() {
             let random_parent = bins_found.values().choose(&mut rng).unwrap();
             let mut params = random_parent.1.clone();
             params.mutate(&mut rng);
-            while rng.gen_bool(0.7) {
-                params.mutate(&mut rng);
-            }
-            // let params = Params::init(&mut rng); // for validation (finds ~ 420 bins)
-
+            // let params = Params::init(&mut rng); // for validation
             Some(params)
         } else {
             None
