@@ -1,10 +1,10 @@
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import type Simulation from './simulation'
-    import { defineGrid, extendHex, PointCoordinates } from 'honeycomb-grid'
+    import { defineGrid, extendHex } from 'honeycomb-grid'
     import { onMount } from 'svelte'
     import { get_size } from 'progenitor'
-    import type { Hex as HexType } from 'honeycomb-grid'
+    import type { Hex as HexType, PointCoordinates } from 'honeycomb-grid'
 
     export let sim: Simulation
 

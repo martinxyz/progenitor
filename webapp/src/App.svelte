@@ -3,7 +3,8 @@
     import RuleSelector from './RuleSelector.svelte'
     import Container from './Container.svelte'
     import MapSelector from './MapSelector.svelte'
-    import Simulation, { default_rule_idx, Rule, rules } from './simulation'
+    import Simulation, { default_rule_idx, rules } from './simulation'
+    import type { Rule } from './simulation'
 
     let rule: Rule = rules[default_rule_idx]
     let sim: Simulation

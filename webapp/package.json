@@ -1,37 +1,32 @@
 {
-  "name": "progenitor-app",
-  "version": "0.1.0",
-  "description": "web app using the rust progenitor library",
-  "main": "index.ts",
-  "scripts": {
-    "build": "cross-env NODE_ENV=production webpack",
-    "dev": "webpack-dev-server --no-content-base"
-  },
-  "author": "Martin Renold <martin@log2.ch>",
-  "license": "MIT",
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^5.14.0",
-    "honeycomb-grid": "^3.1.7",
-    "progenitor": "file:../crates/wasm/pkg"
-  },
-  "devDependencies": {
-    "@tsconfig/svelte": "^1.0.10",
-    "copy-webpack-plugin": "^6.1.1",
-    "cross-env": "^7.0.2",
-    "css-loader": "^4.3.0",
-    "file-loader": "^6.1.0",
-    "mini-css-extract-plugin": "^0.11.2",
-    "node-sass": "^4.14.1",
-    "sass-loader": "^10.0.2",
-    "style-loader": "^1.2.1",
-    "svelte": "^3.28.0",
-    "svelte-language-server": "^0.10.131",
-    "svelte-loader": "^2.13.6",
-    "svelte-preprocess": "^4.3.2",
-    "ts-loader": "^8.0.4",
-    "typescript": "^4.0.3",
-    "webpack": "^4.44.2",
-    "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.0"
-  }
+    "name": "progenitor-app",
+    "private": true,
+    "version": "0.0.0",
+    "author": "Martin Renold <martin@log2.ch>",
+    "description": "web app using the rust progenitor library",
+    "type": "module",
+    "license": "MIT",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview",
+        "check": "svelte-check --tsconfig ./tsconfig.json"
+    },
+    "dependencies": {
+        "@fortawesome/fontawesome-free": "^5.14.0",
+        "honeycomb-grid": "^3.1.7",
+        "progenitor": "file:../crates/wasm/pkg"
+    },
+    "devDependencies": {
+        "@sveltejs/vite-plugin-svelte": "^1.0.1",
+        "@tsconfig/svelte": "^3.0.0",
+        "sass": "^1.54.0",
+        "svelte": "^3.49.0",
+        "svelte-check": "^2.8.0",
+        "svelte-preprocess": "^4.10.7",
+        "tslib": "^2.4.0",
+        "typescript": "^4.6.4",
+        "vite": "^3.0.0",
+        "vite-plugin-wasm": "^2.1.0"
+    }
 }

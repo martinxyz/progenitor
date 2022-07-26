@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { rules, Rule } from './simulation'
+    import { rules } from './simulation'
+    import type { Rule } from './simulation'
     export let rule: Rule
 </script>
 
