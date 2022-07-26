@@ -1,6 +1,9 @@
 import * as progenitor from "progenitor";
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 
+import map_bins_url from '../assets/output/map_bins.dat?url';
+import turing_bins_url from '../assets/output/turing_bins.dat?url';
+
 // Required to see rust panic message and backtrace on JS console.
 // (Without it we only get the JS backtrace, saying "unreachable executed".)
 progenitor.set_panic_hook()
@@ -34,14 +37,14 @@ export const rules: Rule[] = [{
 }, {
     label: '4 - experiment results (select from map)',
     create: () => progenitor.demo_map(),
-    load_map: 'assets/output/map_bins.dat',
+    load_map: map_bins_url,
 }, {
     label: '5 - sim2 - simple test',
     create: () => progenitor.demo_sim2(),
 }, {
     label: '6 - turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
-    load_map: 'assets/output/turing_bins.dat',
+    load_map: turing_bins_url,
 }];
 
 export const default_rule_idx = 5
