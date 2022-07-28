@@ -45,9 +45,12 @@ export const rules: Rule[] = [{
     label: '6 - turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
     load_map: turing_bins_url,
+}, {
+    label: '7 - tumbler (random walk)',
+    create: () => progenitor.demo_tumbler(),
 }];
 
-export const default_rule_idx = 5
+export const default_rule_idx = 6
 
 const steps_between_snapshots = 500
 
