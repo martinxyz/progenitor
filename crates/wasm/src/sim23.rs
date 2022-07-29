@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{sim2, tumbler, turing};
+use progenitor::{sim2, tumblers, turing};
 
 #[wasm_bindgen]
 pub fn demo_sim2() -> JsSimulation {
@@ -17,7 +17,7 @@ pub fn demo_turing() -> JsSimulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_tumbler() -> JsSimulation {
-    let sim = tumbler::Tumbler::new();
+pub fn demo_tumblers() -> JsSimulation {
+    let sim = tumblers::Tumblers::new();
     sim.into()
 }
