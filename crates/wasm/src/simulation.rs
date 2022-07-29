@@ -43,7 +43,7 @@ impl JsSimulation {
                 1 => cell.energy.unwrap_or(0),
                 2 => match cell.direction {
                     Some(dir) => dir as u8,
-                    None => 0, // better API contract required...
+                    None => 255,
                 },
                 _ => panic!("invalid channel"),
             })

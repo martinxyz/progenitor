@@ -193,7 +193,7 @@
                 ctx.fill()
                 ctx.restore()
             }
-            if (showDirection && ct !== 0) {
+            if (showDirection && dir !== 255) {
                 ctx.save()
                 ctx.translate(position.x, position.y)
                 ctx.translate(hex.center().x, hex.center().y)
