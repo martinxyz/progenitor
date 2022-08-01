@@ -1,3 +1,6 @@
+// warning probably caused by macro use
+#![allow(clippy::borrow_deref_ref)]
+
 // use pyo3::wrap_pyfunction;
 use pyo3::buffer::PyBuffer;
 use pyo3::prelude::*;

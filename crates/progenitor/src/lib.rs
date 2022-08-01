@@ -1,3 +1,5 @@
+#![allow(clippy::new_without_default)]
+
 pub mod coords;
 pub mod tile;
 pub use coords::{Direction, DirectionSet};
