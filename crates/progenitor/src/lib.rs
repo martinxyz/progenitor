@@ -1,6 +1,7 @@
 pub mod coords;
 pub mod tile;
 pub use coords::{Direction, DirectionSet};
+pub mod blobs;
 pub mod sim1;
 pub mod sim2;
 mod simulation;

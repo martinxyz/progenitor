@@ -120,6 +120,12 @@ impl<CellT: Copy> Tile<CellT> {
     }
 }
 
+impl<CellT: Default + Copy> Default for Tile<CellT> {
+    fn default() -> Self {
+        Tile::new(CellT::default())
+    }
+}
+
 /// Iterator over a rectangle in offset coordinates.
 pub fn iterate_rectangle(
     pos: coords::Cube,

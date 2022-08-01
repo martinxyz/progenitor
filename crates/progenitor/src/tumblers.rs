@@ -14,14 +14,14 @@ use crate::Simulation;
 // Random walk test.
 
 #[derive(Serialize, Deserialize)]
-pub struct Tumbler {
+struct Tumbler {
     pos: coords::Cube,
     heading: Direction,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tumblers {
-    pub visited: Tile<bool>,
+    visited: Tile<bool>,
     tumblers: Vec<Tumbler>,
     rng: rand_pcg::Lcg64Xsh32,
 }

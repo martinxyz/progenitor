@@ -40,7 +40,7 @@ impl JsSimulation {
             .iter()
             .map(|cell| match channel {
                 0 => cell.cell_type,
-                1 => cell.energy.unwrap_or(0),
+                1 => cell.energy.map(|e| e.clamp(0, 254)).unwrap_or(255),
                 2 => match cell.direction {
                     Some(dir) => dir as u8,
                     None => 255,

@@ -170,13 +170,13 @@
             hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
             ctx.fillStyle = color
             ctx.fill()
-            if (showEnergy) {
+            if (showEnergy && e !== 255) {
                 ctx.fillStyle = '#555A'
                 ctx.fill()
             }
             ctx.restore()
 
-            if (showEnergy) {
+            if (showEnergy && e !== 255) {
                 if (e === 0) color = '#000'
                 if (e === 1) color = '#880'
                 if (e === 2) color = '#AA0'

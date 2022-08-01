@@ -48,9 +48,12 @@ export const rules: Rule[] = [{
 }, {
     label: '7 - tumblers (random walk)',
     create: () => progenitor.demo_tumblers(),
+}, {
+    label: '8 - moving blobs',
+    create: () => progenitor.demo_moving_blobs(),
 }];
 
-export const default_rule_idx = 6
+export const default_rule_idx = 7
 
 const steps_between_snapshots = 500
 
