@@ -1,4 +1,6 @@
 use hex2d::Direction;
+use rand::distributions::Bernoulli;
+use rand::distributions::Distribution;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::RngCore;
@@ -7,6 +9,7 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
+use crate::tile;
 use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
@@ -24,10 +27,11 @@ pub struct Tumblers {
     visited: Tile<bool>,
     tumblers: Vec<Tumbler>,
     rng: rand_pcg::Lcg64Xsh32,
+    tumble_prob: f64,
 }
 
 impl Tumblers {
-    pub fn new() -> Tumblers {
+    pub fn new(tumble_prob: f64) -> Tumblers {
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
         let size_half = (crate::SIZE / 2) as i32;
@@ -43,14 +47,22 @@ impl Tumblers {
             visited: Tile::new(false),
             tumblers: (0..32).map(create_tumbler).collect(),
             rng,
+            tumble_prob,
         }
+    }
+    pub fn avg_visited(&self) -> f32 {
+        self.visited.iter_cells().filter(|&&v| v).count() as f32
+            * (1. / (tile::SIZE * tile::SIZE) as f32)
     }
 }
 
 impl Simulation for Tumblers {
     fn step(&mut self) {
+        let tumble_dist = Bernoulli::new(self.tumble_prob).unwrap();
         for t in self.tumblers.iter_mut() {
-            t.heading = *Direction::all().choose(&mut self.rng).unwrap();
+            if tumble_dist.sample(&mut self.rng) {
+                t.heading = *Direction::all().choose(&mut self.rng).unwrap();
+            }
             t.pos = t.pos + t.heading;
             self.visited.set_cell(t.pos, true);
         }

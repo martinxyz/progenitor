@@ -18,7 +18,8 @@ pub fn demo_turing() -> JsSimulation {
 
 #[wasm_bindgen]
 pub fn demo_tumblers() -> JsSimulation {
-    let sim = tumblers::Tumblers::new();
+    // 0.17 approximately maximizes the score for 50 iterations
+    let sim = tumblers::Tumblers::new(0.17);
     sim.into()
 }
 
