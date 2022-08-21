@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "progenitor-experiments"
+version = "0.0.0"
+description = "Experiment of the day, using the compiled progenitor rust module"
+authors = ["Martin Renold <martin@log2.ch>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+# progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
+ribs = {extras = ["all"], git = "https://github.com/icaros-usc/pyribs.git", rev = "82864b6ef1312" }
+cma = "^3.2.2"
+scipy = "^1.9.1"
+matplotlib = "^3.5.3"
+
+[tool.poetry.dev-dependencies]
+maturin = "^0.13.2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -56,18 +56,20 @@ Then open [http://localhost:8080](http://localhost:8080) in a browser.
 
 ### Python Module
 
-Install [maturin](https://github.com/PyO3/maturin), e.g. `pip3 install
-maturin`. Inside a virtualenv, run:
+Install [https://python-poetry.org/](poetry), then run:
 
 ```bash
-cd crates/python
+poetry install
 RUSTFLAGS="-C target-cpu=native" \
-    maturin develop --release
+  poetry run maturin develop -m crates/python/Cargo.toml --release
 ```
 
-This will install the Python module into the virtualenv. You can then use
-`import progenitor` from Python.
+Then run one of the experiments:
 
-Note: if you run Python from the toplevel directory it will import the
-*progenitor* subdirectory instead of the virtualenv module. This also works
-because `maturin develop` copies the compiled extension into that directory.
+```
+poetry run py/tumbler-search.py
+```
+
+As an alternative, it is possible to build the Python module without using
+*poetry* and with minimal dependencies. Just run [https://maturin.rs/](maturin)
+directly in the *crates/python* directory.

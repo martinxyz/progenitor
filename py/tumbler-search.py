@@ -12,9 +12,9 @@ def evaluate(x):
     iterations = 500
 
     score = 0
-    for it in range(iterations):
+    for _ in range(iterations):
         sim = Tumblers(prob)
-        sim.steps(32)
+        sim.steps(50)
         score += sim.avg_visited()
 
     cost = - score / iterations

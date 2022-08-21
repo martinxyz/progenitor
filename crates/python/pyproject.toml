@@ -1,17 +1,13 @@
 [project]
-dependencies = ["numpy>=1.21", "scipy>=1.8", "cma>=3.2"]
-
-# workaround: maximum numpy version currently required by numba
-#dependencies = ["numpy==1.20.3", "ribs"]
-
 name = "progenitor"
-version = "0.1.0"
-description = "test"
+version = "0.0.0"
+description = "progenitor native python extension"
+
+dependencies = ["numpy>=1.22"]
 
 [build-system]
-requires = ["maturin>=0.13,<0.14"]
+requires = ["maturin>=0.13"]
 build-backend = "maturin"
 
 [tool.maturin]
-# bindings = "cffi"
-compatibility = "linux"  # do we need/want this? (or is manylinux/default what we want)
+compatibility = "linux"
