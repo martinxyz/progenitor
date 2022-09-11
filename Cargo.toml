@@ -16,6 +16,3 @@ debug = 1  # no slowdown (certainly less than 2%)
 
 [profile.bench]
 debug = true  # for better profiling
-
-[patch.crates-io]
-wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", branch = "main" }
