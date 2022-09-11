@@ -29,24 +29,20 @@ impl<CellT: Copy> AxialTile<CellT> {
         (r * self.width + q) as usize
     }
 
-    pub fn is_valid(&self, pos: Cube) -> bool {
+    pub fn valid(&self, pos: Cube) -> bool {
         let q = pos.x as i32;
         let r = pos.z() as i32;
         (q >= 0 && q < self.width) && (r >= 0 && r < self.height)
     }
 
     pub fn set_cell(&mut self, pos: Cube, cell: CellT) {
-        assert!(self.is_valid(pos));
+        assert!(self.valid(pos));
         let idx = self.index(pos);
         self.data[idx] = cell;
     }
 
-    pub fn get_cell(&self, pos: Cube) -> CellT {
-        self.data[self.index(pos)]
-    }
-
-    pub fn get_cell_checked(&self, pos: Cube) -> Option<CellT> {
-        if self.is_valid(pos) {
+    pub fn get_cell(&self, pos: Cube) -> Option<CellT> {
+        if self.valid(pos) {
             Some(self.data[self.index(pos)])
         } else {
             None

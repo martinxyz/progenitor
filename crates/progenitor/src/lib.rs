@@ -1,18 +1,21 @@
 #![allow(clippy::new_without_default)]
 
-pub mod axial_tile;
+// foundation
 pub mod coords;
-pub mod tile2;
-pub mod torus_tile;
 pub use coords::{Direction, DirectionSet};
+mod simulation;
+pub use simulation::{CellView, Simulation};
+
+// map storage
+mod axial_tile;
+mod torus_tile;
+pub use axial_tile::AxialTile;
+pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE};
+
+// simulations
 pub mod blobs;
 pub mod sim1;
 pub mod sim2;
-mod simulation;
 pub mod tumblers;
 pub mod turing;
-pub use simulation::{CellView, Simulation};
 pub mod world1;
-
-pub use axial_tile::AxialTile;
-pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE};

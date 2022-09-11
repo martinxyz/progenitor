@@ -9,7 +9,7 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile2::AxialTile;
+use crate::AxialTile;
 use crate::CellView;
 use crate::Simulation;
 
@@ -67,7 +67,7 @@ impl Simulation for Tumblers {
                 t.heading = *Direction::all().choose(&mut self.rng).unwrap();
             }
             let new_pos = t.pos + t.heading;
-            if self.visited.is_valid(new_pos) {
+            if self.visited.valid(new_pos) {
                 t.pos = new_pos;
                 self.visited.set_cell(t.pos, true);
             }
@@ -87,7 +87,7 @@ impl Simulation for Tumblers {
             }
         }
         Some(CellView {
-            cell_type: match self.visited.get_cell_checked(pos)? {
+            cell_type: match self.visited.get_cell(pos)? {
                 false => 1,
                 true => 2,
             },
