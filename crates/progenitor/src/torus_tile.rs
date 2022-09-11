@@ -10,7 +10,7 @@ pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Tile<CellT: Copy> {
+pub struct TorusTile<CellT: Copy> {
     // I think we don't technically need the Box, just to make sure it's on the heap.
     // Could also use "Vec", but I guess compile-time size will allow additional optimizations?
     // (At least with g++ and Eigen compile-time size was really helping. Maybe test this theory at some point.)
@@ -34,21 +34,21 @@ pub struct Tile<CellT: Copy> {
     //};
 }
 
-impl<CellT: Copy> FromIterator<CellT> for Tile<CellT> {
+impl<CellT: Copy> FromIterator<CellT> for TorusTile<CellT> {
     fn from_iter<T: IntoIterator<Item = CellT>>(iter: T) -> Self {
         let data: Box<[CellT]> = iter.into_iter().collect();
         if data.len() != (SIZE * SIZE) as usize {
-            panic!("Tile created from iterator of wrong size.")
+            panic!("TorusTile created from iterator of wrong size.")
         }
-        Tile { data }
+        TorusTile { data }
     }
 }
 
 // type NeighbourIterMut<'t> = std::iter::Zip<std::slice::IterMut<'t, CellT>, NeighbourIter<'t>>;
 
-impl<CellT: Copy> Tile<CellT> {
+impl<CellT: Copy> TorusTile<CellT> {
     pub fn new(fill: CellT) -> Self {
-        Tile {
+        TorusTile {
             data: Box::new([fill; (SIZE * SIZE) as usize]),
         }
     }
@@ -120,23 +120,14 @@ impl<CellT: Copy> Tile<CellT> {
     }
 }
 
-impl<CellT: Default + Copy> Default for Tile<CellT> {
+impl<CellT: Default + Copy> Default for TorusTile<CellT> {
     fn default() -> Self {
-        Tile::new(CellT::default())
+        TorusTile::new(CellT::default())
     }
 }
 
-/// Iterator over a rectangle in offset coordinates.
-pub fn iterate_rectangle(
-    pos: coords::Cube,
-    width: i32,
-    height: i32,
-) -> impl Iterator<Item = coords::Cube> {
-    (0..height).flat_map(move |row| (0..width).map(move |col| pos + coords::Offset { col, row }))
-}
-
 pub struct NeighbourIter<'t, CellT: Copy> {
-    tile: &'t Tile<CellT>,
+    tile: &'t TorusTile<CellT>,
     q: i32,
     r: i32,
 }

@@ -9,8 +9,7 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile;
-use crate::tile::Tile;
+use crate::tile2::AxialTile;
 use crate::CellView;
 use crate::Simulation;
 
@@ -24,35 +23,39 @@ struct Tumbler {
 
 #[derive(Serialize, Deserialize)]
 pub struct Tumblers {
-    visited: Tile<bool>,
+    visited: AxialTile<bool>,
     tumblers: Vec<Tumbler>,
     rng: rand_pcg::Lcg64Xsh32,
     tumble_prob: f64,
 }
 
+const TILE_WIDTH: i32 = 18;
+const TILE_HEIGHT: i32 = 29;
+
 impl Tumblers {
     pub fn new(tumble_prob: f64) -> Tumblers {
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
-        let size_half = (crate::SIZE / 2) as i32;
         let center = coords::Offset {
-            col: size_half,
-            row: size_half,
+            // would be easier in axial coordinates...
+            col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
+            row: TILE_HEIGHT / 2,
         };
         let create_tumbler = |_| Tumbler {
             pos: center.into(),
             heading: *Direction::all().choose(&mut rng).unwrap(),
         };
         Tumblers {
-            visited: Tile::new(false),
+            visited: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, false),
             tumblers: (0..32).map(create_tumbler).collect(),
             rng,
             tumble_prob,
         }
     }
     pub fn avg_visited(&self) -> f32 {
-        self.visited.iter_cells().filter(|&&v| v).count() as f32
-            * (1. / (tile::SIZE * tile::SIZE) as f32)
+        let total = self.visited.area();
+        let visited: i32 = self.visited.iter_cells().map(|&v| i32::from(v)).sum();
+        visited as f32 / total as f32
     }
 }
 
@@ -63,30 +66,40 @@ impl Simulation for Tumblers {
             if tumble_dist.sample(&mut self.rng) {
                 t.heading = *Direction::all().choose(&mut self.rng).unwrap();
             }
-            t.pos = t.pos + t.heading;
-            self.visited.set_cell(t.pos, true);
+            let new_pos = t.pos + t.heading;
+            if self.visited.is_valid(new_pos) {
+                t.pos = new_pos;
+                self.visited.set_cell(t.pos, true);
+            }
         }
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> CellView {
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        let pos = coords::Cube { x: pos.x, y: pos.y };
         // xxx inefficient when this gets called for all cells...
         for t in self.tumblers.iter() {
-            if self.visited.is_same_pos(pos, t.pos) {
-                return CellView {
+            if pos == t.pos {
+                return Some(CellView {
                     cell_type: 0,
                     direction: Some(t.heading),
                     ..Default::default()
-                };
+                });
             }
         }
-        CellView {
-            cell_type: match self.visited.get_cell(pos) {
+        Some(CellView {
+            cell_type: match self.visited.get_cell_checked(pos)? {
                 false => 1,
                 true => 2,
             },
             ..Default::default()
-        }
+        })
     }
+
+    // fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
+    //     let q = pos.x as i32;
+    //     let r = pos.z() as i32;
+    //     Some(format!("{:?} (r={}, q={})", pos, r, q))
+    // }
 
     fn save_state(&self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()

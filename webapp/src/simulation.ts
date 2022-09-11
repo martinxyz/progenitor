@@ -53,7 +53,7 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_moving_blobs(),
 }];
 
-export const default_rule_idx = 7
+export const default_rule_idx = 6
 
 const steps_between_snapshots = 500
 

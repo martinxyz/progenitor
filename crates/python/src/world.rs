@@ -9,7 +9,7 @@ use numpy::{PyArray1, ToPyArray};
 // use numpy::{IntoPyArray, PyArray2, PyArrayDyn};
 
 use progenitor::sim1;
-use progenitor::tile;
+use progenitor::SIZE;
 // use cell::Cell;
 
 #[pyclass]
@@ -28,7 +28,7 @@ impl World {
     fn new() -> Self {
         Self {
             inner: sim1::World::new(),
-            size: tile::SIZE,
+            size: SIZE,
         }
     }
 

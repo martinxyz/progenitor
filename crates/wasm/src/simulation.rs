@@ -27,7 +27,9 @@ impl JsSimulation {
     }
     pub fn get_cell_text(&self, col: i32, row: i32) -> String {
         let pos = coords::Offset { col, row };
-        self.0.get_cell_text(pos.into())
+        self.0
+            .get_cell_text(pos.into())
+            .unwrap_or_else(|| "(invalid location)".into())
     }
 
     pub fn steps(&mut self, count: usize) {

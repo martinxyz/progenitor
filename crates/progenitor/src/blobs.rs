@@ -10,10 +10,10 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile::Tile;
 use crate::CellView;
 use crate::DirectionSet;
 use crate::Simulation;
+use crate::TorusTile;
 
 #[derive(Serialize, Deserialize, Default, Clone, Copy, Debug)]
 struct BlobCell {
@@ -37,7 +37,7 @@ impl Default for Cell {
 
 #[derive(Serialize, Deserialize)]
 pub struct Blobs {
-    cells: Tile<Cell>,
+    cells: TorusTile<Cell>,
     rng: rand_pcg::Lcg64Xsh32,
 }
 
@@ -45,7 +45,7 @@ impl Blobs {
     pub fn new() -> Self {
         let seed = thread_rng().next_u64();
         let rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
-        let mut cells = Tile::new(Cell::Empty);
+        let mut cells = TorusTile::new(Cell::Empty);
 
         let size_half = (crate::SIZE / 2) as i32;
         let center: coords::Cube = coords::Offset {
@@ -100,8 +100,8 @@ impl Simulation for Blobs {
             .collect();
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> CellView {
-        self.cells.get_cell(pos).into()
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.cells.get_cell(pos).into())
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -112,9 +112,9 @@ impl Simulation for Blobs {
         *self = bincode::deserialize_from(data).unwrap();
     }
 
-    fn get_cell_text(&self, pos: coords::Cube) -> String {
+    fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
         let cell = self.cells.get_cell(pos);
-        format!("{:?}", cell)
+        Some(format!("{:?}", cell))
     }
 }
 
@@ -130,8 +130,8 @@ fn update_cell(cell: Cell, neighbours: [(Direction, Cell); 6], rng: &mut impl Rn
                         let valid = blob.valid.contains(dir);
                         let ready2 = blob2.ready.contains(-dir);
                         let valid2 = blob2.valid.contains(-dir);
-                        let incoming: i16 = if ready && valid2 { 1 } else { 0 };
-                        let outgoing: i16 = if ready2 && valid { 1 } else { 0 };
+                        let incoming: i16 = (ready && valid2).into();
+                        let outgoing: i16 = (ready2 && valid).into();
                         incoming - outgoing
                     }
                     _ => 0,

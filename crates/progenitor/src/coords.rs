@@ -173,3 +173,8 @@ impl From<Offset> for Cube {
 }
 
 // impl From<Offset> for Axial {
+
+/// Iterator over a rectangle in offset coordinates.
+pub fn iterate_rectangle(pos: Cube, width: i32, height: i32) -> impl Iterator<Item = Cube> {
+    (0..height).flat_map(move |row| (0..width).map(move |col| pos + Offset { col, row }))
+}

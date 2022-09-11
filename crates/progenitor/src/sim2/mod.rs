@@ -5,14 +5,14 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
+use crate::TorusTile;
 use crate::SIZE;
 
 #[derive(Serialize, Deserialize)]
 pub struct World {
-    alive: Tile<bool>,
+    alive: TorusTile<bool>,
     rng: Pcg32,
 }
 
@@ -42,14 +42,14 @@ impl Simulation for World {
             .collect();
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> CellView {
-        CellView {
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(CellView {
             cell_type: match self.alive.get_cell(pos) {
                 false => 0,
                 true => 1,
             },
             ..Default::default()
-        }
+        })
     }
 
     fn save_state(&self) -> Vec<u8> {

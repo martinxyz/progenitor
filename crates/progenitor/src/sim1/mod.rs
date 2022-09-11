@@ -2,9 +2,10 @@ mod cell;
 mod rules;
 
 use crate::coords;
-use crate::tile;
 use crate::CellView;
 use crate::Simulation;
+use crate::TorusNeighbourIter;
+use crate::TorusTile;
 use rand::thread_rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
@@ -13,7 +14,7 @@ use std::io::prelude::*;
 pub use cell::{Cell, CellType, CellTypeRef, CellTypes, GrowDirection};
 
 pub struct World {
-    pub cells: tile::Tile<Cell>,
+    pub cells: TorusTile<Cell>,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
     rng: Pcg32,
@@ -23,7 +24,7 @@ impl World {
     pub fn new() -> World {
         let rng = Pcg32::from_rng(thread_rng()).unwrap();
         World {
-            cells: tile::Tile::new(Default::default()),
+            cells: TorusTile::new(Default::default()),
             types: CellTypes::new(),
             rng,
         }
@@ -45,7 +46,7 @@ impl World {
         self.cells.iter_cells()
     }
 
-    pub fn iter_cells_with_neighbours(&self) -> tile::NeighbourIter<Cell> {
+    pub fn iter_cells_with_neighbours(&self) -> TorusNeighbourIter<Cell> {
         self.cells.iter_radius_1()
     }
 }
@@ -55,7 +56,7 @@ impl Simulation for World {
         let types = &self.types;
         let mut rng = &mut self.rng;
 
-        let cells_temp: tile::Tile<rules::CellTemp> = self
+        let cells_temp: TorusTile<rules::CellTemp> = self
             .cells
             .iter_cells()
             .map(|&cell| rules::prepare_step(types, &mut rng, cell))
@@ -67,8 +68,8 @@ impl Simulation for World {
             .collect();
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> CellView {
-        self.get_cell(pos).into()
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.get_cell(pos).into())
     }
 
     fn save_state(&self) -> Vec<u8> {

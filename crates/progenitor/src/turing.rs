@@ -8,9 +8,9 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
-use crate::tile::Tile;
 use crate::CellView;
 use crate::Simulation;
+use crate::TorusTile;
 
 /* Based on the original "turing drawings":
 https://github.com/maximecb/Turing-Drawings/blob/master/programs.js#L44-L48
@@ -35,7 +35,7 @@ struct Command {
 
 #[derive(Serialize, Deserialize)]
 pub struct Turing {
-    pub grid: Tile<u8>,
+    pub grid: TorusTile<u8>,
     pos: coords::Cube,
     state: u8,
     rule_lut: Vec<Command>,
@@ -55,7 +55,7 @@ impl Turing {
     pub fn new_with_seed(seed: u64) -> Turing {
         let mut rng = Pcg32::seed_from_u64(seed);
         Turing {
-            grid: Tile::new(0),
+            grid: TorusTile::new(0),
             rule_lut: random_rule(&mut rng),
             pos: Turing::CENTER.into(),
             state: 0,
@@ -83,15 +83,15 @@ impl Simulation for Turing {
         // }
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> CellView {
-        CellView {
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(CellView {
             cell_type: if self.grid.is_same_pos(pos, self.pos) {
                 0 // visualize position of the turing head
             } else {
                 self.grid.get_cell(pos) + 1
             },
             ..Default::default()
-        }
+        })
     }
 
     fn save_state(&self) -> Vec<u8> {
