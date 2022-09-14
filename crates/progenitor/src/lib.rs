@@ -14,6 +14,7 @@ pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE};
 
 // simulations
 pub mod blobs;
+pub mod builders;
 pub mod sim1;
 pub mod sim2;
 pub mod tumblers;

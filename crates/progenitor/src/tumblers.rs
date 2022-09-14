@@ -75,7 +75,6 @@ impl Simulation for Tumblers {
     }
 
     fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        let pos = coords::Cube { x: pos.x, y: pos.y };
         // xxx inefficient when this gets called for all cells...
         for t in self.tumblers.iter() {
             if pos == t.pos {
@@ -94,12 +93,6 @@ impl Simulation for Tumblers {
             ..Default::default()
         })
     }
-
-    // fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
-    //     let q = pos.x as i32;
-    //     let r = pos.z() as i32;
-    //     Some(format!("{:?} (r={}, q={})", pos, r, q))
-    // }
 
     fn save_state(&self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
