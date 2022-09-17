@@ -120,30 +120,32 @@ impl Simulation for Builders {
         .unwrap();
         for t in self.builders.iter_mut() {
             let action = action_distr.sample(&mut self.rng).into();
-            t.heading = match action {
-                Action::Forward => t.heading + Angle::Forward,
-                Action::Left => t.heading + Angle::Left,
-                Action::Right => t.heading + Angle::Right,
-                Action::Pullback => t.heading + Angle::Forward,
+            let turn = match action {
+                Action::Left => Angle::Left,
+                Action::Right => Angle::Right,
+                _ => Angle::Forward,
             };
-            let new_pos = match action {
-                Action::Forward => t.pos + t.heading,
-                Action::Left => t.pos + t.heading,
-                Action::Right => t.pos + t.heading,
-                Action::Pullback => t.pos - t.heading,
-            };
+            t.heading = t.heading + turn;
 
-            if let Some(new_cell) = self.cells.get_cell(new_pos) {
-                let old_cell = self.cells.get_cell(t.pos).unwrap();
-                if new_cell == Cell::Air || (new_cell == Cell::Stone && old_cell == Cell::Air) {
-                    if action == Action::Pullback && old_cell == Cell::Stone {
-                        self.cells.set_cell(t.pos, Cell::Air);
-                        self.cells.set_cell(new_pos, Cell::Stone);
+            let pos_forward = t.pos + t.heading;
+            let pos_back = t.pos - t.heading;
+
+            if let Some(cell_forward) = self.cells.get_cell(pos_forward) {
+                if action != Action::Pullback {
+                    if cell_forward == Cell::Air {
+                        t.pos = pos_forward;
                     }
-                    t.pos = new_pos;
-                    self.visited.set_cell(t.pos, true);
+                } else if let Some(cell_back) = self.cells.get_cell(pos_back) {
+                    if cell_back == Cell::Air {
+                        let cell_here = self.cells.get_cell(t.pos).unwrap();
+                        self.cells.set_cell(pos_back, cell_here);
+                        self.cells.set_cell(t.pos, cell_forward);
+                        self.cells.set_cell(pos_forward, Cell::Air);
+                        t.pos = pos_back;
+                    }
                 }
             }
+            self.visited.set_cell(t.pos, true);
         }
     }
 
