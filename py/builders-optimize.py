@@ -11,12 +11,12 @@ def softmax(x):
 def evaluate(x):
 
     probs = softmax(x)
-    iterations = 500
+    iterations = 200
 
     score = 0
     for _ in range(iterations):
         sim = Builders(probs)
-        sim.steps(50)
+        sim.steps(1000)
         score += sim.score()
 
     cost = - score / iterations
@@ -24,5 +24,5 @@ def evaluate(x):
     print(f'{cost:.6f} for p={probs} - x={x[0]:.6f}')
     return cost
 
-es = cma.CMAEvolutionStrategy(4 * [0], 10.0)
+es = cma.CMAEvolutionStrategy(4 * [0], 1.0)
 es.optimize(evaluate)
