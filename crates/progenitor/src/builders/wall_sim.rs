@@ -59,28 +59,32 @@ struct State {
 pub struct Builders {
     state: State,
     agent: Agent,
+    max_depth_reached: i32,
 }
 
 const TILE_WIDTH: i32 = 40;
 const TILE_HEIGHT: i32 = 40;
 
+const CENTER: coords::Offset = coords::Offset {
+    // would be easier in axial coordinates...
+    col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
+    row: TILE_HEIGHT / 2,
+};
+
 impl Builders {
     pub fn new() -> Builders {
+        Self::new_with_agent(super::builder_agent::dummy_agent())
+    }
+
+    pub fn new_with_agent(agent: Agent) -> Builders {
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
-        let center = coords::Offset {
-            // would be easier in axial coordinates...
-            col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
-            row: TILE_HEIGHT / 2,
-        };
+        let center: coords::Cube = CENTER.into();
         let create_builder = |_| Builder {
-            pos: center.into(),
+            pos: center,
             heading: *Direction::all().choose(&mut rng).unwrap(),
         };
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
-
-        let center: coords::Cube = center.into();
-
         for radius in 0..18 {
             for pos in center.ring_iter(radius, Spin::CCW(Direction::XY)) {
                 cells.set_cell(
@@ -99,13 +103,19 @@ impl Builders {
                 builders: (0..5).map(create_builder).collect(),
                 rng,
             },
-            agent: super::builder_agent::dummy_agent(),
+            agent,
+            max_depth_reached: 0,
         }
     }
+
     pub fn avg_visited(&self) -> f32 {
         let total = self.state.visited.area();
         let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
         visited as f32 / total as f32
+    }
+
+    pub fn score(&self) -> f32 {
+        self.max_depth_reached as f32 + self.avg_visited()
     }
 }
 
@@ -145,6 +155,8 @@ impl Simulation for Builders {
                 }
             }
             self.state.visited.set_cell(t.pos, true);
+            let center: coords::Cube = CENTER.into();
+            self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
         }
     }
 

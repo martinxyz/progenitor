@@ -131,6 +131,7 @@ pub struct Offset {
     pub row: i32,
 }
 
+/* currently unused
 /// Axial coordinates
 ///
 /// We use [axial coordinates](https://www.redblobgames.com/grids/hexagons/#coordinates-axial) to iterate over [map storage](https://www.redblobgames.com/grids/hexagons/#map-storage).
@@ -152,6 +153,7 @@ impl Axial {
         Self { q, r }
     }
 }
+*/
 
 impl From<Offset> for Cube {
     // This really doesn't exist in hex2d :-/

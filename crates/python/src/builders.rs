@@ -15,9 +15,11 @@ pub(crate) struct Builders {
 #[pymethods]
 impl Builders {
     #[new]
-    fn new(prob: f64) -> Self {
+    fn new(weights: Vec<f32>) -> Self {
         Self {
-            inner: builders::Builders::new(prob),
+            inner: builders::Builders::new_with_agent(builders::builder_agent::categorical_agent(
+                &weights,
+            )),
         }
     }
 
@@ -27,6 +29,10 @@ impl Builders {
 
     fn avg_visited(&self) -> f32 {
         self.inner.avg_visited()
+    }
+
+    fn score(&self) -> f32 {
+        self.inner.score()
     }
 }
 
