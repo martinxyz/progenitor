@@ -3,6 +3,7 @@
 
 use pyo3::prelude::*;
 
+mod builders;
 mod tumblers;
 mod world;
 
@@ -10,5 +11,6 @@ mod world;
 fn progenitor(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<world::World>()?;
     m.add_class::<tumblers::Tumblers>()?;
+    m.add_class::<builders::Builders>()?;
     Ok(())
 }
