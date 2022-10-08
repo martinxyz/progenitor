@@ -1,11 +1,11 @@
-use progenitor::Simulation;
-use pyo3::prelude::*;
+use std::convert::TryInto;
 
-use progenitor::builders;
+use progenitor::{builders::Builders as BuildersImpl, Simulation};
+use pyo3::prelude::*;
 
 #[pyclass]
 pub(crate) struct Builders {
-    inner: builders::Builders,
+    inner: BuildersImpl,
     // #[pyo3(get)]
     // size: u32,
     // data: [tile::CellContent; 3],
@@ -16,10 +16,11 @@ pub(crate) struct Builders {
 impl Builders {
     #[new]
     fn new(weights: Vec<f32>) -> Self {
+        assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
         Self {
-            inner: builders::Builders::new_with_agent(builders::builder_agent::categorical_agent(
-                &weights,
-            )),
+            inner: BuildersImpl::new_with_params(
+                &weights.try_into().expect("param_count should match"),
+            ),
         }
     }
 
@@ -33,6 +34,15 @@ impl Builders {
 
     fn score(&self) -> f32 {
         self.inner.score()
+    }
+
+    #[classattr]
+    fn param_count() -> usize {
+        BuildersImpl::PARAM_COUNT
+    }
+
+    fn print_stats(&self) {
+        self.inner.print_stats()
     }
 }
 

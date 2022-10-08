@@ -1,4 +1,5 @@
 use crate::coords::Cube;
+use hex2d::Direction;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -49,10 +50,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         }
     }
 
-    /*
-    pub fn get_neighbours(&self, center_pos: Cube) -> [(Direction, CellT); 6] {
-        assert!(center_pos.x > 0 && center_pos.x < self.width);
-        assert!(center_pos.y > 0 && center_pos.y < self.height);
+    pub fn get_neighbours(&self, center_pos: Cube) -> [(Direction, Option<CellT>); 6] {
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
@@ -62,6 +60,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
 
+    /*
     /// Iterate over all cells (in axial-storage order), yielding the cell and its 6 neighbours
     pub fn iter_radius_1(&self) -> NeighbourIter<CellT> {
         // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.

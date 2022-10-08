@@ -52,11 +52,14 @@ export const rules: Rule[] = [{
     label: '8 - moving blobs',
     create: () => progenitor.demo_moving_blobs(),
 }, {
-    label: '9 - builders',
-    create: () => progenitor.demo_builders(),
+    label: '9 - builders (random nn)',
+    create: () => progenitor.demo_builders_random(),
+}, {
+    label: '10 - builders (optimized nn)',
+    create: () => progenitor.demo_builders_optimized(),
 }];
 
-export const default_rule_idx = 8
+export const default_rule_idx = 9
 
 const steps_between_snapshots = 500
 

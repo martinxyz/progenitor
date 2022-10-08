@@ -30,7 +30,13 @@ pub fn demo_moving_blobs() -> JsSimulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_builders() -> JsSimulation {
-    let sim = builders::Builders::new();
+pub fn demo_builders_random() -> JsSimulation {
+    let sim = builders::Builders::new_with_random_params();
+    sim.into()
+}
+
+#[wasm_bindgen]
+pub fn demo_builders_optimized() -> JsSimulation {
+    let sim = builders::Builders::new_optimized();
     sim.into()
 }

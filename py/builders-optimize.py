@@ -4,25 +4,29 @@ import cma
 
 from progenitor.progenitor import Builders
 
-def softmax(x):
-    e_x = np.exp(x - np.max(x))
-    return e_x / e_x.sum(axis=0)
-
-def evaluate(x):
-
-    probs = softmax(x)
-    iterations = 200
+def evaluate(x, stats=False):
+    iterations = 400
 
     score = 0
-    for _ in range(iterations):
-        sim = Builders(probs)
-        sim.steps(1000)
+    for repetition in range(iterations):
+        sim = Builders(x)
+        sim.steps(2000)
+        if stats and repetition == 0:
+            sim.print_stats()
         score += sim.score()
+        # score = max(score, sim.score())
 
     cost = - score / iterations
+    # cost = - score
 
-    print(f'{cost:.6f} for p={probs} - x={x[0]:.6f}')
+    # print(f'{cost:.6f} for p={probs} - x={x[0]:.6f}')
     return cost
 
-es = cma.CMAEvolutionStrategy(4 * [0], 1.0)
-es.optimize(evaluate)
+N = Builders.param_count
+es = cma.CMAEvolutionStrategy(N * [0], 1.0, {
+    'maxfevals': 5_000
+})
+res = es.optimize(evaluate).result
+print(res)
+# mean solution, presumably better with noise
+print(res.xfavorite)

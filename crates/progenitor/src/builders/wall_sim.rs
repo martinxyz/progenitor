@@ -1,10 +1,12 @@
 use hex2d::Angle;
 use hex2d::Direction;
 use hex2d::Spin;
+use nalgebra::SVector;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::RngCore;
 use rand::SeedableRng;
+use rand_distr::Normal;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
@@ -13,7 +15,8 @@ use crate::AxialTile;
 use crate::CellView;
 use crate::Simulation;
 
-use super::builder_agent::Agent;
+// use super::builder_agent::Agent;
+use super::nn;
 
 #[derive(Serialize, Deserialize)]
 struct Builder {
@@ -36,7 +39,7 @@ impl From<usize> for Action {
             1 => Action::Left,
             2 => Action::Right,
             3 => Action::Pullback,
-            _ => panic!(),
+            _ => panic!("invalid action choice"),
         }
     }
 }
@@ -58,7 +61,8 @@ struct State {
 
 pub struct Builders {
     state: State,
-    agent: Agent,
+    // agent: Agent,
+    nn: nn::Network,
     max_depth_reached: i32,
 }
 
@@ -72,16 +76,27 @@ const CENTER: coords::Offset = coords::Offset {
 };
 
 impl Builders {
-    pub fn new() -> Builders {
-        Self::new_with_agent(super::builder_agent::dummy_agent())
+    pub fn new_optimized() -> Builders {
+        Self::new_with_params(&super::optimized_params::PARAMS)
     }
 
-    pub fn new_with_agent(agent: Agent) -> Builders {
+    pub const PARAM_COUNT: usize = nn::PARAM_COUNT;
+
+    pub fn new_with_random_params() -> Builders {
+        let rng = &mut thread_rng();
+        let dist = Normal::new(0.0, 1.0).unwrap();
+        let params: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
+        Self::new_with_params(&params.into())
+    }
+
+    pub fn new_with_params(params: &[f32; Self::PARAM_COUNT]) -> Builders {
+        let nn = nn::Network::new(params);
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+
         let center: coords::Cube = CENTER.into();
         let create_builder = |_| Builder {
-            pos: center,
+            pos: center + *Direction::all().choose(&mut rng).unwrap(),
             heading: *Direction::all().choose(&mut rng).unwrap(),
         };
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
@@ -90,20 +105,21 @@ impl Builders {
                 cells.set_cell(
                     pos,
                     match radius {
-                        0..=4 => Cell::Air,
+                        0..=6 => Cell::Air,
                         _ => Cell::Stone,
                     },
                 );
             }
         }
         Builders {
+            // agent,
+            nn,
             state: State {
                 visited: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, false),
                 cells,
                 builders: (0..5).map(create_builder).collect(),
                 rng,
             },
-            agent,
             max_depth_reached: 0,
         }
     }
@@ -115,20 +131,52 @@ impl Builders {
     }
 
     pub fn score(&self) -> f32 {
-        self.max_depth_reached as f32 + self.avg_visited()
+        self.max_depth_reached as f32 // + self.avg_visited()
     }
-}
 
-impl Default for Builders {
-    fn default() -> Self {
-        Self::new()
+    pub fn print_stats(&self) {
+        self.nn.print_stats();
     }
 }
 
 impl Simulation for Builders {
     fn step(&mut self) {
         for t in self.state.builders.iter_mut() {
-            let action = self.agent.act(&mut self.state.rng).into();
+            // let action = self.agent.act(&mut self.state.rng).into();
+            let look = |angle: Angle| {
+                let not_air = self
+                    .state
+                    .cells
+                    .get_cell(t.pos + (t.heading + angle))
+                    .map(|cell| cell != Cell::Air)
+                    .unwrap_or(false);
+                if not_air {
+                    1.0
+                } else {
+                    0.0
+                }
+            };
+            let mut inputs = [
+                look(Angle::Forward),
+                look(Angle::Left),
+                look(Angle::Right),
+                look(Angle::LeftBack),
+                look(Angle::RightBack),
+                look(Angle::Back),
+            ];
+
+            let neighbours = self.state.cells.get_neighbours(t.pos);
+            for i in 0..6 {
+                let not_air = neighbours[i]
+                    .1
+                    .map(|cell| cell != Cell::Air)
+                    .unwrap_or(false);
+                inputs[i] = if not_air { 1.0 } else { 0.0 };
+            }
+
+            let outputs: SVector<f32, 4> = self.nn.forward(inputs);
+            let action = nn::softmax_choice(outputs, &mut self.state.rng).into();
+
             let turn = match action {
                 Action::Left => Angle::Left,
                 Action::Right => Angle::Right,
