@@ -105,7 +105,7 @@ pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl R
 }
 
 fn init_weights(params: &[f32; PARAM_COUNT]) -> Weights {
-    let mut it = params.into_iter();
+    let mut it = params.iter();
     let mut next_param = || it.next().expect("PARAM_COUNT should match params length");
 
     // something like Xavier and He initialization: https://stats.stackexchange.com/a/393012/52418

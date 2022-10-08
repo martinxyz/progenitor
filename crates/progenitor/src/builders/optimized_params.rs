@@ -2,6 +2,7 @@ use super::wall_sim::Builders;
 
 // optimized by CMA-ES, reaching average depth: 16.57
 // (by exploiting some bugs, err, "unintended rules" in the simulation)
+#[allow(clippy::excessive_precision)]
 pub const PARAMS: [f32; Builders::PARAM_COUNT] = [
     -4.23798392,
     -1.31816316,
