@@ -186,9 +186,11 @@ impl Simulation for Builders {
                 } else if let Some(cell_back) = self.state.cells.get_cell(pos_back) {
                     if cell_back == Cell::Air {
                         let cell_here = self.state.cells.get_cell(t.pos).unwrap();
-                        self.state.cells.set_cell(pos_back, cell_here);
-                        self.state.cells.set_cell(t.pos, cell_forward);
-                        self.state.cells.set_cell(pos_forward, Cell::Air);
+                        if cell_here == Cell::Air {
+                            self.state.cells.set_cell(pos_back, cell_here);
+                            self.state.cells.set_cell(t.pos, cell_forward);
+                            self.state.cells.set_cell(pos_forward, Cell::Air);
+                        }
                         t.pos = pos_back;
                     }
                 }
