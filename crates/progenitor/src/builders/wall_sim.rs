@@ -156,7 +156,7 @@ impl Simulation for Builders {
                     0.0
                 }
             };
-            let mut inputs = [
+            let inputs = [
                 look(Angle::Forward),
                 look(Angle::Left),
                 look(Angle::Right),
@@ -164,15 +164,6 @@ impl Simulation for Builders {
                 look(Angle::RightBack),
                 look(Angle::Back),
             ];
-
-            let neighbours = self.state.cells.get_neighbours(t.pos);
-            for i in 0..6 {
-                let not_air = neighbours[i]
-                    .1
-                    .map(|cell| cell != Cell::Air)
-                    .unwrap_or(false);
-                inputs[i] = if not_air { 1.0 } else { 0.0 };
-            }
 
             let outputs: SVector<f32, 4> = self.nn.forward(inputs);
             let action = nn::softmax_choice(outputs, &mut self.state.rng).into();

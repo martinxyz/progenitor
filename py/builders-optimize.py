@@ -10,7 +10,7 @@ def evaluate(x, stats=False):
     score = 0
     for repetition in range(iterations):
         sim = Builders(x)
-        sim.steps(2000)
+        sim.steps(1000)
         if stats and repetition == 0:
             sim.print_stats()
         score += sim.score()
@@ -24,7 +24,7 @@ def evaluate(x, stats=False):
 
 N = Builders.param_count
 es = cma.CMAEvolutionStrategy(N * [0], 1.0, {
-    'maxfevals': 5_000
+    'maxfevals': 50_000
 })
 res = es.optimize(evaluate).result
 print(res)
