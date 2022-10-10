@@ -94,6 +94,7 @@ impl Network {
     }
 }
 
+// note: this seems to be the current performance bottleneck
 pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl Rng) -> usize {
     for v in outputs.iter() {
         assert!(v.is_finite(), "output[_] = {}", v);

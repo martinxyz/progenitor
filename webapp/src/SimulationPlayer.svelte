@@ -25,7 +25,7 @@
     $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.x, cursor.y) : null
 
     let showEnergy = false
-    let showDirection = false
+    let showDirection = true
 
     const gridSize = get_size()
 
