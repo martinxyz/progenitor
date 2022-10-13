@@ -10,6 +10,7 @@ python = ">=3.10,<3.11"
 # progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
 ribs = {extras = ["all"], git = "https://github.com/icaros-usc/pyribs.git", rev = "82864b6ef1312" }
 cma = "^3.2.2"
+ray = {version = "^2.0", extras = ["default"] }
 scipy = "^1.9.1"
 matplotlib = "^3.5.3"
 
