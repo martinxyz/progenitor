@@ -71,10 +71,25 @@ pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
 }
 */
 
+#[derive(Clone)]
+pub struct Hyperparams {
+    pub init_fac: f32,
+    pub bias_fac: f32,
+}
+
+impl Default for Hyperparams {
+    fn default() -> Self {
+        Self {
+            init_fac: 1.0,
+            bias_fac: 0.1,
+        }
+    }
+}
+
 impl Network {
-    pub fn new(params: &[f32; PARAM_COUNT]) -> Self {
+    pub fn new(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Self {
         Network {
-            weights: init_weights(params),
+            weights: init_weights(params, hp),
             stats: Default::default(),
         }
     }
@@ -105,19 +120,22 @@ pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl R
     WeightedIndex::new(x.into_iter()).unwrap().sample(rng)
 }
 
-fn init_weights(params: &[f32; PARAM_COUNT]) -> Weights {
+fn init_weights(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Weights {
     let mut it = params.iter();
     let mut next_param = || it.next().expect("PARAM_COUNT should match params length");
 
     // something like Xavier and He initialization: https://stats.stackexchange.com/a/393012/52418
     let weights = Weights {
-        w0: SMatrix::from_fn(|_, _| next_param() * (2.0 / N_INPUTS as f32).sqrt()),
-        b0: SVector::from_fn(|_, _| next_param() * 0.1),
-        w1: SMatrix::from_fn(|_, _| next_param() * (1.0 / (N_HIDDEN + N_OUTPUTS) as f32).sqrt()),
-        b1: SVector::from_fn(|_, _| next_param() * 0.1),
+        w0: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 2.0 / N_INPUTS as f32).sqrt()),
+        b0: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
+        w1: SMatrix::from_fn(|_, _| {
+            next_param() * (hp.init_fac * 1.0 / (N_HIDDEN + N_OUTPUTS) as f32).sqrt()
+        }),
+        b1: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
     };
-    // (notes about biases: in contrast to what I'm doing above, pytorch
-    // defaults to initialize biases the same as weights; maybe worth trying)
+    // (Bias: in contrast to what I'm doing above, pytorch defaults to
+    // initialize biases the same as weights; maybe worth trying. Hyperparameter
+    // search so far shows that bias is not too important, 0.1 is fine.)
 
     assert_eq!(it.count(), 0, "PARAM_COUNT should match params length");
     weights

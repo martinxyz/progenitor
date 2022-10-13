@@ -17,6 +17,7 @@ use crate::Simulation;
 
 // use super::builder_agent::Agent;
 use super::nn;
+use super::optimized_params;
 
 #[derive(Serialize, Deserialize)]
 struct Builder {
@@ -77,7 +78,7 @@ const CENTER: coords::Offset = coords::Offset {
 
 impl Builders {
     pub fn new_optimized() -> Builders {
-        Self::new_with_params(&super::optimized_params::PARAMS)
+        Self::new_with_params(&optimized_params::PARAMS, optimized_params::HP)
     }
 
     pub const PARAM_COUNT: usize = nn::PARAM_COUNT;
@@ -86,11 +87,11 @@ impl Builders {
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
         let params: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
-        Self::new_with_params(&params.into())
+        Self::new_with_params(&params.into(), Default::default())
     }
 
-    pub fn new_with_params(params: &[f32; Self::PARAM_COUNT]) -> Builders {
-        let nn = nn::Network::new(params);
+    pub fn new_with_params(params: &[f32; Self::PARAM_COUNT], hp: nn::Hyperparams) -> Builders {
+        let nn = nn::Network::new(params, hp);
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
 

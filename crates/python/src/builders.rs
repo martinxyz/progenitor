@@ -1,6 +1,9 @@
 use std::convert::TryInto;
 
-use progenitor::{builders::Builders as BuildersImpl, Simulation};
+use progenitor::{
+    builders::{Builders as BuildersImpl, Hyperparams},
+    Simulation,
+};
 use pyo3::prelude::*;
 
 #[pyclass]
@@ -15,11 +18,12 @@ pub(crate) struct Builders {
 #[pymethods]
 impl Builders {
     #[new]
-    fn new(weights: Vec<f32>) -> Self {
+    fn new(weights: Vec<f32>, init_fac: f32, bias_fac: f32) -> Builders {
         assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
         Self {
             inner: BuildersImpl::new_with_params(
                 &weights.try_into().expect("param_count should match"),
+                Hyperparams { init_fac, bias_fac },
             ),
         }
     }
