@@ -46,7 +46,7 @@ def save_array(filename, data):
     with open(os.path.join('output', filename), 'w') as f:
         np.savetxt(f, data)
 
-def train(config):
+def train(config, tuning=True):
     N = progenitor.mod.Builders.param_count
 
     episodes_budget = 2_000_000
@@ -75,7 +75,6 @@ def train(config):
 
         es.tell(solutions, costs)
 
-        tuning = True
         while episodes > next_report_at:
             es.disp()
             next_report_at += 100_000
@@ -129,8 +128,8 @@ def main_simple():
         "episodes_per_eval": 47,
         "init_fac": 1.0,
         "bias_fac": 0.2,
-    })
+    }, tuning=False)
 
-# if __name__ == '__main__':
-#     # main_simple()
-#     main_tune()
+if __name__ == '__main__':
+    main_simple()
+    # main_tune()

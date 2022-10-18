@@ -1,4 +1,5 @@
 use hex2d::Angle;
+use hex2d::Coordinate;
 use hex2d::Direction;
 use hex2d::Spin;
 use nalgebra::SVector;
@@ -15,7 +16,6 @@ use crate::AxialTile;
 use crate::CellView;
 use crate::Simulation;
 
-// use super::builder_agent::Agent;
 use super::nn;
 use super::optimized_params;
 
@@ -47,22 +47,23 @@ impl From<usize> for Action {
 
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 enum Cell {
-    Air,
+    Floor,
     Stone,
     Border,
+    Builder,
 }
 
 #[derive(Serialize, Deserialize)]
 struct State {
     cells: AxialTile<Cell>,
     visited: AxialTile<bool>,
+    mass: AxialTile<u8>,
     builders: Vec<Builder>,
     rng: rand_pcg::Lcg64Xsh32,
 }
 
 pub struct Builders {
     state: State,
-    // agent: Agent,
     nn: nn::Network,
     max_depth_reached: i32,
 }
@@ -78,7 +79,10 @@ const CENTER: coords::Offset = coords::Offset {
 
 impl Builders {
     pub fn new_optimized() -> Builders {
-        Self::new_with_params(&optimized_params::PARAMS, optimized_params::HP)
+        match optimized_params::PARAMS {
+            Some(params) => Self::new_with_params(&params, optimized_params::HP),
+            None => Self::new_with_random_params(),
+        }
     }
 
     pub const PARAM_COUNT: usize = nn::PARAM_COUNT;
@@ -87,41 +91,74 @@ impl Builders {
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
         let params: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
-        Self::new_with_params(&params.into(), Default::default())
+        Self::new_with_params(&params.into(), optimized_params::HP)
     }
 
     pub fn new_with_params(params: &[f32; Self::PARAM_COUNT], hp: nn::Hyperparams) -> Builders {
         let nn = nn::Network::new(params, hp);
         let seed = thread_rng().next_u64();
-        let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+        let rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
 
         let center: coords::Cube = CENTER.into();
-        let create_builder = |_| Builder {
-            pos: center + *Direction::all().choose(&mut rng).unwrap(),
-            heading: *Direction::all().choose(&mut rng).unwrap(),
-        };
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
         for radius in 0..18 {
             for pos in center.ring_iter(radius, Spin::CCW(Direction::XY)) {
                 cells.set_cell(
                     pos,
                     match radius {
-                        0..=6 => Cell::Air,
+                        0..=6 => Cell::Floor,
                         _ => Cell::Stone,
                     },
                 );
             }
         }
-        Builders {
-            // agent,
+        let mut builders = Builders {
             nn,
             state: State {
                 visited: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, false),
                 cells,
-                builders: (0..5).map(create_builder).collect(),
+                mass: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, 2),
+                builders: Vec::new(),
                 rng,
             },
             max_depth_reached: 0,
+        };
+
+        for _ in 0..5 {
+            builders.add_builder(center);
+        }
+
+        builders
+    }
+
+    fn add_builder(&mut self, pos: Coordinate) {
+        let rng = &mut self.state.rng;
+        let mut heading = *Direction::all().choose(rng).unwrap();
+        let mut pos = pos;
+        while self.state.cells.get_cell(pos) != Some(Cell::Floor) {
+            heading = *Direction::all().choose(rng).unwrap();
+            pos = pos + heading;
+        }
+        self.state.cells.set_cell(pos, Cell::Builder);
+        self.state.builders.push(Builder { pos, heading });
+    }
+
+    fn kick_dust(&mut self, pos: Coordinate) {
+        let rng = &mut self.state.rng;
+        let dir = *Direction::all().choose(rng).unwrap();
+        if let (Some(Cell::Builder), Some(Cell::Floor)) = (
+            self.state.cells.get_cell(pos),
+            self.state.cells.get_cell(pos + dir),
+        ) {
+            if let (Some(src), Some(dst)) = (
+                self.state.mass.get_cell(pos),
+                self.state.mass.get_cell(pos + dir),
+            ) {
+                if src > 0 && dst < 255 {
+                    self.state.mass.set_cell(pos, src - 1);
+                    self.state.mass.set_cell(pos + dir, dst + 1);
+                }
+            }
         }
     }
 
@@ -142,28 +179,46 @@ impl Builders {
 
 impl Simulation for Builders {
     fn step(&mut self) {
+        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect();
+        for pos in builder_positions {
+            self.kick_dust(pos);
+        }
         for t in self.state.builders.iter_mut() {
             // let action = self.agent.act(&mut self.state.rng).into();
-            let look = |angle: Angle| {
-                let not_air = self
+            let look = |item: Cell, angle: Angle| {
+                let present = self
                     .state
                     .cells
                     .get_cell(t.pos + (t.heading + angle))
-                    .map(|cell| cell != Cell::Air)
+                    .map(|c| c == item)
                     .unwrap_or(false);
-                if not_air {
+                if present {
                     1.0
                 } else {
                     0.0
                 }
             };
             let inputs = [
-                look(Angle::Forward),
-                look(Angle::Left),
-                look(Angle::Right),
-                look(Angle::LeftBack),
-                look(Angle::RightBack),
-                look(Angle::Back),
+                look(Cell::Floor, Angle::Forward),
+                look(Cell::Floor, Angle::Left),
+                look(Cell::Floor, Angle::Right),
+                look(Cell::Floor, Angle::LeftBack),
+                look(Cell::Floor, Angle::RightBack),
+                look(Cell::Floor, Angle::Back),
+                look(Cell::Builder, Angle::Forward),
+                self.state.mass.get_cell(t.pos).unwrap_or(0).into(),
+                self.state
+                    .cells
+                    .get_neighbours(t.pos)
+                    .map(|(_, cell)| {
+                        if cell == Some(Cell::Builder) {
+                            1.0
+                        } else {
+                            0.0
+                        }
+                    })
+                    .iter()
+                    .sum(),
             ];
 
             let outputs: SVector<f32, 4> = self.nn.forward(inputs);
@@ -180,19 +235,51 @@ impl Simulation for Builders {
             let pos_back = t.pos - t.heading;
 
             if let Some(cell_forward) = self.state.cells.get_cell(pos_forward) {
-                if action != Action::Pullback {
-                    if cell_forward == Cell::Air {
-                        t.pos = pos_forward;
-                    }
-                } else if let Some(cell_back) = self.state.cells.get_cell(pos_back) {
-                    if cell_back == Cell::Air {
-                        let cell_here = self.state.cells.get_cell(t.pos).unwrap();
-                        if cell_here == Cell::Air {
-                            self.state.cells.set_cell(pos_back, cell_here);
-                            self.state.cells.set_cell(t.pos, cell_forward);
-                            self.state.cells.set_cell(pos_forward, Cell::Air);
+                match action {
+                    Action::Pullback => {
+                        if let Some(cell_back) = self.state.cells.get_cell(pos_back) {
+                            if cell_back == Cell::Floor {
+                                if cell_forward == Cell::Stone {
+                                    self.state.cells.set_cell(pos_forward, Cell::Floor);
+                                    self.state.cells.set_cell(t.pos, cell_forward);
+                                } else {
+                                    self.state.cells.set_cell(t.pos, Cell::Floor);
+                                }
+                                t.pos = pos_back;
+                                self.state.cells.set_cell(t.pos, Cell::Builder);
+                            }
                         }
-                        t.pos = pos_back;
+                    }
+                    Action::Forward => {
+                        match cell_forward {
+                            Cell::Stone => {
+                                // push
+                                let pos_forward2x = pos_forward + t.heading;
+                                if let Some(cell_forward2x) =
+                                    self.state.cells.get_cell(pos_forward2x)
+                                {
+                                    if cell_forward2x == Cell::Floor {
+                                        self.state.cells.set_cell(pos_forward2x, cell_forward);
+                                        self.state.cells.set_cell(t.pos, Cell::Floor);
+                                        t.pos = pos_forward;
+                                        self.state.cells.set_cell(t.pos, Cell::Builder);
+                                    }
+                                }
+                            }
+                            Cell::Floor => {
+                                self.state.cells.set_cell(t.pos, Cell::Floor);
+                                t.pos = pos_forward;
+                                self.state.cells.set_cell(t.pos, Cell::Builder);
+                            }
+                            _ => {}
+                        }
+                    }
+                    Action::Left | Action::Right => {
+                        if cell_forward == Cell::Floor {
+                            self.state.cells.set_cell(t.pos, Cell::Floor);
+                            t.pos = pos_forward;
+                            self.state.cells.set_cell(t.pos, Cell::Builder);
+                        }
                     }
                 }
             }
@@ -219,11 +306,12 @@ impl Simulation for Builders {
             }
         }
 
-        let energy: u8 = self.state.visited.get_cell(pos)?.into();
+        let energy: u8 = self.state.mass.get_cell(pos)?;
         let cell_type = match self.state.cells.get_cell(pos)? {
-            Cell::Air => 2,
+            Cell::Floor => 2,
             Cell::Stone => 4,
             Cell::Border => 255,
+            Cell::Builder => 0,
         };
         Some(CellView {
             cell_type,

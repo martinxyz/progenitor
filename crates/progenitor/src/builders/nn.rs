@@ -7,7 +7,7 @@ use rand::Rng;
 
 use super::stats::RangeTracker;
 
-const N_INPUTS: usize = 6;
+const N_INPUTS: usize = 9;
 const N_HIDDEN: usize = 10;
 const N_OUTPUTS: usize = 4;
 
@@ -75,15 +75,6 @@ pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
 pub struct Hyperparams {
     pub init_fac: f32,
     pub bias_fac: f32,
-}
-
-impl Default for Hyperparams {
-    fn default() -> Self {
-        Self {
-            init_fac: 1.0,
-            bias_fac: 0.1,
-        }
-    }
 }
 
 impl Network {
