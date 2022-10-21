@@ -36,6 +36,10 @@ impl Builders {
         self.inner.avg_visited()
     }
 
+    fn encounters(&self) -> f32 {
+        self.inner.encounters() as f32
+    }
+
     fn score(&self) -> f32 {
         self.inner.score()
     }

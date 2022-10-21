@@ -66,6 +66,7 @@ pub struct Builders {
     state: State,
     nn: nn::Network,
     max_depth_reached: i32,
+    encounters: i32,
 }
 
 const TILE_WIDTH: i32 = 40;
@@ -122,6 +123,7 @@ impl Builders {
                 rng,
             },
             max_depth_reached: 0,
+            encounters: 0,
         };
 
         for _ in 0..5 {
@@ -168,6 +170,10 @@ impl Builders {
         visited as f32 / total as f32
     }
 
+    pub fn encounters(&self) -> i32 {
+        self.encounters
+    }
+
     pub fn score(&self) -> f32 {
         self.max_depth_reached as f32 // + self.avg_visited()
     }
@@ -198,6 +204,13 @@ impl Simulation for Builders {
                     0.0
                 }
             };
+            let builders_nearby: i32 = self
+                .state
+                .cells
+                .get_neighbours(t.pos)
+                .map(|(_, cell)| (cell == Some(Cell::Builder)) as i32)
+                .iter()
+                .sum();
             let inputs = [
                 look(Cell::Floor, Angle::Forward),
                 look(Cell::Floor, Angle::Left),
@@ -207,19 +220,9 @@ impl Simulation for Builders {
                 look(Cell::Floor, Angle::Back),
                 look(Cell::Builder, Angle::Forward),
                 self.state.mass.get_cell(t.pos).unwrap_or(0).into(),
-                self.state
-                    .cells
-                    .get_neighbours(t.pos)
-                    .map(|(_, cell)| {
-                        if cell == Some(Cell::Builder) {
-                            1.0
-                        } else {
-                            0.0
-                        }
-                    })
-                    .iter()
-                    .sum(),
+                builders_nearby as f32,
             ];
+            self.encounters += builders_nearby;
 
             let outputs: SVector<f32, 4> = self.nn.forward(inputs);
             let action = nn::softmax_choice(outputs, &mut self.state.rng).into();

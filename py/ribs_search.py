@@ -1,49 +1,62 @@
 #!/usr/bin/env python3
 import numpy as np
 import random
+import ray
 
 from ribs.archives import GridArchive
-from ribs.emitters import GaussianEmitter
+from ribs.emitters import GaussianEmitter, EvolutionStrategyEmitter
 from ribs.schedulers import Scheduler
 
-from progenitor.progenitor import Tumblers
+import progenitor
 
-def sigmoid(x):
-  return 1 / (1 + np.exp(-x))
-
+@ray.remote
 def evaluate(x):
+    Builders = progenitor.mod.Builders
+    episodes=100
 
-    prob = sigmoid(x[0])
-    # iterations = 500
-    iterations = 50
+    hyperparams = {
+        "init_fac": 1.0, #config["init_fac"],
+        "bias_fac": 0.2, #config["bias_fac"]
+    }
 
-    score = 0
-    bc1 = 0
-    for _ in range(iterations):
-        sim = Tumblers(prob)
-        sim.steps(5)
+    score = 0.0
+    bc1 = 0.0
+    bc2 = 0.0
+    for _ in range(episodes):
+        sim = Builders(x, **hyperparams)
+        sim.steps(20)
         bc1 += sim.avg_visited()
-        sim.steps(50)
-        score += sim.avg_visited()
+        sim.steps(980)
+        bc2 += np.log(sim.encounters() + 100)
+        score += sim.score()
 
-    # XXX WIP - this doesn't make sense yet
-    cost = - score / iterations
-    bc1 = bc1 / iterations
+    score = score / episodes
+    bc1 = bc1 / episodes
+    bc2 = bc2 / episodes
 
-    print(f'{cost:.6f} for p={prob:.6f} - x={x[0]:.6f}')
-    return (cost, bc1, random.random())
+    return (score, bc1, bc2)
 
 
-param_count = 2
-population_size = 500
-evaluations = 10_000
 
-archive = GridArchive(2, [20, 20], [(-1, 1), (-1, 1)])
-# emitters = [ImprovementEmitter(archive, [0.0] * param_count, 1.0)]
+param_count = progenitor.mod.Builders.param_count
+# population_size = 500
+# evaluations = 10_000
+population_size = 120
+# evaluations = 500
+evaluations = 1000_000
+
+archive = GridArchive(param_count, [40, 100], [(0, 0.08), (3, 10)])
+# emitters = [EvolutionStrategyEmitter(
+#     archive,
+#     x0 = [0.0] * param_count,
+#     sigma0 = 1.0,
+#     ranker='2imp',
+#     batch_size=population_size,
+# )]
 emitters = [GaussianEmitter(
     archive,
-    [0.5] * param_count, 0.2,
-    bounds=param_count * [(0, 1)],
+    x0 = [0.0] * param_count,
+    sigma = 0.5,
     batch_size=population_size,
 )]
 optimizer = Scheduler(archive, emitters)
@@ -51,13 +64,20 @@ optimizer = Scheduler(archive, emitters)
 for itr in range(evaluations // population_size):
     solutions = optimizer.ask()
 
-    # bcs = np.zeros((len(solutions), 3))
-    bcs = np.array([evaluate(x) for x in solutions])
-    # evaluate(solutions, bcs)
+    # bcs = np.array([evaluate(x) for x in solutions])
 
+    futures = [evaluate.remote(x) for x in solutions]
+    bcs = np.array(ray.get(futures))
+
+    print('bcs[0]', bcs[0])
+    # evaluate(solutions, bcs)
     objectives, bcs = bcs[:, 0], bcs[:, 1:]
 
     optimizer.tell(objectives, bcs)
+
+    best = archive.best_elite
+    assert best is not None
+    print(f'({itr*population_size / evaluations * 100:.01f}%) best: {best.objective:.3f}, size: {len(archive)}')
 
 
 import matplotlib.pyplot as plt
