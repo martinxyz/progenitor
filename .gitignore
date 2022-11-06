@@ -4,5 +4,6 @@ __pycache__
 /.log
 /.vscode
 output*.dat
+output*.txt
+/output
 outcmaes
-output

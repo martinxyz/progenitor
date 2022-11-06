@@ -5,6 +5,8 @@ import cma
 import ray
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
+from ray.air import session
+# from ray.air.checkpoint import Checkpoint
 
 import progenitor
 print(progenitor.__file__)
@@ -84,8 +86,13 @@ def train(config, tuning=True):
                 # note: technically, we don't need to wait for the result - could do this in parallel?
                 mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=True))
 
-                tune.report(score=-mean_cost, total_episodes=episodes) #, foobar=5.5
+                session.report(metrics={
+                    'score': -mean_cost,
+                    'total_episodes': episodes,
+                    # 'foobar': 5,
+                })
                 # should we also report a "iterations=iteration"? (is it special somehow?)
+                np.save(f'xfavorite-eval{evaluation:07d}.npy', es.result.xfavorite)
             else:
                 mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
                 print(f'score = {-mean_cost:.3f}')
@@ -96,24 +103,26 @@ def train(config, tuning=True):
 
 def main_tune():
     search_space = {
-        "popsize": tune.lograndint(7, 300),
-        "episodes_per_eval": tune.lograndint(3, 300),
+        "popsize": tune.lograndint(7, 100),
+        "episodes_per_eval": tune.lograndint(3, 100),
         # "popsize": 76,
         # "episodes_per_eval": 47,
         # "init_fac": tune.loguniform(0.20, 3.5),  # plausible good range: 0.25..3.0
         # "bias_fac": tune.loguniform(0.005, 0.25),  # plausible good range: 0.0..0.4
-        "init_fac": tune.loguniform(0.05, 8.0),  # plausible good range: 0.25..3.0
-        "bias_fac": tune.loguniform(0.005, 2.0),  # plausible good range: 0.0..0.4
+        # "init_fac": tune.loguniform(0.05, 8.0),  # plausible good range: 0.25..3.0
+        # "bias_fac": tune.loguniform(0.005, 2.0),  # plausible good range: 0.0..0.4
+        "init_fac": 1.0,
+        "bias_fac": 0.1,
     }
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=300,  # "runs" or "restarts"
+        num_samples=1000,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
             grace_period=30_000,  # training "time" allowed for every "sample" (run)
-            max_t=1_000_000,      # training "time" allowed for the best run(s)
+            max_t=2_000_000,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
         )
@@ -152,5 +161,5 @@ def main_simple():
     }, tuning=False)
 
 if __name__ == '__main__':
-    main_simple()
-    # main_tune()
+    # main_simple()
+    main_tune()
