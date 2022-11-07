@@ -25,14 +25,14 @@ impl<CellT: Copy> AxialTile<CellT> {
 
     fn index(&self, pos: Cube) -> usize {
         // cube to axial (OPTIMIZE: for iteration we should use axial coordinates to begin with)
-        let q = pos.x as i32;
-        let r = pos.z() as i32;
+        let q = pos.x;
+        let r = pos.z();
         (r * self.width + q) as usize
     }
 
     pub fn valid(&self, pos: Cube) -> bool {
-        let q = pos.x as i32;
-        let r = pos.z() as i32;
+        let q = pos.x;
+        let r = pos.z();
         (q >= 0 && q < self.width) && (r >= 0 && r < self.height)
     }
 

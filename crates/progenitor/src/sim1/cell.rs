@@ -54,9 +54,9 @@ pub struct CellType {
     pub grow_dir: GrowDirection,
 }
 
-impl CellType {
-    pub fn default() -> CellType {
-        CellType {
+impl Default for CellType {
+    fn default() -> Self {
+        Self {
             priority: 0,
             initial_energy: 0,
             transform_at_random_p: 0,
