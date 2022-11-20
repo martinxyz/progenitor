@@ -96,6 +96,9 @@ impl Builders {
     }
 
     pub fn new_with_params(params: &[f32; Self::PARAM_COUNT], hp: nn::Hyperparams) -> Builders {
+        //                 |----------------- policy ---------------------------|
+        //                     ...or, does it complect policy with learning?
+        //                     ...yes it kind of does. Separate the stuff?
         let nn = nn::Network::new(params, hp);
         let seed = thread_rng().next_u64();
         let rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);

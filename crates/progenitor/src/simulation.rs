@@ -7,7 +7,7 @@ use crate::{coords, SIZE};
 //
 // ... technically, a Simulation would consist of two types:
 // - A) immutable parameters (e.g. neural net weights, rules)
-// - B) mutable state.
+// - B) mutable state. (...possibly batched?)
 //
 // Only state needs to be "impl Serialize", for snapshots.
 // This would remove ambiguity (Undo a snapshot, or both snapshot and sim parameters?)
@@ -70,6 +70,9 @@ pub trait Simulation {
         }
         Some(lines.join("\n"))
     }
+
+    /// Save the simulation's state. Does not need to include the simulation's
+    /// parameters, only enough information to undo a `.step()`.
     fn save_state(&self) -> Vec<u8>;
     fn load_state(&mut self, data: &[u8]);
 

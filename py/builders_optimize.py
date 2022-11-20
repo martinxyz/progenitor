@@ -82,6 +82,7 @@ def train(config, tuning=True):
             print(f'report at {episodes}: (past {next_report_at})')
             next_report_at += 10_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
             if tuning:
+                # cp = Checkpoint()
                 # run an evaluation that is independent of hyperparams
                 # note: technically, we don't need to wait for the result - could do this in parallel?
                 mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=True))
@@ -91,8 +92,10 @@ def train(config, tuning=True):
                     'total_episodes': episodes,
                     # 'foobar': 5,
                 })
+                # }, checkpoint=Checkpoint())
                 # should we also report a "iterations=iteration"? (is it special somehow?)
-                np.save(f'xfavorite-eval{evaluation:07d}.npy', es.result.xfavorite)
+
+                np.save(f'xfavorite-{episodes}.npy', es.result.xfavorite)
             else:
                 mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
                 print(f'score = {-mean_cost:.3f}')
@@ -103,16 +106,11 @@ def train(config, tuning=True):
 
 def main_tune():
     search_space = {
-        "popsize": tune.lograndint(7, 100),
-        "episodes_per_eval": tune.lograndint(3, 100),
-        # "popsize": 76,
-        # "episodes_per_eval": 47,
-        # "init_fac": tune.loguniform(0.20, 3.5),  # plausible good range: 0.25..3.0
-        # "bias_fac": tune.loguniform(0.005, 0.25),  # plausible good range: 0.0..0.4
-        # "init_fac": tune.loguniform(0.05, 8.0),  # plausible good range: 0.25..3.0
-        # "bias_fac": tune.loguniform(0.005, 2.0),  # plausible good range: 0.0..0.4
-        "init_fac": 1.0,
-        "bias_fac": 0.1,
+        "popsize": tune.lograndint(7, 200),            # plausible: ~70
+        "episodes_per_eval": tune.lograndint(3, 200),  # plausible: ~50
+        "init_fac": tune.loguniform(0.1, 4.0),         # plausible: 0.25..3.0
+        "bias_fac": tune.loguniform(0.005, 0.5),       # plausible: 0.0..0.4
+        # "sigma0": tune.loguniform(0.2, 5.0),
     }
     tune_config = tune.TuneConfig(
         # num_samples=-1,
@@ -137,14 +135,17 @@ def main_tune():
         tune_config=tune_config
     )
 
-    results = tuner.fit()
+    analysis = tuner.fit()
+    # tune.run(keep_checkpoints_num=1, checkpoint_score_attr="accuracy")
+    # best_trial = analysis.get_best_trial(metric="accuracy", mode="max", scope="all")
+    # best_checkpoint = analysis.get_best_checkpoint(best_trial, metric="accuracy")
 
-    df = results.get_dataframe()
+    df = analysis.get_dataframe()
     df = df.sort_values('score', ascending=False)
     df.to_csv('output/tuner_result.csv')
     # ...or just start tensorboard in ~/ray_results/
 
-    print("Config of best run:", results.get_best_result().config)
+    print("Config of best run:", analysis.get_best_result().config)
 
 def main_simple():
     train(config = {
