@@ -5,6 +5,7 @@ use hex2d::Spin;
 use nalgebra::SVector;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
@@ -65,8 +66,9 @@ struct State {
 pub struct Builders {
     state: State,
     nn: nn::Network,
-    max_depth_reached: i32,
-    encounters: i32,
+    // for score or BCs:
+    pub max_depth_reached: i32,
+    pub encounters: i32,
 }
 
 const TILE_WIDTH: i32 = 40;
@@ -101,7 +103,7 @@ impl Builders {
         //                     ...yes it kind of does. Separate the stuff?
         let nn = nn::Network::new(params, hp);
         let seed = thread_rng().next_u64();
-        let rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+        let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
 
         let center: coords::Cube = CENTER.into();
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
@@ -109,9 +111,9 @@ impl Builders {
             for pos in center.ring_iter(radius, Spin::CCW(Direction::XY)) {
                 cells.set_cell(
                     pos,
-                    match radius {
-                        0..=6 => Cell::Floor,
-                        _ => Cell::Stone,
+                    match rng.gen_bool(0.25) {
+                        false => Cell::Floor,
+                        true => Cell::Stone,
                     },
                 );
             }
@@ -177,8 +179,13 @@ impl Builders {
         self.encounters
     }
 
-    pub fn score(&self) -> f32 {
-        self.max_depth_reached as f32 // + self.avg_visited()
+    pub fn max_depth_reached(&self) -> i32 {
+        self.encounters
+    }
+
+    pub fn relative_wall_edges(&self) -> f32 {
+        let cells = &self.state.cells;
+        cells.count_edges(|cell| matches!(cell, Cell::Stone)) as f32 / cells.area() as f32
     }
 
     pub fn print_stats(&self) {

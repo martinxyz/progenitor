@@ -1,4 +1,5 @@
 #![allow(clippy::new_without_default)]
+// #![feature(array_windows)]
 
 // foundation
 pub mod coords;

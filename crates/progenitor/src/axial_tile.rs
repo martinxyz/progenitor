@@ -80,4 +80,69 @@ impl<CellT: Copy> AxialTile<CellT> {
     pub fn area(&self) -> i32 {
         self.width * self.height
     }
+
+    pub fn iter_valid_neighbourhoods(&self) -> impl Iterator<Item = Neighbourhood<CellT>> + '_ {
+        (1..self.height - 1).flat_map(move |r| {
+            (1..self.width - 1).map(move |q| {
+                let index = r * self.width + q;
+                const OFFSETS: [(i32, i32); 6] = [
+                    // (r,q)  (...to be validated/improved...)
+                    (0, 1),  // 0 => YZ
+                    (1, 0),  // 1 => XZ
+                    (1, -1), // 2 => XY
+                    (0, -1), // 3 => ZY
+                    (-1, 0), // 4 => ZX
+                    (-1, 1), // 5 => YX
+                ];
+                Neighbourhood {
+                    center: self.data[index as usize],
+                    neighbours: OFFSETS
+                        .map(|(dr, dq)| self.data[(index + self.width * dr + dq) as usize]),
+                }
+            })
+        })
+    }
+
+    pub fn count_edges(&self, predicate: impl Fn(CellT) -> bool) -> i32 {
+        self.iter_valid_neighbourhoods()
+            .map(|Neighbourhood { center, neighbours }| {
+                let c = predicate(center);
+                neighbours[0..3]
+                    .iter()
+                    .take(3) // only count each edge once
+                    .map(|&neighbour| (predicate(neighbour) != c) as i32)
+                    .sum::<i32>()
+            })
+            .sum()
+    }
+}
+
+pub struct Neighbourhood<T> {
+    pub center: T,
+    pub neighbours: [T; 6],
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::coords::Offset;
+
+    #[test]
+    fn test_count_edges() {
+        for &offset in Direction::all() {
+            let mut cells = AxialTile::new(20, 30, 0);
+            let center: Cube = Offset { col: 5, row: 5 }.into();
+            cells.set_cell(center, 1);
+            cells.set_cell(center + offset, 2);
+
+            // no edges
+            assert_eq!(cells.count_edges(|_| false), 0);
+            assert_eq!(cells.count_edges(|_| true), 0);
+            // hex in center to its neighbours (each counted twice)
+            assert_eq!(cells.count_edges(|i| i == 1), 6);
+            assert_eq!(cells.count_edges(|i| i != 1), 6);
+            // two adjacent hexes
+            assert_eq!(cells.count_edges(|i| i != 0), 6 + 6 - 2);
+        }
+    }
 }

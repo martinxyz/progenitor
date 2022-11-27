@@ -38,8 +38,7 @@ def evaluate(x, config, episodes, stats=False):
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
             # (Just return a metrics dict? Averaged/Stats?)
-        score += sim.score()
-        # score = max(score, sim.score())
+        score -= sim.relative_wall_edges()
 
     cost = - score / episodes
 
@@ -108,7 +107,7 @@ def main_tune():
     search_space = {
         "popsize": tune.lograndint(7, 200),            # plausible: ~70
         "episodes_per_eval": tune.lograndint(3, 200),  # plausible: ~50
-        "init_fac": tune.loguniform(0.1, 4.0),         # plausible: 0.25..3.0
+        "init_fac": tune.loguniform(0.2, 4.0),         # plausible: 0.25..3.0
         "bias_fac": tune.loguniform(0.005, 0.5),       # plausible: 0.0..0.4
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
@@ -119,7 +118,7 @@ def main_tune():
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=30_000,  # training "time" allowed for every "sample" (run)
+            grace_period=100_000,  # training "time" allowed for every "sample" (run)
             max_t=2_000_000,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,

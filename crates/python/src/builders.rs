@@ -36,12 +36,16 @@ impl Builders {
         self.inner.avg_visited()
     }
 
-    fn encounters(&self) -> f32 {
-        self.inner.encounters() as f32
+    fn encounters(&self) -> i32 {
+        self.inner.encounters
     }
 
-    fn score(&self) -> f32 {
-        self.inner.score()
+    fn relative_wall_edges(&self) -> f32 {
+        self.inner.relative_wall_edges()
+    }
+
+    fn max_depth_reached(&self) -> i32 {
+        self.inner.max_depth_reached
     }
 
     #[classattr]
