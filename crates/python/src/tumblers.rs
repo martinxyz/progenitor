@@ -29,9 +29,3 @@ impl Tumblers {
         self.inner.avg_visited()
     }
 }
-
-#[pymodule]
-fn tumblers(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Tumblers>()?;
-    Ok(())
-}

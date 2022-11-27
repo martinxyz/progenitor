@@ -21,18 +21,22 @@ print(progenitor.__file__)
 # ray.init(runtime_env={"pip": ["/home/martin/code/progenitor/target/wheels/progenitor-0.0.0-cp310-cp310-linux_x86_64.whl"]})
 # ray.init()
 
-@ray.remote
-def evaluate(x, config, episodes, stats=False):
-    Builders = progenitor.mod.Builders
-
+def get_params(x, config):
+    Params = progenitor.mod.Params
     hyperparams = {
         "init_fac": config["init_fac"],
         "bias_fac": config["bias_fac"]
     }
+    return Params(x, **hyperparams)
+
+@ray.remote
+def evaluate(x, config, episodes, stats=False):
+    Builders = progenitor.mod.Builders
+    params = get_params(x, config)
 
     score = 0
     for i in range(episodes):
-        sim = Builders(x, **hyperparams)
+        sim = Builders(params)
         sim.steps(1000)
         if stats and i == 0:
             sim.print_stats()
@@ -80,11 +84,14 @@ def train(config, tuning=True):
             print()
             print(f'report at {episodes}: (past {next_report_at})')
             next_report_at += 10_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
+
+            mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
+            fn_prefix = 'output/'
             if tuning:
+                fn_prefix = ''
                 # cp = Checkpoint()
                 # run an evaluation that is independent of hyperparams
                 # note: technically, we don't need to wait for the result - could do this in parallel?
-                mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=True))
 
                 session.report(metrics={
                     'score': -mean_cost,
@@ -94,13 +101,18 @@ def train(config, tuning=True):
                 # }, checkpoint=Checkpoint())
                 # should we also report a "iterations=iteration"? (is it special somehow?)
 
-                np.save(f'xfavorite-{episodes}.npy', es.result.xfavorite)
             else:
-                mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
                 print(f'score = {-mean_cost:.3f}')
                 es.disp()
-                save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
-                save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
+
+
+            np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es.result.xfavorite)
+            params_favourite = get_params(es.result.xfavorite, config)
+            with open(f'{fn_prefix}xfavorite-{episodes}.params.bin', 'wb') as f:
+                f.write(params_favourite.serialize())
+
+            # save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
+            # save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
 
 
 def main_tune():
@@ -113,12 +125,12 @@ def main_tune():
     }
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=1000,  # "runs" or "restarts"
+        num_samples=300,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=100_000,  # training "time" allowed for every "sample" (run)
+            grace_period=50_000,  # training "time" allowed for every "sample" (run)
             max_t=2_000_000,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,

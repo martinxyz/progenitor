@@ -1,10 +1,10 @@
 use std::convert::TryInto;
 
 use progenitor::{
-    builders::{Builders as BuildersImpl, Hyperparams},
+    builders::{Builders as BuildersImpl, Hyperparams, Params as ParamsImpl},
     Simulation,
 };
-use pyo3::prelude::*;
+use pyo3::{prelude::*, types::PyBytes};
 
 #[pyclass]
 pub(crate) struct Builders {
@@ -18,13 +18,9 @@ pub(crate) struct Builders {
 #[pymethods]
 impl Builders {
     #[new]
-    fn new(weights: Vec<f32>, init_fac: f32, bias_fac: f32) -> Builders {
-        assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
+    fn new(params: &Params) -> Builders {
         Self {
-            inner: BuildersImpl::new_with_params(progenitor::builders::Params {
-                builder_weights: weights.try_into().expect("param_count should match"),
-                builder_hyperparams: Hyperparams { init_fac, bias_fac },
-            }),
+            inner: BuildersImpl::new_with_params(params.inner.clone()),
         }
     }
 
@@ -58,8 +54,33 @@ impl Builders {
     }
 }
 
-#[pymodule]
-fn builders(_py: Python, m: &PyModule) -> PyResult<()> {
-    m.add_class::<Builders>()?;
-    Ok(())
+#[pyclass]
+pub(crate) struct Params {
+    inner: ParamsImpl,
+}
+
+#[pymethods]
+impl Params {
+    #[new]
+    fn new(weights: Vec<f32>, init_fac: f32, bias_fac: f32) -> Params {
+        assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
+        Self {
+            inner: progenitor::builders::Params {
+                builder_weights: weights.try_into().expect("param_count should match"),
+                builder_hyperparams: Hyperparams { init_fac, bias_fac },
+            },
+        }
+    }
+
+    fn serialize(&self, py: Python) -> PyObject {
+        PyBytes::new(py, &bincode::serialize(&self.inner).unwrap()).into()
+    }
+
+    #[staticmethod]
+    fn deserialize(bytes: &PyBytes) -> Self {
+        Self {
+            inner: bincode::deserialize(bytes.as_bytes())
+                .expect("bytes should deserialize to valid Params"),
+        }
+    }
 }

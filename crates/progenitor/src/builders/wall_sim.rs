@@ -11,6 +11,7 @@ use rand::SeedableRng;
 use rand_distr::Normal;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 use crate::coords;
 use crate::AxialTile;
@@ -63,7 +64,9 @@ struct State {
     rng: rand_pcg::Lcg64Xsh32,
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Params {
+    #[serde(with = "BigArray")]
     pub builder_weights: [f32; nn::PARAM_COUNT],
     pub builder_hyperparams: nn::Hyperparams,
 }
@@ -87,7 +90,7 @@ const CENTER: coords::Offset = coords::Offset {
 
 impl Builders {
     pub fn new_optimized() -> Builders {
-        match optimized_params::PARAMS {
+        match optimized_params::load() {
             Some(params) => Self::new_with_params(params),
             None => Self::new_with_random_params(),
         }

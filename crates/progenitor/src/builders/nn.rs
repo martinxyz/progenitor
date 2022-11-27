@@ -4,6 +4,7 @@
 use nalgebra::{SMatrix, SVector};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
@@ -71,7 +72,7 @@ pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
 }
 */
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Hyperparams {
     pub init_fac: f32,
     pub bias_fac: f32,
