@@ -63,6 +63,11 @@ struct State {
     rng: rand_pcg::Lcg64Xsh32,
 }
 
+pub struct Params {
+    pub builder_weights: [f32; nn::PARAM_COUNT],
+    pub builder_hyperparams: nn::Hyperparams,
+}
+
 pub struct Builders {
     state: State,
     nn: nn::Network,
@@ -83,7 +88,7 @@ const CENTER: coords::Offset = coords::Offset {
 impl Builders {
     pub fn new_optimized() -> Builders {
         match optimized_params::PARAMS {
-            Some(params) => Self::new_with_params(&params, optimized_params::HP),
+            Some(params) => Self::new_with_params(params),
             None => Self::new_with_random_params(),
         }
     }
@@ -93,15 +98,18 @@ impl Builders {
     pub fn new_with_random_params() -> Builders {
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
-        let params: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
-        Self::new_with_params(&params.into(), optimized_params::HP)
+        let weights: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
+        Self::new_with_params(Params {
+            builder_weights: weights.into(),
+            builder_hyperparams: nn::Hyperparams {
+                init_fac: 1.0,
+                bias_fac: 0.1,
+            },
+        })
     }
 
-    pub fn new_with_params(params: &[f32; Self::PARAM_COUNT], hp: nn::Hyperparams) -> Builders {
-        //                 |----------------- policy ---------------------------|
-        //                     ...or, does it complect policy with learning?
-        //                     ...yes it kind of does. Separate the stuff?
-        let nn = nn::Network::new(params, hp);
+    pub fn new_with_params(params: Params) -> Builders {
+        let nn = nn::Network::new(&params.builder_weights, params.builder_hyperparams);
         let seed = thread_rng().next_u64();
         let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
 

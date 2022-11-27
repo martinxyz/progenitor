@@ -21,10 +21,10 @@ impl Builders {
     fn new(weights: Vec<f32>, init_fac: f32, bias_fac: f32) -> Builders {
         assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
         Self {
-            inner: BuildersImpl::new_with_params(
-                &weights.try_into().expect("param_count should match"),
-                Hyperparams { init_fac, bias_fac },
-            ),
+            inner: BuildersImpl::new_with_params(progenitor::builders::Params {
+                builder_weights: weights.try_into().expect("param_count should match"),
+                builder_hyperparams: Hyperparams { init_fac, bias_fac },
+            }),
         }
     }
 
