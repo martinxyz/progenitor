@@ -25,13 +25,13 @@ where
 impl JsSimulation {
     pub fn get_cell_info(&self, col: i32, row: i32) -> JsValue {
         let pos = coords::Offset { col, row };
-        let cell = self.0.get_cell_view(pos.into());
+        let cell = self.0.cell_view(pos.into());
         serde_wasm_bindgen::to_value(&cell).unwrap()
     }
     pub fn get_cell_text(&self, col: i32, row: i32) -> String {
         let pos = coords::Offset { col, row };
         self.0
-            .get_cell_text(pos.into())
+            .cell_text(pos.into())
             .unwrap_or_else(|| "(invalid location)".into())
     }
 
@@ -41,7 +41,7 @@ impl JsSimulation {
 
     pub fn get_data(&mut self, channel: u8) -> Vec<u8> {
         self.0
-            .get_cells_rectangle()
+            .cells_rectangle()
             .iter()
             .map(|cell| match channel {
                 0 => cell.cell_type,

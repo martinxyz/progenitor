@@ -70,7 +70,7 @@ impl Turing {
 impl Simulation for Turing {
     fn step(&mut self) {
         let command = {
-            let symbol = self.grid.get_cell(self.pos);
+            let symbol = self.grid.cell(self.pos);
             let key: usize = self.state as usize * Turing::SYMBOLS + symbol as usize;
             self.rule_lut[key]
         };
@@ -94,12 +94,12 @@ impl Simulation for Turing {
 }
 
 impl HexgridView for Turing {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(CellView {
             cell_type: if self.grid.is_same_pos(pos, self.pos) {
                 0 // visualize position of the turing head
             } else {
-                self.grid.get_cell(pos) + 1
+                self.grid.cell(pos) + 1
             },
             ..Default::default()
         })

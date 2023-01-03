@@ -93,12 +93,12 @@ impl From<Cell> for CellView {
 }
 
 impl HexgridView for Blobs {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        Some(self.cells.get_cell(pos).into())
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.cells.cell(pos).into())
     }
 
-    fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
-        let cell = self.cells.get_cell(pos);
+    fn cell_text(&self, pos: coords::Cube) -> Option<String> {
+        let cell = self.cells.cell(pos);
         Some(format!("{:?}", cell))
     }
 }

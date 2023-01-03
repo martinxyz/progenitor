@@ -39,8 +39,8 @@ impl World {
         self.cells.set_cell(pos, cell);
     }
 
-    pub fn get_cell(&self, pos: coords::Cube) -> Cell {
-        self.cells.get_cell(pos)
+    pub fn cell(&self, pos: coords::Cube) -> Cell {
+        self.cells.cell(pos)
     }
 
     pub fn iter_cells(&self) -> impl ExactSizeIterator<Item = &Cell> {
@@ -90,8 +90,8 @@ impl Simulation for World {
 }
 
 impl HexgridView for World {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        Some(self.get_cell(pos).into())
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.cell(pos).into())
     }
 }
 

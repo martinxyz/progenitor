@@ -7,9 +7,9 @@ use progenitor::Simulation;
 fn initialization_should_be_inert() {
     let mut w = World::new();
     let pos = Cube { x: 5, y: 5 };
-    assert_eq!(w.get_cell(pos), Cell::default());
+    assert_eq!(w.cell(pos), Cell::default());
     w.step();
-    assert_eq!(w.get_cell(pos), Cell::default());
+    assert_eq!(w.cell(pos), Cell::default());
 }
 
 #[test]
@@ -29,14 +29,14 @@ fn simple_self_transformation() {
     let pos2 = Cube { x: 5, y: 6 };
     w.set_cell(pos1, w.types.create_cell(dying_cell));
     w.set_cell(pos2, w.types.create_cell(persistent_cell));
-    assert_eq!(w.get_cell(pos0).cell_type, empty_cell);
-    assert_eq!(w.get_cell(pos1).cell_type, dying_cell);
-    assert_eq!(w.get_cell(pos2).cell_type, persistent_cell);
+    assert_eq!(w.cell(pos0).cell_type, empty_cell);
+    assert_eq!(w.cell(pos1).cell_type, dying_cell);
+    assert_eq!(w.cell(pos2).cell_type, persistent_cell);
     for i in 0..10 {
         w.step();
-        assert_eq!(w.get_cell(pos0), Cell::default(), "at step {}", i);
-        assert_eq!(w.get_cell(pos1), Cell::default(), "at step {}", i);
-        assert_eq!(w.get_cell(pos2).cell_type, persistent_cell, "at step {}", i);
+        assert_eq!(w.cell(pos0), Cell::default(), "at step {}", i);
+        assert_eq!(w.cell(pos1), Cell::default(), "at step {}", i);
+        assert_eq!(w.cell(pos2).cell_type, persistent_cell, "at step {}", i);
     }
 }
 

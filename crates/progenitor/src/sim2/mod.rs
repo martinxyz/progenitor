@@ -54,9 +54,9 @@ impl Simulation for World {
 }
 
 impl HexgridView for World {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(CellView {
-            cell_type: match self.alive.get_cell(pos) {
+            cell_type: match self.alive.cell(pos) {
                 false => 0,
                 true => 1,
             },

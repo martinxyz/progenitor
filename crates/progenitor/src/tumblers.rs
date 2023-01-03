@@ -85,7 +85,7 @@ impl Simulation for Tumblers {
 }
 
 impl HexgridView for Tumblers {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         // xxx inefficient when this gets called for all cells...
         for t in self.tumblers.iter() {
             if pos == t.pos {
@@ -97,7 +97,7 @@ impl HexgridView for Tumblers {
             }
         }
         Some(CellView {
-            cell_type: match self.visited.get_cell(pos)? {
+            cell_type: match self.visited.cell(pos)? {
                 false => 1,
                 true => 2,
             },

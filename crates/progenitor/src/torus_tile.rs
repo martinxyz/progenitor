@@ -54,7 +54,7 @@ impl<CellT: Copy> TorusTile<CellT> {
     }
 
     // XXX this should take coords::Axial, etc.
-    fn get_index(pos: coords::Cube) -> usize {
+    fn index(pos: coords::Cube) -> usize {
         // cube to axial (OPTIMIZE: for iteration we should use axial coordinates to begin with)
         let q = (pos.x as u32) % SIZE;
         let r = (pos.z() as u32) % SIZE;
@@ -62,23 +62,23 @@ impl<CellT: Copy> TorusTile<CellT> {
     }
 
     pub fn is_same_pos(&self, pos1: coords::Cube, pos2: coords::Cube) -> bool {
-        Self::get_index(pos1) == Self::get_index(pos2)
+        Self::index(pos1) == Self::index(pos2)
     }
 
     pub fn set_cell(&mut self, pos: coords::Cube, cell: CellT) {
-        self.data[Self::get_index(pos)] = cell;
+        self.data[Self::index(pos)] = cell;
     }
 
-    pub fn get_cell(&self, pos: coords::Cube) -> CellT {
-        self.data[Self::get_index(pos)]
+    pub fn cell(&self, pos: coords::Cube) -> CellT {
+        self.data[Self::index(pos)]
     }
 
-    pub fn get_neighbours(&self, center_pos: coords::Cube) -> [(Direction, CellT); 6] {
+    pub fn neighbours(&self, center_pos: coords::Cube) -> [(Direction, CellT); 6] {
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
             let pos = center_pos + dir;
-            (dir, self.get_cell(pos))
+            (dir, self.cell(pos))
         };
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
@@ -154,8 +154,8 @@ where
 
         // axial to cube
         let center_pos = coords::Cube { x: q, y: -r - q };
-        let neighbours = self.tile.get_neighbours(center_pos);
-        let center = self.tile.get_cell(center_pos);
+        let neighbours = self.tile.neighbours(center_pos);
+        let center = self.tile.cell(center_pos);
         Some((center, neighbours))
     }
 

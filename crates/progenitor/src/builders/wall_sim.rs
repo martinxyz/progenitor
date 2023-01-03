@@ -154,7 +154,7 @@ impl Builders {
         let rng = &mut self.state.rng;
         let mut heading = *Direction::all().choose(rng).unwrap();
         let mut pos = pos;
-        while self.state.cells.get_cell(pos) != Some(Cell::Floor) {
+        while self.state.cells.cell(pos) != Some(Cell::Floor) {
             heading = *Direction::all().choose(rng).unwrap();
             pos = pos + heading;
         }
@@ -165,14 +165,12 @@ impl Builders {
     fn kick_dust(&mut self, pos: Coordinate) {
         let rng = &mut self.state.rng;
         let dir = *Direction::all().choose(rng).unwrap();
-        if let (Some(Cell::Builder), Some(Cell::Floor)) = (
-            self.state.cells.get_cell(pos),
-            self.state.cells.get_cell(pos + dir),
-        ) {
-            if let (Some(src), Some(dst)) = (
-                self.state.mass.get_cell(pos),
-                self.state.mass.get_cell(pos + dir),
-            ) {
+        if let (Some(Cell::Builder), Some(Cell::Floor)) =
+            (self.state.cells.cell(pos), self.state.cells.cell(pos + dir))
+        {
+            if let (Some(src), Some(dst)) =
+                (self.state.mass.cell(pos), self.state.mass.cell(pos + dir))
+            {
                 if src > 0 && dst < 255 {
                     self.state.mass.set_cell(pos, src - 1);
                     self.state.mass.set_cell(pos + dir, dst + 1);
@@ -217,7 +215,7 @@ impl Simulation for Builders {
                 let present = self
                     .state
                     .cells
-                    .get_cell(t.pos + (t.heading + angle))
+                    .cell(t.pos + (t.heading + angle))
                     .map(|c| c == item)
                     .unwrap_or(false);
                 if present {
@@ -229,7 +227,7 @@ impl Simulation for Builders {
             let builders_nearby: i32 = self
                 .state
                 .cells
-                .get_neighbours(t.pos)
+                .neighbours(t.pos)
                 .map(|(_, cell)| (cell == Some(Cell::Builder)) as i32)
                 .iter()
                 .sum();
@@ -241,7 +239,7 @@ impl Simulation for Builders {
                 look(Cell::Floor, Angle::RightBack),
                 look(Cell::Floor, Angle::Back),
                 look(Cell::Builder, Angle::Forward),
-                self.state.mass.get_cell(t.pos).unwrap_or(0).into(),
+                self.state.mass.cell(t.pos).unwrap_or(0).into(),
                 builders_nearby as f32,
             ];
             self.encounters += builders_nearby;
@@ -259,10 +257,10 @@ impl Simulation for Builders {
             let pos_forward = t.pos + t.heading;
             let pos_back = t.pos - t.heading;
 
-            if let Some(cell_forward) = self.state.cells.get_cell(pos_forward) {
+            if let Some(cell_forward) = self.state.cells.cell(pos_forward) {
                 match action {
                     Action::Pullback => {
-                        if let Some(cell_back) = self.state.cells.get_cell(pos_back) {
+                        if let Some(cell_back) = self.state.cells.cell(pos_back) {
                             if cell_back == Cell::Floor {
                                 if cell_forward == Cell::Stone {
                                     self.state.cells.set_cell(pos_forward, Cell::Floor);
@@ -280,9 +278,7 @@ impl Simulation for Builders {
                             Cell::Stone => {
                                 // push
                                 let pos_forward2x = pos_forward + t.heading;
-                                if let Some(cell_forward2x) =
-                                    self.state.cells.get_cell(pos_forward2x)
-                                {
+                                if let Some(cell_forward2x) = self.state.cells.cell(pos_forward2x) {
                                     if cell_forward2x == Cell::Floor {
                                         self.state.cells.set_cell(pos_forward2x, cell_forward);
                                         self.state.cells.set_cell(t.pos, Cell::Floor);
@@ -324,7 +320,7 @@ impl Simulation for Builders {
 }
 
 impl HexgridView for Builders {
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         let pos = coords::Cube {
             // hack to translate web UI the viewport a bit
             x: pos.x + 12,
@@ -341,8 +337,8 @@ impl HexgridView for Builders {
             }
         }
 
-        let energy: u8 = self.state.mass.get_cell(pos)?;
-        let cell_type = match self.state.cells.get_cell(pos)? {
+        let energy: u8 = self.state.mass.cell(pos)?;
+        let cell_type = match self.state.cells.cell(pos)? {
             Cell::Floor => 2,
             Cell::Stone => 4,
             Cell::Border => 255,

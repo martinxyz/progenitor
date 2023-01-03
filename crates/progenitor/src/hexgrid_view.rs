@@ -21,9 +21,9 @@ pub trait HexgridView {
     // "impl Iterator". It may not be fully impossible, but the effort is
     // completely wasted. This API is for rendering; an extra copy or five of
     // this Vec<SmallThing> will be neglegible compared to rendering.
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView>;
-    fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
-        let cv = self.get_cell_view(pos)?;
+    fn cell_view(&self, pos: coords::Cube) -> Option<CellView>;
+    fn cell_text(&self, pos: coords::Cube) -> Option<String> {
+        let cv = self.cell_view(pos)?;
         let mut lines = Vec::with_capacity(3);
         lines.push(format!("Type: {}", cv.cell_type));
         if let Some(e) = cv.energy {
@@ -35,11 +35,11 @@ pub trait HexgridView {
         Some(lines.join("\n"))
     }
 
-    fn get_cells_rectangle(&self) -> Vec<CellView> {
+    fn cells_rectangle(&self) -> Vec<CellView> {
         let pos = coords::Cube { x: 0, y: 0 };
         coords::iterate_rectangle(pos, SIZE as i32, SIZE as i32)
             .map(|coord| {
-                self.get_cell_view(coord).unwrap_or(CellView {
+                self.cell_view(coord).unwrap_or(CellView {
                     cell_type: 255,
                     ..Default::default()
                 })

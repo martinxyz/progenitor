@@ -42,7 +42,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         self.data[idx] = cell;
     }
 
-    pub fn get_cell(&self, pos: Cube) -> Option<CellT> {
+    pub fn cell(&self, pos: Cube) -> Option<CellT> {
         if self.valid(pos) {
             Some(self.data[self.index(pos)])
         } else {
@@ -50,12 +50,12 @@ impl<CellT: Copy> AxialTile<CellT> {
         }
     }
 
-    pub fn get_neighbours(&self, center_pos: Cube) -> [(Direction, Option<CellT>); 6] {
+    pub fn neighbours(&self, center_pos: Cube) -> [(Direction, Option<CellT>); 6] {
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
             let pos = center_pos + dir;
-            (dir, self.get_cell(pos))
+            (dir, self.cell(pos))
         };
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
