@@ -1,4 +1,4 @@
-use progenitor::{coords, Simulation, SIZE};
+use progenitor::{coords, HexgridView, Simulation, SIZE};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -6,12 +6,15 @@ pub fn get_size() -> u32 {
     SIZE
 }
 
+trait HexSim: Simulation + HexgridView {}
+impl<T: Simulation + HexgridView> HexSim for T {}
+
 #[wasm_bindgen(js_name = Simulation)]
-pub struct JsSimulation(Box<dyn Simulation>);
+pub struct JsSimulation(Box<dyn HexSim>);
 
 impl<T> From<T> for JsSimulation
 where
-    T: Simulation + 'static,
+    T: HexSim + 'static,
 {
     fn from(sim: T) -> JsSimulation {
         JsSimulation(Box::new(sim))

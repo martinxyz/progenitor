@@ -4,8 +4,10 @@
 // foundation
 pub mod coords;
 pub use coords::{Direction, DirectionSet};
+mod hexgrid_view;
 mod simulation;
-pub use simulation::{CellView, Simulation};
+pub use hexgrid_view::{CellView, HexgridView};
+pub use simulation::Simulation;
 
 // map storage
 mod axial_tile;

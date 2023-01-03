@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 use crate::coords;
 use crate::AxialTile;
 use crate::CellView;
+use crate::HexgridView;
 use crate::Simulation;
 
 // Random walk test.
@@ -74,6 +75,16 @@ impl Simulation for Tumblers {
         }
     }
 
+    fn save_state(&self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        *self = bincode::deserialize_from(data).unwrap();
+    }
+}
+
+impl HexgridView for Tumblers {
     fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         // xxx inefficient when this gets called for all cells...
         for t in self.tumblers.iter() {
@@ -92,13 +103,5 @@ impl Simulation for Tumblers {
             },
             ..Default::default()
         })
-    }
-
-    fn save_state(&self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-
-    fn load_state(&mut self, data: &[u8]) {
-        *self = bincode::deserialize_from(data).unwrap();
     }
 }

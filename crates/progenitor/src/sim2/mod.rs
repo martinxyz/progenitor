@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::CellView;
+use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusTile;
 use crate::SIZE;
@@ -42,6 +43,17 @@ impl Simulation for World {
             .collect();
     }
 
+    fn save_state(&self) -> Vec<u8> {
+        // can we have a default-implementation for Simulation: Serialize + Deserialize
+        bincode::serialize(&self).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        *self = bincode::deserialize_from(data).unwrap();
+    }
+}
+
+impl HexgridView for World {
     fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(CellView {
             cell_type: match self.alive.get_cell(pos) {
@@ -50,15 +62,6 @@ impl Simulation for World {
             },
             ..Default::default()
         })
-    }
-
-    fn save_state(&self) -> Vec<u8> {
-        // can we have a default-implementation for Simulation: Serialize + Deserialize
-        bincode::serialize(&self).unwrap()
-    }
-
-    fn load_state(&mut self, data: &[u8]) {
-        *self = bincode::deserialize_from(data).unwrap();
     }
 }
 

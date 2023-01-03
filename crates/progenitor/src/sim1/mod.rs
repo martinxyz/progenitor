@@ -3,6 +3,7 @@ mod rules;
 
 use crate::coords;
 use crate::CellView;
+use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusNeighbourIter;
 use crate::TorusTile;
@@ -68,10 +69,6 @@ impl Simulation for World {
             .collect();
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        Some(self.get_cell(pos).into())
-    }
-
     fn save_state(&self) -> Vec<u8> {
         let mut res = vec![1u8]; // version to signal breaking changes
         res.append(&mut bincode::serialize(&self.rng).unwrap());
@@ -89,6 +86,12 @@ impl Simulation for World {
         self.rng = bincode::deserialize_from(&mut unread).unwrap();
         self.cells = bincode::deserialize_from(&mut unread).unwrap();
         // ignore extra, if any (allows for non-breaking extensions)
+    }
+}
+
+impl HexgridView for World {
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.get_cell(pos).into())
     }
 }
 

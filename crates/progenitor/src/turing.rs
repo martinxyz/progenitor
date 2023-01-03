@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::CellView;
+use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusTile;
 
@@ -83,6 +84,16 @@ impl Simulation for Turing {
         // }
     }
 
+    fn save_state(&self) -> Vec<u8> {
+        bincode::serialize(&self).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        *self = bincode::deserialize_from(data).unwrap();
+    }
+}
+
+impl HexgridView for Turing {
     fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(CellView {
             cell_type: if self.grid.is_same_pos(pos, self.pos) {
@@ -92,14 +103,6 @@ impl Simulation for Turing {
             },
             ..Default::default()
         })
-    }
-
-    fn save_state(&self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
-    }
-
-    fn load_state(&mut self, data: &[u8]) {
-        *self = bincode::deserialize_from(data).unwrap();
     }
 }
 

@@ -16,6 +16,7 @@ use serde_big_array::BigArray;
 use crate::coords;
 use crate::AxialTile;
 use crate::CellView;
+use crate::HexgridView;
 use crate::Simulation;
 
 use super::nn;
@@ -313,6 +314,16 @@ impl Simulation for Builders {
         }
     }
 
+    fn save_state(&self) -> Vec<u8> {
+        bincode::serialize(&self.state).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        self.state = bincode::deserialize_from(data).unwrap();
+    }
+}
+
+impl HexgridView for Builders {
     fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         let pos = coords::Cube {
             // hack to translate web UI the viewport a bit
@@ -342,13 +353,5 @@ impl Simulation for Builders {
             energy: Some(energy),
             ..Default::default()
         })
-    }
-
-    fn save_state(&self) -> Vec<u8> {
-        bincode::serialize(&self.state).unwrap()
-    }
-
-    fn load_state(&mut self, data: &[u8]) {
-        self.state = bincode::deserialize_from(data).unwrap();
     }
 }

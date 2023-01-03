@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use crate::coords;
 use crate::CellView;
 use crate::DirectionSet;
+use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusTile;
 
@@ -91,6 +92,17 @@ impl From<Cell> for CellView {
     }
 }
 
+impl HexgridView for Blobs {
+    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
+        Some(self.cells.get_cell(pos).into())
+    }
+
+    fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
+        let cell = self.cells.get_cell(pos);
+        Some(format!("{:?}", cell))
+    }
+}
+
 impl Simulation for Blobs {
     fn step(&mut self) {
         self.cells = self
@@ -100,21 +112,12 @@ impl Simulation for Blobs {
             .collect();
     }
 
-    fn get_cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        Some(self.cells.get_cell(pos).into())
-    }
-
     fn save_state(&self) -> Vec<u8> {
         bincode::serialize(&self).unwrap()
     }
 
     fn load_state(&mut self, data: &[u8]) {
         *self = bincode::deserialize_from(data).unwrap();
-    }
-
-    fn get_cell_text(&self, pos: coords::Cube) -> Option<String> {
-        let cell = self.cells.get_cell(pos);
-        Some(format!("{:?}", cell))
     }
 }
 
