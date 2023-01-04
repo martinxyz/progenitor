@@ -7,6 +7,7 @@ use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusNeighbourIter;
 use crate::TorusTile;
+use crate::VIEWPORT;
 use rand::thread_rng;
 use rand::SeedableRng;
 use rand_pcg::Pcg32;
@@ -92,6 +93,10 @@ impl Simulation for World {
 impl HexgridView for World {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(self.cell(pos).into())
+    }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        VIEWPORT
     }
 }
 

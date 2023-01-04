@@ -1,7 +1,7 @@
 use hex2d::Direction;
 use serde::Serialize;
 
-use crate::{coords, SIZE};
+use crate::coords;
 
 /// API for rendering a single hex cell.
 /// The meaning of fields depend on the simulation.
@@ -35,9 +35,8 @@ pub trait HexgridView {
         Some(lines.join("\n"))
     }
 
-    fn cells_rectangle(&self) -> Vec<CellView> {
-        let pos = coords::Cube { x: 0, y: 0 };
-        coords::iterate_rectangle(pos, SIZE as i32, SIZE as i32)
+    fn cells_rectangle(&self, viewport: coords::Rectangle) -> Vec<CellView> {
+        coords::iterate_rectangle(viewport)
             .map(|coord| {
                 self.cell_view(coord).unwrap_or(CellView {
                     cell_type: 255,
@@ -46,4 +45,13 @@ pub trait HexgridView {
             })
             .collect()
     }
+
+    fn viewport_hint(&self) -> coords::Rectangle;
+}
+
+#[derive(Serialize, Debug)]
+pub struct Viewport {
+    pub top_left: coords::Cube,
+    pub width: i32,
+    pub height: i32,
 }

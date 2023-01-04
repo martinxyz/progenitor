@@ -3,7 +3,6 @@
     import type Simulation from './simulation'
     import { defineGrid, extendHex } from 'honeycomb-grid'
     import { onMount } from 'svelte'
-    import { get_size } from 'progenitor'
     import type { Hex as HexType, PointCoordinates } from 'honeycomb-grid'
 
     export let sim: Simulation
@@ -27,13 +26,9 @@
     let showEnergy = false
     let showDirection = true
 
-    const gridSize = get_size()
-
-    const Hex = extendHex({ size: 8 })
-    const Grid = defineGrid(Hex)
+    let Grid = defineGrid(extendHex({ size: 7 }))
     // Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
-
-    const myGrid = Grid.rectangle({width: gridSize, height: gridSize})
+    let myGrid
 
     let ctx: CanvasRenderingContext2D
     let overlayCtx: CanvasRenderingContext2D
@@ -51,7 +46,6 @@
     onMount(() => {
         canvas.width = 450
         canvas.height = 388
-        console.log('get_size()', get_size())
         ctx = canvas.getContext('2d')
 
         overlayCanvas.width = canvas.width
@@ -143,14 +137,32 @@
         // to trigger updates (maybe not the most ellegant way...)
         step = sim.get_step_no()
 
-        const [data_cell_type, data_energy, data_direction] = sim.get_data()
+        let viewport = sim.get_data_viewport()
+        // scaling such that the viewport is fully visible
+        // +0.5 for including the last hex in the staggered row
+        // let sizeX = viewport.width + 0.5
+        // let sizeY = viewport.height + 0.5
+        // TODO: real calculation
+
+        console.log('viewport', viewport)
+        viewport.col -= 8  // TODO: real calculation
+        Grid = defineGrid(extendHex({ size: 7 }))
+        myGrid = Grid.rectangle({width: viewport.width, height: viewport.height})// FIXME
+
+        // TODO: names, not indices
+        // let data_cell_type = sim.get_data(viewport, 'cell_type')
+        // let data_energy = sim.get_data(viewport, 'energy')
+        // let data_direction = sim.get_data(viewport, 'direction')
+        let data_cell_type = sim.get_data(viewport, 0)
+        let data_energy = sim.get_data(viewport, 1)
+        let data_direction = sim.get_data(viewport, 2)
         myGrid.forEach(renderHex)
 
         function renderHex(hex: HexType<object>) {
             const position = hex.toPoint()
 
             let {x, y} = hex.cartesian()
-            let idx = y * gridSize + x
+            let idx = y * viewport.width + x
             let ct = data_cell_type[idx]
             let e = data_energy[idx]
             let dir = data_direction[idx]

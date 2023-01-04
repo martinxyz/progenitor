@@ -350,4 +350,8 @@ impl HexgridView for Builders {
             ..Default::default()
         })
     }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        self.state.cells.viewport()
+    }
 }

@@ -1,4 +1,4 @@
-use crate::coords::Cube;
+use crate::coords::{self, Cube};
 use hex2d::Direction;
 use serde::{Deserialize, Serialize};
 
@@ -115,6 +115,15 @@ impl<CellT: Copy> AxialTile<CellT> {
             })
             .sum()
     }
+
+    pub fn viewport(&self) -> coords::Rectangle {
+        coords::Rectangle {
+            // FIXME: pretty sure this is too small
+            pos: Cube { x: 0, y: 0 },
+            width: self.width,
+            height: self.height,
+        }
+    }
 }
 
 pub struct Neighbourhood<T> {
@@ -125,7 +134,7 @@ pub struct Neighbourhood<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::coords::Offset;
+    use coords::Offset;
 
     #[test]
     fn test_count_edges() {

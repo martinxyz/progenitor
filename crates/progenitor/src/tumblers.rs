@@ -104,4 +104,8 @@ impl HexgridView for Tumblers {
             ..Default::default()
         })
     }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        self.visited.viewport()
+    }
 }

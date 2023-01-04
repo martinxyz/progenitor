@@ -101,6 +101,14 @@ impl HexgridView for Blobs {
         let cell = self.cells.cell(pos);
         Some(format!("{:?}", cell))
     }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        coords::Rectangle {
+            pos: coords::Cube { x: 0, y: 0 },
+            width: crate::SIZE as i32,
+            height: crate::SIZE as i32,
+        }
+    }
 }
 
 impl Simulation for Blobs {

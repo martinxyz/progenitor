@@ -174,9 +174,33 @@ impl From<Offset> for Cube {
     }
 }
 
+impl From<Cube> for Offset {
+    /// Convert to offset coordinates (odd-r)
+    ///
+    /// ```
+    /// use progenitor::coords::{Cube, Offset};
+    /// let pos: Offset = Cube { x: 0, y: 1 }.into();
+    /// assert_eq!(pos, Offset { col: -1, row: -1 });
+    /// ```
+    fn from(p: Cube) -> Self {
+        let col = p.x + (p.z() - (p.z() & 1)) / 2;
+        let row = p.z();
+        Offset { col, row }
+    }
+}
+
 // impl From<Offset> for Axial {
 
+/// A rectangle, used for rendering in offset coordinates.
+#[derive(Clone, Copy)]
+pub struct Rectangle {
+    pub pos: Cube,
+    pub width: i32,
+    pub height: i32,
+}
+
 /// Iterator over a rectangle in offset coordinates.
-pub fn iterate_rectangle(pos: Cube, width: i32, height: i32) -> impl Iterator<Item = Cube> {
-    (0..height).flat_map(move |row| (0..width).map(move |col| pos + Offset { col, row }))
+pub fn iterate_rectangle(rect: Rectangle) -> impl Iterator<Item = Cube> {
+    (0..rect.height)
+        .flat_map(move |row| (0..rect.width).map(move |col| rect.pos + Offset { col, row }))
 }

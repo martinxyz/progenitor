@@ -8,6 +8,11 @@ const SIZE_LOG2: u32 = 5;
 /// Tile storage is a SIZE x SIZE parallelogram.
 pub const SIZE: u32 = 1 << SIZE_LOG2;
 // const PADDING: i32 = 2;
+pub const VIEWPORT: coords::Rectangle = coords::Rectangle {
+    pos: coords::Cube { x: 0, y: 0 },
+    width: SIZE as i32,
+    height: SIZE as i32,
+};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TorusTile<CellT: Copy> {

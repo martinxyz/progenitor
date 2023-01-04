@@ -9,7 +9,7 @@ use crate::CellView;
 use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusTile;
-use crate::SIZE;
+use crate::{SIZE, VIEWPORT};
 
 #[derive(Serialize, Deserialize)]
 pub struct World {
@@ -62,6 +62,10 @@ impl HexgridView for World {
             },
             ..Default::default()
         })
+    }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        VIEWPORT
     }
 }
 

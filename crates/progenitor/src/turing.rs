@@ -12,6 +12,7 @@ use crate::CellView;
 use crate::HexgridView;
 use crate::Simulation;
 use crate::TorusTile;
+use crate::VIEWPORT;
 
 /* Based on the original "turing drawings":
 https://github.com/maximecb/Turing-Drawings/blob/master/programs.js#L44-L48
@@ -103,6 +104,10 @@ impl HexgridView for Turing {
             },
             ..Default::default()
         })
+    }
+
+    fn viewport_hint(&self) -> coords::Rectangle {
+        VIEWPORT
     }
 }
 

@@ -1,5 +1,6 @@
 import * as progenitor from "progenitor";
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
+import type { Viewport } from 'progenitor'
 
 import map_bins_url from '../assets/output/map_bins.dat?url';
 import turing_bins_url from '../assets/output/turing_bins.dat?url';
@@ -104,19 +105,23 @@ export default class Simulation {
     }
 
     get_cell_info(col: number, row: number): CellInfo {
-        return this.sim.get_cell_info(col, row)
+        return this.sim.cell_info(col, row)
     }
 
     get_cell_text(col: number, row: number): string {
-        return this.sim.get_cell_text(col, row)
+        return this.sim.cell_text(col, row)
     }
 
     get_step_no() {
         return this.step_no
     }
 
-    get_data(): Uint8Array[] {
+    get_data_viewport(): Viewport {
+        return this.sim.viewport_hint()
+    }
+
+    get_data(viewport: Viewport, channel: number): Uint8Array {
         // contract: use it immediately, may be invalid the next time any wasm is called
-        return [this.sim.get_data(0), this.sim.get_data(1), this.sim.get_data(2)]
+        return this.sim.data(viewport, channel)
     }
 }

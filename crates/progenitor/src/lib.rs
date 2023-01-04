@@ -13,7 +13,7 @@ pub use simulation::Simulation;
 mod axial_tile;
 mod torus_tile;
 pub use axial_tile::AxialTile;
-pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE};
+pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWPORT};
 
 // simulations
 pub mod blobs;
