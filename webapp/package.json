@@ -14,20 +14,20 @@
     },
     "dependencies": {
         "@fortawesome/fontawesome-free": "^5.14.0",
-        "honeycomb-grid": "^3.1.7",
+        "honeycomb-grid": "^4.0.1",
         "progenitor": "file:../crates/wasm/pkg"
     },
     "devDependencies": {
         "@sveltejs/vite-plugin-svelte": "^1.0.1",
         "@tsconfig/svelte": "^3.0.0",
-        "sass": "^1.54.0",
-        "svelte": "^3.49.0",
-        "svelte-check": "^2.8.0",
-        "svelte-preprocess": "^4.10.7",
+        "sass": "^1.57.0",
+        "svelte": "^3.55.0",
+        "svelte-check": "^2.10.3",
+        "svelte-preprocess": "^5.0.0",
         "tslib": "^2.4.0",
         "typescript": "^4.6.4",
-        "vite": "^3.0.0",
+        "vite": "^3.2.5",
         "vite-plugin-top-level-await": "^1.1.1",
-        "vite-plugin-wasm": "^2.1.0"
+        "vite-plugin-wasm": "^3.1.1"
     }
 }

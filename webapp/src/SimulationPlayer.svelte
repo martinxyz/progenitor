@@ -1,9 +1,10 @@
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import type Simulation from './simulation'
-    import { defineGrid, extendHex } from 'honeycomb-grid'
+    import { defineHex, Grid, rectangle, type HexCoordinates } from 'honeycomb-grid'
+
     import { onMount } from 'svelte'
-    import type { Hex as HexType, PointCoordinates } from 'honeycomb-grid'
+    import { Hex as HexType } from 'honeycomb-grid'
 
     export let sim: Simulation
 
@@ -26,9 +27,8 @@
     let showEnergy = false
     let showDirection = true
 
-    let Grid = defineGrid(extendHex({ size: 7 }))
-    // Grid.parallelogram({ width: 10, height: 10, start: [0, 0], onCreate: renderHex})
-    let myGrid
+    let Hex: typeof HexType
+    let myGrid: Grid<HexType>
 
     let ctx: CanvasRenderingContext2D
     let overlayCtx: CanvasRenderingContext2D
@@ -145,9 +145,11 @@
         // TODO: real calculation
 
         console.log('viewport', viewport)
-        viewport.col -= 8  // TODO: real calculation
-        Grid = defineGrid(extendHex({ size: 7 }))
-        myGrid = Grid.rectangle({width: viewport.width, height: viewport.height})// FIXME
+        viewport.col += 8  // TODO: real calculation
+
+        // OPTIMIZE: recreate the grid only on change
+        Hex = defineHex({ dimensions: 13 })
+        myGrid = new Grid(Hex, rectangle({width: viewport.width, height: viewport.height}))
 
         // TODO: names, not indices
         // let data_cell_type = sim.get_data(viewport, 'cell_type')
@@ -156,13 +158,11 @@
         let data_cell_type = sim.get_data(viewport, 0)
         let data_energy = sim.get_data(viewport, 1)
         let data_direction = sim.get_data(viewport, 2)
-        myGrid.forEach(renderHex)
 
-        function renderHex(hex: HexType<object>) {
-            const position = hex.toPoint()
+        const hex0 = new Hex()
 
-            let {x, y} = hex.cartesian()
-            let idx = y * viewport.width + x
+        for (const hex of myGrid) {
+            let idx = hex.row * viewport.width + hex.col
             let ct = data_cell_type[idx]
             let e = data_energy[idx]
             let dir = data_direction[idx]
@@ -176,10 +176,11 @@
             if (ct == 5) color = '#87c'
 
             ctx.save()
-            ctx.translate(position.x, position.y)
+            ctx.translate(hex.x, hex.y)
             ctx.scale(0.97, 0.97)
             ctx.beginPath()
-            hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
+            hex0.corners.forEach(({x, y}) => ctx.lineTo(x, y))
+
             ctx.fillStyle = color
             ctx.fill()
             if (showEnergy && e !== 255) {
@@ -197,22 +198,22 @@
                 if (e === 5) color = '#EE2'
                 if (e >= 6) color = '#FF6'
                 ctx.save()
-                ctx.translate(position.x, position.y)
-                ctx.scale(0.97, 0.97)
+                ctx.translate(hex.x, hex.y)
+                ctx.scale(hex.dimensions.xRadius, hex.dimensions.yRadius)
                 ctx.beginPath()
-                ctx.arc(hex.center().x, hex.center().y, 4.0, 0, 2*Math.PI)
+                ctx.arc(0, 0, 0.45, 0, 2*Math.PI)
                 ctx.fillStyle = color
                 ctx.fill()
                 ctx.restore()
             }
             if (showDirection && dir !== 255) {
                 ctx.save()
-                ctx.translate(position.x, position.y)
-                ctx.translate(hex.center().x, hex.center().y)
+                ctx.translate(hex.x, hex.y)
+                ctx.scale(hex.dimensions.xRadius, hex.dimensions.yRadius)
                 ctx.rotate((dir+4) / 6 * 2*Math.PI)
-                ctx.translate(4.0, 0)
+                ctx.translate(0.55, 0)
                 ctx.beginPath()
-                ctx.arc(0, 0, 1.5, 0, 2*Math.PI)
+                ctx.arc(0, 0, 0.2, 0, 2*Math.PI)
                 ctx.fillStyle = '#000'
                 ctx.fill()
                 ctx.restore()
@@ -220,9 +221,9 @@
         }
     }
 
-    function offsetToHex(offsetX: number, offsetY: number)  {
-        const hexCoordinates = Grid.pointToHex(offsetX, offsetY)
-        if (myGrid.includes(hexCoordinates)) {
+    function offsetToHex(offsetX: number, offsetY: number): HexType {
+        const hexCoordinates = myGrid.pointToHex({x: offsetX, y: offsetY})
+        if (myGrid.hasHex(hexCoordinates)) {
             return hexCoordinates
         } else {
             return null
@@ -239,7 +240,7 @@
 
     function onClick({offsetX, offsetY}) {
         const p = offsetToHex(offsetX, offsetY)
-        if (p && p.equals(cursorSelected)) {
+        if (cursorSelected != null && p && p.equals(cursorSelected)) {
             cursorSelected = null
             cursorHover = null
         } else {
@@ -247,23 +248,20 @@
         }
     }
 
-    function renderCursors(selected: PointCoordinates, hover: PointCoordinates) {
+    function renderCursors(selected: HexCoordinates, hover: HexCoordinates) {
         if (!overlayCtx) return
         overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
         if (selected) {
-            renderCursorHex(overlayCtx, myGrid.get(selected))
+            renderCursorHex(overlayCtx, myGrid.getHex(selected))
         } else if (hover) {
-            renderCursorHex(overlayCtx, myGrid.get(hover))
+            renderCursorHex(overlayCtx, myGrid.getHex(hover))
         }
     }
 
-    function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType<object>) {
-        const position = hex.toPoint()
+    function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
         ctx.save()
-        ctx.translate(position.x, position.y)
-        ctx.scale(0.97, 0.97)  // FIXME: code duplication
         ctx.beginPath()
-        hex.corners().forEach(({x, y}) => ctx.lineTo(x, y))
+        hex.corners.forEach(({x, y}) => ctx.lineTo(x, y))
         ctx.closePath()
         ctx.strokeStyle = '#FFF9'
         ctx.lineWidth = 4
