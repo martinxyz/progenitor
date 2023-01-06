@@ -60,7 +60,7 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_builders_optimized(),
 }];
 
-export const default_rule_idx = 9
+export const default_rule_idx = 6
 
 const steps_between_snapshots = 500
 

@@ -118,9 +118,8 @@ impl<CellT: Copy> AxialTile<CellT> {
 
     pub fn viewport(&self) -> coords::Rectangle {
         coords::Rectangle {
-            // FIXME: pretty sure this is too small
             pos: Cube { x: 0, y: 0 },
-            width: self.width,
+            width: self.width + self.height / 2,
             height: self.height,
         }
     }

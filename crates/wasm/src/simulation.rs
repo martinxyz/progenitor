@@ -80,6 +80,9 @@ impl JsSimulation {
     }
 
     pub fn viewport_hint(&self) -> JsViewport {
+        // FIXME: Bad API choice? I think the JsViewport will create a memory
+        // leak. (If I understand correctly, the Rust wrapper will not get freed
+        // when the JsViewport object is garbage-collected on the JS side.)
         self.0.viewport_hint().into()
     }
 }

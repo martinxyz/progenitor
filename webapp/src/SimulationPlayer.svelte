@@ -1,10 +1,10 @@
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import type Simulation from './simulation'
-    import { defineHex, Grid, rectangle, type HexCoordinates } from 'honeycomb-grid'
+    import { createHexDimensions, defineHex, Grid, rectangle, type HexCoordinates } from 'honeycomb-grid'
 
     import { onMount } from 'svelte'
-    import { Hex as HexType } from 'honeycomb-grid'
+    import type { Hex as HexType } from 'honeycomb-grid'
 
     export let sim: Simulation
 
@@ -46,7 +46,7 @@
     onMount(() => {
         canvas.width = 450
         canvas.height = 388
-        ctx = canvas.getContext('2d')
+        ctx = canvas.getContext('2d', {alpha: false})
 
         overlayCanvas.width = canvas.width
         overlayCanvas.height = canvas.height
@@ -138,18 +138,38 @@
         step = sim.get_step_no()
 
         let viewport = sim.get_data_viewport()
-        // scaling such that the viewport is fully visible
-        // +0.5 for including the last hex in the staggered row
-        // let sizeX = viewport.width + 0.5
-        // let sizeY = viewport.height + 0.5
-        // TODO: real calculation
 
-        console.log('viewport', viewport)
-        viewport.col += 8  // TODO: real calculation
+        // Calculate hex size to fit all hexes in the viewport fully on the canvas.
+        let measuringGrid = new Grid(
+            defineHex({ dimensions: 1 }),
+            rectangle({width: viewport.width, height: viewport.height})
+        )
+        let sizeX = canvas.width / measuringGrid.pixelWidth
+        let sizeY = canvas.height / measuringGrid.pixelHeight
+        let size = Math.min(sizeX, sizeY)
+        let paddingX = (sizeX - size) * measuringGrid.pixelWidth / 2
+        let paddingY = (sizeY - size) * measuringGrid.pixelHeight / 2
+        // Maybe also render adjacent hexes?
+        // viewport.height += 2
+        // viewport.width += 2
+        // viewport.col -= 1
+        // viewport.row -= 1
+        // On the other hand, if the viewport can zoom and and pan, we might
+        // want to animate that via CSS (because that is accelerated)... later.
 
-        // OPTIMIZE: recreate the grid only on change
-        Hex = defineHex({ dimensions: 13 })
-        myGrid = new Grid(Hex, rectangle({width: viewport.width, height: viewport.height}))
+        // FIXME: recreate the grid only on change
+        Hex = defineHex({
+            dimensions: createHexDimensions(size),
+            // origin translates the rendered grid in pixel-space
+            // origin: 'topLeft',  // same as below, but doesn't allow padding
+            origin: {
+                x: -size*Math.sqrt(3)/2 - paddingX,
+                y: -size - paddingY
+            }
+        })
+        myGrid = new Grid(Hex, rectangle({
+            width: viewport.width, height: viewport.height
+        }))
 
         // TODO: names, not indices
         // let data_cell_type = sim.get_data(viewport, 'cell_type')
@@ -158,8 +178,6 @@
         let data_cell_type = sim.get_data(viewport, 0)
         let data_energy = sim.get_data(viewport, 1)
         let data_direction = sim.get_data(viewport, 2)
-
-        const hex0 = new Hex()
 
         for (const hex of myGrid) {
             let idx = hex.row * viewport.width + hex.col
@@ -178,8 +196,9 @@
             ctx.save()
             ctx.translate(hex.x, hex.y)
             ctx.scale(0.97, 0.97)
+            ctx.translate(-hex.x, -hex.y)
             ctx.beginPath()
-            hex0.corners.forEach(({x, y}) => ctx.lineTo(x, y))
+            hex.corners.forEach(({x, y}) => ctx.lineTo(x, y))
 
             ctx.fillStyle = color
             ctx.fill()
@@ -219,6 +238,9 @@
                 ctx.restore()
             }
         }
+
+        // FIXME: change API such that this is not needed
+        viewport.free()
     }
 
     function offsetToHex(offsetX: number, offsetY: number): HexType {
