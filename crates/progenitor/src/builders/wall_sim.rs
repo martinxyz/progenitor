@@ -80,8 +80,11 @@ pub struct Builders {
     pub encounters: i32,
 }
 
-const TILE_WIDTH: i32 = 40;
-const TILE_HEIGHT: i32 = 40;
+// FIXME: Should calculate all this stuff, and also the viewport...
+//        But not here. In a new HexagonTile module.
+const RING_RADIUS: i32 = 18;
+const TILE_WIDTH: i32 = RING_RADIUS * 3;
+const TILE_HEIGHT: i32 = RING_RADIUS * 2;
 
 const CENTER: coords::Offset = coords::Offset {
     // would be easier in axial coordinates...
@@ -119,7 +122,7 @@ impl Builders {
 
         let center: coords::Cube = CENTER.into();
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
-        for radius in 0..18 {
+        for radius in 0..RING_RADIUS {
             for pos in center.ring_iter(radius, Spin::CCW(Direction::XY)) {
                 cells.set_cell(
                     pos,
@@ -352,6 +355,10 @@ impl HexgridView for Builders {
     }
 
     fn viewport_hint(&self) -> coords::Rectangle {
-        self.state.cells.viewport()
+        coords::Rectangle {
+            pos: coords::Cube { x: 6, y: -7 }, // should calculate...
+            width: RING_RADIUS * 2 - 1,
+            height: RING_RADIUS * 2 - 1,
+        }
     }
 }
