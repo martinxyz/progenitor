@@ -4,6 +4,7 @@ use hex2d::Direction;
 use hex2d::Spin;
 use nalgebra::SVector;
 use rand::prelude::SliceRandom;
+use rand::seq::IteratorRandom;
 use rand::thread_rng;
 use rand::Rng;
 use rand::RngCore;
@@ -54,6 +55,7 @@ enum Cell {
     Stone,
     Border,
     Builder,
+    Blob,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -82,7 +84,7 @@ pub struct Builders {
 
 // FIXME: Should calculate all this stuff, and also the viewport...
 //        But not here. In a new HexagonTile module.
-const RING_RADIUS: i32 = 30;
+const RING_RADIUS: i32 = 20;
 const TILE_WIDTH: i32 = RING_RADIUS * 3;
 const TILE_HEIGHT: i32 = RING_RADIUS * 2;
 
@@ -99,6 +101,7 @@ impl Simulation for Builders {
             self.kick_dust(pos);
         }
         self.move_builders();
+        self.move_blobs();
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -146,7 +149,10 @@ impl Builders {
                     pos,
                     match rng.gen_bool(0.25) {
                         false => Cell::Floor,
-                        true => Cell::Stone,
+                        true => match rng.gen_bool(0.25) {
+                            false => Cell::Stone,
+                            true => Cell::Blob,
+                        },
                     },
                 );
             }
@@ -302,6 +308,34 @@ impl Builders {
         }
     }
 
+    fn move_blobs(&mut self) {
+        let rng = &mut self.state.rng;
+        for _ in 0..(TILE_WIDTH * TILE_HEIGHT) / 32 {
+            let x = rng.gen_range(0..TILE_WIDTH);
+            let y = -x - rng.gen_range(0..TILE_WIDTH); // ugh.
+            let pos = coords::Cube { x, y };
+            if let Some(Cell::Blob) = self.state.cells.cell(pos) {
+                let target = self
+                    .state
+                    .cells
+                    .neighbours(pos)
+                    .iter()
+                    .filter_map(|(dir, cell)| {
+                        if matches!(cell, Some(Cell::Floor)) {
+                            Some(pos + *dir)
+                        } else {
+                            None
+                        }
+                    })
+                    .choose(rng);
+                if let Some(target) = target {
+                    self.state.cells.set_cell(pos, Cell::Floor);
+                    self.state.cells.set_cell(target, Cell::Blob);
+                }
+            }
+        }
+    }
+
     pub fn avg_visited(&self) -> f32 {
         let total = self.state.visited.area();
         let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
@@ -350,6 +384,7 @@ impl HexgridView for Builders {
             Cell::Stone => 4,
             Cell::Border => 255,
             Cell::Builder => 0,
+            Cell::Blob => 3,
         };
         Some(CellView {
             cell_type,
