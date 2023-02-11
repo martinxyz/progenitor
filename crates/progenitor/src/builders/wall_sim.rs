@@ -149,7 +149,7 @@ impl Builders {
                     pos,
                     match rng.gen_bool(0.25) {
                         false => Cell::Floor,
-                        true => match rng.gen_bool(0.25) {
+                        true => match rng.gen_bool(0.4) {
                             false => Cell::Stone,
                             true => Cell::Blob,
                         },
@@ -315,14 +315,33 @@ impl Builders {
             let y = -x - rng.gen_range(0..TILE_WIDTH); // ugh.
             let pos = coords::Cube { x, y };
             if let Some(Cell::Blob) = self.state.cells.cell(pos) {
-                let target = self
-                    .state
-                    .cells
-                    .neighbours(pos)
+                let neighbours = self.state.cells.neighbours(pos);
+                let target = neighbours
                     .iter()
                     .filter_map(|(dir, cell)| {
                         if matches!(cell, Some(Cell::Floor)) {
-                            Some(pos + *dir)
+                            // Check if moving to `dir` would break a link with another neighbour-blob.
+                            // Because we are currently connected to all 6 neighbours (if they are blob),
+                            // the resulting 6-ring must be a single connected blob (at most one gap).
+                            let neighbours_will_be_blob = neighbours.map(|(dir2, cell2)| {
+                                dir2 == *dir || matches!(cell2, Some(Cell::Blob))
+                            });
+                            let changes = {
+                                let mut n: u8 = 0;
+                                for i in 0..6 {
+                                    if neighbours_will_be_blob[i]
+                                        != neighbours_will_be_blob[(i + 1) % 6]
+                                    {
+                                        n += 1;
+                                    }
+                                }
+                                n
+                            };
+                            if changes <= 2 {
+                                Some(pos + *dir)
+                            } else {
+                                None
+                            }
                         } else {
                             None
                         }
