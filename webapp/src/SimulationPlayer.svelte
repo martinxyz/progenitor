@@ -23,7 +23,7 @@
     let cursorSelected = null
     $: renderCursors(cursorSelected, cursorHover)
     $: cursor = cursorSelected || cursorHover
-    $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.x, cursor.y) : null
+    $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.col, cursor.row) : null
 
     let showEnergy = false
     let showDirection = true
@@ -143,7 +143,19 @@
 
         let viewport = sim.get_data_viewport()
 
+        // zoom to keep hex size large enough to keep things pleasant to look/point at
+        const maxHexes = 48
+        if (viewport.width > maxHexes) {
+            viewport.col += Math.floor((viewport.width - maxHexes) / 2)
+            viewport.width = maxHexes
+        }
+        if (viewport.height > maxHexes) {
+            viewport.row += Math.floor((viewport.height - maxHexes) / 2)
+            viewport.height = maxHexes
+        }
+
         updateHexgrid(viewport, canvas)
+        const detailed = (Hex.settings.dimensions.xRadius > 10)
 
         // TODO: names, not indices
         // let data_cell_type = sim.get_data(viewport, 'cell_type')
@@ -168,9 +180,12 @@
             if (ct == 5) color = '#87c'
 
             ctx.save()
-            ctx.translate(hex.x, hex.y)
-            ctx.scale(0.97, 0.97)
-            ctx.translate(-hex.x, -hex.y)
+            if (detailed) {
+                // gap between hexes
+                ctx.translate(hex.x, hex.y)
+                ctx.scale(0.97, 0.97)
+                ctx.translate(-hex.x, -hex.y)
+            }
             ctx.beginPath()
             hex.corners.forEach(({x, y}) => ctx.lineTo(x, y))
 
@@ -254,12 +269,17 @@
             }
         })
         myGrid = new Grid(Hex, rectangle({
+            // start: {col: viewport.col, row: viewport.row},
             width: viewport.width, height: viewport.height
         }))
     }
 
     function offsetToHex(offsetX: number, offsetY: number): HexType {
+        // FIXME: must account for viewport, now that it can be translated
+        //        would be more elegant to translate the grid instead...
+        // start: {col: viewport.col, row: viewport.row},
         const hexCoordinates = myGrid.pointToHex({x: offsetX, y: offsetY})
+        console.log('hexCoordinates', hexCoordinates)
         if (myGrid.hasHex(hexCoordinates)) {
             return hexCoordinates
         } else {

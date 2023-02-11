@@ -109,6 +109,7 @@ export default class Simulation {
     }
 
     get_cell_text(col: number, row: number): string {
+        console.log('get_cell_text:', col, row);
         return this.sim.cell_text(col, row)
     }
 

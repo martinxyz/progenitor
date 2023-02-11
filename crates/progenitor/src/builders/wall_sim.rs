@@ -82,7 +82,7 @@ pub struct Builders {
 
 // FIXME: Should calculate all this stuff, and also the viewport...
 //        But not here. In a new HexagonTile module.
-const RING_RADIUS: i32 = 18;
+const RING_RADIUS: i32 = 30;
 const TILE_WIDTH: i32 = RING_RADIUS * 3;
 const TILE_HEIGHT: i32 = RING_RADIUS * 2;
 
