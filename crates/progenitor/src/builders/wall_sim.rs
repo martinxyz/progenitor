@@ -92,6 +92,24 @@ const CENTER: coords::Offset = coords::Offset {
     row: TILE_HEIGHT / 2,
 };
 
+impl Simulation for Builders {
+    fn step(&mut self) {
+        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect();
+        for pos in builder_positions {
+            self.kick_dust(pos);
+        }
+        self.move_builders();
+    }
+
+    fn save_state(&self) -> Vec<u8> {
+        bincode::serialize(&self.state).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        self.state = bincode::deserialize_from(data).unwrap();
+    }
+}
+
 impl Builders {
     pub fn new_optimized() -> Builders {
         match optimized_params::load() {
@@ -182,36 +200,7 @@ impl Builders {
         }
     }
 
-    pub fn avg_visited(&self) -> f32 {
-        let total = self.state.visited.area();
-        let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
-        visited as f32 / total as f32
-    }
-
-    pub fn encounters(&self) -> i32 {
-        self.encounters
-    }
-
-    pub fn max_depth_reached(&self) -> i32 {
-        self.encounters
-    }
-
-    pub fn relative_wall_edges(&self) -> f32 {
-        let cells = &self.state.cells;
-        cells.count_edges(|cell| matches!(cell, Cell::Stone)) as f32 / cells.area() as f32
-    }
-
-    pub fn print_stats(&self) {
-        self.nn.print_stats();
-    }
-}
-
-impl Simulation for Builders {
-    fn step(&mut self) {
-        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect();
-        for pos in builder_positions {
-            self.kick_dust(pos);
-        }
+    fn move_builders(&mut self) {
         for t in self.state.builders.iter_mut() {
             // let action = self.agent.act(&mut self.state.rng).into();
             let look = |item: Cell, angle: Angle| {
@@ -313,12 +302,27 @@ impl Simulation for Builders {
         }
     }
 
-    fn save_state(&self) -> Vec<u8> {
-        bincode::serialize(&self.state).unwrap()
+    pub fn avg_visited(&self) -> f32 {
+        let total = self.state.visited.area();
+        let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
+        visited as f32 / total as f32
     }
 
-    fn load_state(&mut self, data: &[u8]) {
-        self.state = bincode::deserialize_from(data).unwrap();
+    pub fn encounters(&self) -> i32 {
+        self.encounters
+    }
+
+    pub fn max_depth_reached(&self) -> i32 {
+        self.encounters
+    }
+
+    pub fn relative_wall_edges(&self) -> f32 {
+        let cells = &self.state.cells;
+        cells.count_edges(|cell| matches!(cell, Cell::Stone)) as f32 / cells.area() as f32
+    }
+
+    pub fn print_stats(&self) {
+        self.nn.print_stats();
     }
 }
 
