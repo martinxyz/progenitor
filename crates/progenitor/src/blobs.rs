@@ -6,13 +6,13 @@ use rand::thread_rng;
 use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
-use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::CellView;
 use crate::DirectionSet;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
 
@@ -39,13 +39,13 @@ impl Default for Cell {
 #[derive(Serialize, Deserialize)]
 pub struct Blobs {
     cells: TorusTile<Cell>,
-    rng: rand_pcg::Lcg64Xsh32,
+    rng: SimRng,
 }
 
 impl Blobs {
     pub fn new() -> Self {
         let seed = thread_rng().next_u64();
-        let rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+        let rng = SimRng::seed_from_u64(seed);
         let mut cells = TorusTile::new(Cell::Empty);
 
         let size_half = (crate::SIZE / 2) as i32;

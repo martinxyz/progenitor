@@ -23,3 +23,7 @@ pub mod sim2;
 pub mod tumblers;
 pub mod turing;
 pub mod world1;
+
+pub type SimRng = rand_pcg::Lcg64Xsh32;
+// Xoshiro256PlusPlus is worth trying (some day). While less simple, it's faster
+// and just as good, and allows jumps (for parallel computations).

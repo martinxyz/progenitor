@@ -10,7 +10,6 @@ use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
-use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
@@ -18,6 +17,7 @@ use crate::coords;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 
 use super::nn;
@@ -64,7 +64,7 @@ struct State {
     visited: AxialTile<bool>,
     mass: AxialTile<u8>,
     builders: Vec<Builder>,
-    rng: rand_pcg::Lcg64Xsh32,
+    rng: SimRng,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -139,7 +139,7 @@ impl Builders {
     pub fn new_with_params(params: Params) -> Builders {
         let nn = nn::Network::new(&params.builder_weights, params.builder_hyperparams);
         let seed = thread_rng().next_u64();
-        let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+        let mut rng = SimRng::seed_from_u64(seed);
 
         let center: coords::Cube = CENTER.into();
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);

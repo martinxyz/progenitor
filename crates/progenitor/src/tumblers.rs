@@ -5,13 +5,13 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::RngCore;
 use rand::SeedableRng;
-use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 
 // Random walk test.
@@ -26,7 +26,7 @@ struct Tumbler {
 pub struct Tumblers {
     visited: AxialTile<bool>,
     tumblers: Vec<Tumbler>,
-    rng: rand_pcg::Lcg64Xsh32,
+    rng: SimRng,
     tumble_prob: f64,
 }
 
@@ -36,7 +36,7 @@ const TILE_HEIGHT: i32 = 29;
 impl Tumblers {
     pub fn new(tumble_prob: f64) -> Tumblers {
         let seed = thread_rng().next_u64();
-        let mut rng: rand_pcg::Lcg64Xsh32 = Pcg32::seed_from_u64(seed);
+        let mut rng = SimRng::seed_from_u64(seed);
         let center = coords::Offset {
             // would be easier in axial coordinates...
             col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
