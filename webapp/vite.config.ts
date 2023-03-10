@@ -8,7 +8,11 @@ export default defineConfig({
     plugins: [
         svelte(),
         wasm(),
-        topLevelAwait()
+        topLevelAwait(),
     ],
-    base: ""
+    base: "",
+    build: {
+        minify: true,
+        sourcemap: true,
+    }
 })
