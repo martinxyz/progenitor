@@ -24,43 +24,37 @@ export interface Rule {
     label: string,
     create: () => ProgenitorSimulation,
     load_map?: string,
+    default?: boolean,
 }
 
 export const rules: Rule[] = [{
-    label: '1 - simple pattern',
-    create: () => progenitor.demo_simple(),
-}, {
-    label: '2 - progenitor cells',
+    label: 'progenitor cells',
     create: () => progenitor.demo_progenitor(),
 }, {
-    label: '3 - noisy blobs',
-    create: () => progenitor.demo_blobs(),
-}, {
-    label: '4 - experiment results (select from map)',
+    label: 'experiment results (select from map)',
     create: () => progenitor.demo_map(),
     load_map: map_bins_url,
 }, {
-    label: '5 - sim2 - simple test',
+    label: 'sim2 - simple test',
     create: () => progenitor.demo_sim2(),
 }, {
-    label: '6 - turing drawings (select from map)',
+    label: 'turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
     load_map: turing_bins_url,
 }, {
-    label: '7 - tumblers (random walk)',
+    label: 'tumblers (random walk)',
     create: () => progenitor.demo_tumblers(),
 }, {
-    label: '8 - moving blobs',
+    label: 'moving blobs',
     create: () => progenitor.demo_moving_blobs(),
 }, {
-    label: '9 - builders (random nn)',
+    label: 'builders (random nn)',
     create: () => progenitor.demo_builders_random(),
 }, {
-    label: '10 - builders (optimized nn)',
+    label: 'builders (optimized nn)',
     create: () => progenitor.demo_builders_optimized(),
-}];
-
-export const default_rule_idx = 9
+    default: true,
+}]
 
 const steps_between_snapshots = 500
 

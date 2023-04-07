@@ -97,50 +97,6 @@ pub fn demo_progenitor() -> JsSimulation {
 }
 
 #[wasm_bindgen]
-pub fn demo_blobs() -> JsSimulation {
-    let mut sim = progenitor_world_with_seeds();
-    let types = &mut sim.types;
-
-    let mut ref_iterator = (0..255u8).map(CellTypeRef);
-    let mut new_ref = || ref_iterator.next().unwrap();
-
-    let genesis = new_ref();
-    let air = new_ref();
-    let wall = new_ref();
-    let pre_wall = new_ref();
-
-    types[genesis] = CellType {
-        priority: -128,
-        transform_at_random_p: 128,
-        transform_into: air,
-        grow_child_type: pre_wall,
-        grow_p: 2,
-        ..CellType::default()
-    };
-
-    types[air] = CellType {
-        priority: -1,
-        ..CellType::default()
-    };
-
-    types[pre_wall] = CellType {
-        priority: 19,
-        // initial_energy: 2,
-        transform_at_random_p: 128,
-        transform_into: wall,
-        grow_child_type: wall,
-        grow_p: 80,
-        ..CellType::default()
-    };
-    types[wall] = CellType {
-        priority: 20,
-        // initial_energy: 2,
-        ..CellType::default()
-    };
-    sim.into()
-}
-
-#[wasm_bindgen]
 pub fn demo_map() -> JsSimulation {
     let mut sim = progenitor_world_empty();
     let mut params = Params::default();
