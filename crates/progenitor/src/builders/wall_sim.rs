@@ -56,6 +56,7 @@ enum Cell {
     Border,
     Builder,
     Blob,
+    Blub(u8),
 }
 
 #[derive(Serialize, Deserialize)]
@@ -101,7 +102,7 @@ impl Simulation for Builders {
             self.kick_dust(pos);
         }
         self.move_builders();
-        self.move_blobs();
+        self.move_cells();
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -151,7 +152,7 @@ impl Builders {
                         false => Cell::Floor,
                         true => match rng.gen_bool(0.4) {
                             false => Cell::Stone,
-                            true => Cell::Blob,
+                            true => Cell::Blub(0),
                         },
                     },
                 );
@@ -308,50 +309,126 @@ impl Builders {
         }
     }
 
-    fn move_blobs(&mut self) {
-        let rng = &mut self.state.rng;
+    fn move_cells(&mut self) {
         for _ in 0..(TILE_WIDTH * TILE_HEIGHT) / 32 {
+            let rng = &mut self.state.rng;
             let x = rng.gen_range(0..TILE_WIDTH);
             let y = -x - rng.gen_range(0..TILE_WIDTH); // ugh.
             let pos = coords::Cube { x, y };
-            if let Some(Cell::Blob) = self.state.cells.cell(pos) {
-                let neighbours = self.state.cells.neighbours(pos);
-                let target = neighbours
-                    .iter()
-                    .filter_map(|(dir, cell)| {
-                        if matches!(cell, Some(Cell::Floor)) {
-                            // Check if moving to `dir` would break a link with another neighbour-blob.
-                            // Because we are currently connected to all 6 neighbours (if they are blob),
-                            // the resulting 6-ring must be a single connected blob (at most one gap).
-                            let neighbours_will_be_blob = neighbours.map(|(dir2, cell2)| {
-                                dir2 == *dir || matches!(cell2, Some(Cell::Blob))
-                            });
-                            let changes = {
-                                let mut n: u8 = 0;
-                                for i in 0..6 {
-                                    if neighbours_will_be_blob[i]
-                                        != neighbours_will_be_blob[(i + 1) % 6]
-                                    {
-                                        n += 1;
-                                    }
-                                }
-                                n
-                            };
-                            if changes <= 2 {
-                                Some(pos + *dir)
-                            } else {
-                                None
+            match self.state.cells.cell(pos) {
+                Some(Cell::Blob) => self.move_blob(pos),
+                Some(Cell::Blub(height)) => self.move_blub(pos, height),
+                _ => {}
+            }
+        }
+    }
+
+    fn move_blob(&mut self, pos: Coordinate) {
+        let rng = &mut self.state.rng;
+        let neighbours = self.state.cells.neighbours(pos);
+        let target = neighbours
+            .iter()
+            .filter_map(|(dir, cell)| {
+                if matches!(cell, Some(Cell::Floor)) {
+                    // Check if moving to `dir` would break a link with another neighbour-blob.
+                    // Because we are currently connected to all 6 neighbours (if they are blob),
+                    // the resulting 6-ring must be a single connected blob (at most one gap).
+                    let neighbours_will_be_blob = neighbours
+                        .map(|(dir2, cell2)| dir2 == *dir || matches!(cell2, Some(Cell::Blob)));
+                    let changes = {
+                        let mut n: u8 = 0;
+                        for i in 0..6 {
+                            if neighbours_will_be_blob[i] != neighbours_will_be_blob[(i + 1) % 6] {
+                                n += 1;
                             }
-                        } else {
-                            None
                         }
-                    })
-                    .choose(rng);
-                if let Some(target) = target {
-                    self.state.cells.set_cell(pos, Cell::Floor);
-                    self.state.cells.set_cell(target, Cell::Blob);
+                        n
+                    };
+                    if changes <= 2 {
+                        Some(pos + *dir)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .choose(rng);
+        if let Some(target) = target {
+            self.state.cells.set_cell(pos, Cell::Floor);
+            self.state.cells.set_cell(target, Cell::Blob);
+        }
+    }
+
+    fn move_blub(&mut self, pos: Coordinate, height: u8) {
+        let rng = &mut self.state.rng;
+        let neighbours = self.state.cells.neighbours(pos);
+        let target = neighbours.choose(rng).copied();
+        let (target_dir, target_cell) = match target {
+            Some((dir, Some(cell))) => (dir, cell),
+            _ => return,
+        };
+        match target_cell {
+            Cell::Floor => {
+                if height > 0 {
+                    self.state.cells.set_cell(pos, Cell::Blub(height - 1));
+                    self.state.cells.set_cell(pos + target_dir, Cell::Blub(0));
+                } else {
+                    // Check if moving to `dir` would break a link with another neighbour-blob.
+                    // Because we are currently connected to all 6 neighbours (if they are blob),
+                    // the resulting 6-ring must be a single connected blob (at most one gap).
+                    let neighbours_will_be_blub = neighbours.map(|(dir2, cell2)| {
+                        dir2 == target_dir || matches!(cell2, Some(Cell::Blub(_)))
+                    });
+                    let changes = {
+                        let mut n: u8 = 0;
+                        for i in 0..6 {
+                            if neighbours_will_be_blub[i] != neighbours_will_be_blub[(i + 1) % 6] {
+                                n += 1;
+                            }
+                        }
+                        n
+                    };
+                    if changes <= 2 {
+                        self.state.cells.set_cell(pos, Cell::Floor);
+                        self.state.cells.set_cell(pos + target_dir, Cell::Blub(0));
+                    }
                 }
             }
+            Cell::Blub(target_height) => {
+                if target_height < 255 {
+                    if height > 0 {
+                        self.state.cells.set_cell(pos, Cell::Blub(height - 1));
+                        self.state
+                            .cells
+                            .set_cell(pos + target_dir, Cell::Blub(target_height + 1));
+                    } else {
+                        // Check if moving to `dir` would break a link with another neighbour-blub.
+                        // Because we are currently connected to all 6 neighbours (if they are blub),
+                        // the resulting 6-ring must be a single connected blub (at most one gap).
+                        let neighbours_will_be_blub =
+                            neighbours.map(|(_, cell2)| matches!(cell2, Some(Cell::Blub(_))));
+                        let changes = {
+                            let mut n: u8 = 0;
+                            for i in 0..6 {
+                                if neighbours_will_be_blub[i]
+                                    != neighbours_will_be_blub[(i + 1) % 6]
+                                {
+                                    n += 1;
+                                }
+                            }
+                            n
+                        };
+                        if changes <= 2 {
+                            self.state.cells.set_cell(pos, Cell::Floor);
+                            self.state
+                                .cells
+                                .set_cell(pos + target_dir, Cell::Blub(target_height + 1));
+                        }
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -404,6 +481,8 @@ impl HexgridView for Builders {
             Cell::Border => 255,
             Cell::Builder => 0,
             Cell::Blob => 3,
+            Cell::Blub(0) => 3,
+            Cell::Blub(_) => 5,
         };
         Some(CellView {
             cell_type,
