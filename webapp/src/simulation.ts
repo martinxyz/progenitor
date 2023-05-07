@@ -45,9 +45,6 @@ export const rules: Rule[] = [{
     label: 'tumblers (random walk)',
     create: () => progenitor.demo_tumblers(),
 }, {
-    label: 'moving blobs',
-    create: () => progenitor.demo_moving_blobs(),
-}, {
     label: 'builders (random nn)',
     create: () => progenitor.demo_builders_random(),
 }, {
