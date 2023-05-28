@@ -6,16 +6,20 @@ authors = ["Martin Renold <martin@log2.ch>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.11"
+python = ">=3.11"
 # progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
-ribs = {extras = ["all"], git = "https://github.com/icaros-usc/pyribs.git", rev = "82864b6ef1312" }
+# ribs = {extras = ["all"], git = "https://github.com/icaros-usc/pyribs.git", rev = "82864b6ef1312" }  # commit-hash doesn't exist any more
+ribs = {extras = ["all"], version = "^0.5.1"}
 cma = "^3.2.2"
-ray = {extras = ["default", "tune"], version = "^2.0.1"}
+# ray = {extras = ["default", "tune"], version = "^2.4.0"}  # Ray 2.4 doesn't work with Python >= 3.11
+ray = {url = "https://s3-us-west-2.amazonaws.com/ray-wheels/latest/ray-3.0.0.dev0-cp311-cp311-manylinux2014_x86_64.whl"}
 scipy = "^1.9.1"
 matplotlib = "^3.5.3"
 
-[tool.poetry.dev-dependencies]
-maturin = "^0.13.2"
+[tool.poetry.group.dev.dependencies]
+tensorboard = "^2.13.0"
+maturin = "^1.0.1"
+ipython = "^8.13.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
