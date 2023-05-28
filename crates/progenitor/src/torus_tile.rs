@@ -59,12 +59,31 @@ impl<CellT: Copy> TorusTile<CellT> {
         }
     }
 
+    pub fn from_fn(mut cb: impl FnMut(coords::Cube) -> CellT) -> Self {
+        TorusTile {
+            data: Box::<[CellT; (SIZE * SIZE) as usize]>::new(core::array::from_fn(|idx| {
+                cb(Self::pos_from_index(idx))
+            })),
+        }
+    }
+
     // XXX this should take coords::Axial, etc.
     fn index(pos: coords::Cube) -> usize {
         // cube to axial (OPTIMIZE: for iteration we should use axial coordinates to begin with)
         let q = (pos.x as u32) % SIZE;
         let r = (pos.z() as u32) % SIZE;
         (r * SIZE + q) as usize
+    }
+
+    // XXX this should be simpler once we use coords::Axial or similar
+    fn pos_from_index(idx: usize) -> coords::Cube {
+        assert!(idx <= SIZE as usize * SIZE as usize);
+        let r = idx as u32 / SIZE;
+        let q = idx as u32 % SIZE;
+        coords::Cube {
+            x: q as i32,
+            y: -(q as i32) - (r as i32),
+        }
     }
 
     pub fn random_pos(&self, rng: &mut impl Rng) -> coords::Cube {

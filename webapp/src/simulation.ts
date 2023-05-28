@@ -35,8 +35,9 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_map(),
     load_map: map_bins_url,
 }, {
-    label: 'sim2 - simple test',
+    label: 'sim2 - sandbox',
     create: () => progenitor.demo_sim2(),
+    default: true,
 }, {
     label: 'turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
@@ -50,7 +51,6 @@ export const rules: Rule[] = [{
 }, {
     label: 'builders (optimized nn)',
     create: () => progenitor.demo_builders_optimized(),
-    default: true,
 }]
 
 const steps_between_snapshots = 500

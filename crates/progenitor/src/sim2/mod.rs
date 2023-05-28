@@ -7,24 +7,37 @@ use serde::{Deserialize, Serialize};
 use crate::coords;
 use crate::CellView;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
 use crate::{SIZE, VIEWPORT};
 
 #[derive(Serialize, Deserialize)]
 pub struct World {
-    alive: TorusTile<bool>,
-    rng: Pcg32,
+    sand: TorusTile<Cell>,
+    rng: SimRng,
+}
+
+#[derive(Clone, Copy, Serialize, Deserialize)]
+enum Cell {
+    Air,
+    Sand,
+    Grass,
 }
 
 impl World {
     pub fn new() -> World {
         let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
         World {
-            alive: (0..SIZE * SIZE)
-                .into_iter()
-                .map(|_| rng.gen_bool(0.03))
-                .collect(),
+            sand: TorusTile::from_fn(|pos| {
+                if pos.z() > SIZE as i32 - 3 {
+                    Cell::Grass
+                } else if rng.gen_bool(0.12) {
+                    Cell::Sand
+                } else {
+                    Cell::Air
+                }
+            }),
             rng,
         }
     }
@@ -32,15 +45,33 @@ impl World {
     pub fn seed(&mut self, seed: u64) {
         self.rng = Pcg32::seed_from_u64(seed);
     }
+
+    fn move_sand(&mut self, pos: coords::Cube) {
+        let dir = match self.rng.gen() {
+            false => coords::Direction::ZY,
+            true => coords::Direction::ZX,
+        };
+
+        let dst = pos + dir;
+        match self.sand.cell(dst) {
+            Cell::Air => {
+                self.sand.set_cell(pos, Cell::Air);
+                self.sand.set_cell(dst, Cell::Sand);
+            }
+            _ => {}
+        }
+    }
 }
 
 impl Simulation for World {
     fn step(&mut self) {
-        self.alive = self
-            .alive
-            .iter_radius_1()
-            .map(|(_center, neighbours)| neighbours.iter().any(|&(_, alive)| alive))
-            .collect();
+        for _ in 0..((SIZE * SIZE) / 2) as i32 {
+            let pos = self.sand.random_pos(&mut self.rng);
+            match self.sand.cell(pos) {
+                Cell::Sand => self.move_sand(pos),
+                _ => {}
+            }
+        }
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -56,9 +87,10 @@ impl Simulation for World {
 impl HexgridView for World {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         Some(CellView {
-            cell_type: match self.alive.cell(pos) {
-                false => 0,
-                true => 1,
+            cell_type: match self.sand.cell(pos) {
+                Cell::Air => 0,
+                Cell::Grass => 1,
+                Cell::Sand => 3,
             },
             ..Default::default()
         })
