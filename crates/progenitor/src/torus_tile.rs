@@ -1,4 +1,5 @@
 use crate::coords;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::iter::FromIterator;
 
@@ -64,6 +65,12 @@ impl<CellT: Copy> TorusTile<CellT> {
         let q = (pos.x as u32) % SIZE;
         let r = (pos.z() as u32) % SIZE;
         (r * SIZE + q) as usize
+    }
+
+    pub fn random_pos(&self, rng: &mut impl Rng) -> coords::Cube {
+        let x = rng.gen_range(0..SIZE as i32);
+        let y = -x - rng.gen_range(0..SIZE as i32); // ugh.
+        coords::Cube { x, y }
     }
 
     pub fn is_same_pos(&self, pos1: coords::Cube, pos2: coords::Cube) -> bool {

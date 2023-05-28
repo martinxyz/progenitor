@@ -309,10 +309,7 @@ impl Builders {
 
     fn move_cells(&mut self) {
         for _ in 0..(TILE_WIDTH * TILE_HEIGHT) / 32 {
-            let rng = &mut self.state.rng;
-            let x = rng.gen_range(0..TILE_WIDTH);
-            let y = -x - rng.gen_range(0..TILE_WIDTH); // ugh.
-            let pos = coords::Cube { x, y };
+            let pos = self.state.cells.random_pos(&mut self.state.rng);
             match self.state.cells.cell(pos) {
                 Some(Cell::Blob(height)) => self.move_blob(pos, height),
                 _ => {}

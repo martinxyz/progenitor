@@ -1,5 +1,6 @@
 use crate::coords::{self, Cube};
 use hex2d::Direction;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -79,6 +80,12 @@ impl<CellT: Copy> AxialTile<CellT> {
 
     pub fn area(&self) -> i32 {
         self.width * self.height
+    }
+
+    pub fn random_pos(&self, rng: &mut impl Rng) -> Cube {
+        let x = rng.gen_range(0..self.width as i32);
+        let y = -x - rng.gen_range(0..self.height as i32); // ugh.
+        Cube { x, y }
     }
 
     pub fn iter_valid_neighbourhoods(&self) -> impl Iterator<Item = Neighbourhood<CellT>> + '_ {
