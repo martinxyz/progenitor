@@ -88,7 +88,7 @@ export default class Simulation {
         if (this.snapshot2[0] <= step) snapshot = this.snapshot2
         let count = step - snapshot[0]
         if (count < 0) return
-        console.log(`replaying {count} steps`)
+        console.log(`replaying ${count} steps`)
 
         this.sim.import_snapshot(snapshot[1])
         this.sim.steps(count)
