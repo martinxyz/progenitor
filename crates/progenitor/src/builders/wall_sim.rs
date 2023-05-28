@@ -400,7 +400,7 @@ impl Builders {
     }
 
     pub fn max_depth_reached(&self) -> i32 {
-        self.encounters
+        self.max_depth_reached
     }
 
     pub fn relative_wall_edges(&self) -> f32 {

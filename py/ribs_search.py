@@ -10,9 +10,18 @@ from ribs.schedulers import Scheduler
 
 import progenitor
 
+def get_params(x, config):
+    Params = progenitor.mod.Params
+    hyperparams = {
+        "init_fac": config["init_fac"],
+        "bias_fac": config["bias_fac"]
+    }
+    return Params(x, **hyperparams)
+
 @ray.remote
 def evaluate(x):
     Builders = progenitor.mod.Builders
+    Params = progenitor.mod.Params
     episodes=100
 
     hyperparams = {
@@ -24,12 +33,14 @@ def evaluate(x):
     bc1 = 0.0
     bc2 = 0.0
     for _ in range(episodes):
-        sim = Builders(x, **hyperparams)
+        params = Params(x, **hyperparams)
+        sim = Builders(params)
+
         sim.steps(20)
         bc1 += sim.avg_visited()
         sim.steps(980)
         bc2 += np.log(sim.encounters() + 100)
-        score += sim.score()
+        score += sim.max_depth_reached()
 
     score = score / episodes
     bc1 = bc1 / episodes

@@ -83,8 +83,8 @@ impl<CellT: Copy> AxialTile<CellT> {
     }
 
     pub fn random_pos(&self, rng: &mut impl Rng) -> Cube {
-        let x = rng.gen_range(0..self.width as i32);
-        let y = -x - rng.gen_range(0..self.height as i32); // ugh.
+        let x = rng.gen_range(0..self.width);
+        let y = -x - rng.gen_range(0..self.height); // ugh.
         Cube { x, y }
     }
 
