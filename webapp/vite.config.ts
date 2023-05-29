@@ -6,7 +6,8 @@ import topLevelAwait from "vite-plugin-top-level-await";
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [
-        svelte(),
+        // hot-reload breaks when the wasm module got recompiled
+        svelte({hot: false}),
         wasm(),
         topLevelAwait(),
     ],
