@@ -1,4 +1,3 @@
-#![feature(array_zip)]
 use progenitor::world1::{rules, Cell, CellTypeRef, Params, World};
 use progenitor::Simulation;
 use rand::prelude::IteratorRandom;
@@ -38,7 +37,12 @@ where
     (0..repetitions)
         .map(|_| run())
         .map(calculate_features)
-        .reduce(|a, b| a.zip(b).map(FeatureAccumulator::merge))
+        .reduce(|a, b| {
+            [
+                FeatureAccumulator::merge(a[0], b[0]),
+                FeatureAccumulator::merge(a[1], b[1]),
+            ]
+        })
         .unwrap()
         .map(|fa| fa.into())
 }

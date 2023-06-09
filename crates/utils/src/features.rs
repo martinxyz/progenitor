@@ -13,7 +13,7 @@ impl FeatureAccumulator {
         self.acc += value as i64;
         self.n += weight as u32;
     }
-    pub fn merge((fa1, fa2): (Self, Self)) -> Self {
+    pub fn merge(fa1: Self, fa2: Self) -> Self {
         Self {
             acc: fa1.acc + fa2.acc,
             n: fa1.n + fa2.n,
