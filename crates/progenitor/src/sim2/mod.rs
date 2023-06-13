@@ -1,3 +1,5 @@
+use hex2d::Direction;
+use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
 use rand::SeedableRng;
@@ -18,7 +20,7 @@ pub struct World {
     rng: SimRng,
 }
 
-#[derive(Clone, Copy, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 enum Cell {
     Air,
     Sand,
@@ -46,32 +48,42 @@ impl World {
         self.rng = Pcg32::seed_from_u64(seed);
     }
 
-    fn move_sand(&mut self, pos: coords::Cube) {
-        let dir = match self.rng.gen() {
-            false => coords::Direction::ZY,
-            true => coords::Direction::ZX,
-        };
-
-        let dst = pos + dir;
-        match self.sand.cell(dst) {
-            Cell::Air => {
-                self.sand.set_cell(pos, Cell::Air);
-                self.sand.set_cell(dst, Cell::Sand);
-            }
-            _ => {}
-        }
+    fn step_ca_sand(&mut self) {
+        let transactions: TorusTile<(Cell, Direction)> = self
+            .sand
+            .iter_cells()
+            .map(|&cell| (cell, *Direction::all().choose(&mut self.rng).unwrap()))
+            .collect();
+        self.sand = transactions
+            .iter_radius_1()
+            .map(|(center, neighbours)| {
+                let dir = center.1;
+                let (_, (neigh, dir2)) = neighbours[center.1 as usize];
+                let mut should_swap = false;
+                if dir == -dir2 {
+                    // "should_swap" must be symmetric (the other cell must reach the same conclusion)
+                    // So we just check both ways (...can we make a helper function or something?)
+                    for (cell0, dir, cell1) in [(center.0, dir, neigh), (neigh, -dir, center.0)] {
+                        if cell0 == Cell::Sand && cell1 == Cell::Air {
+                            if dir == Direction::ZY {
+                                should_swap = true;
+                            }
+                        }
+                    }
+                }
+                if should_swap {
+                    neigh
+                } else {
+                    center.0
+                }
+            })
+            .collect();
     }
 }
 
 impl Simulation for World {
     fn step(&mut self) {
-        for _ in 0..((SIZE * SIZE) / 2) as i32 {
-            let pos = self.sand.random_pos(&mut self.rng);
-            match self.sand.cell(pos) {
-                Cell::Sand => self.move_sand(pos),
-                _ => {}
-            }
-        }
+        self.step_ca_sand()
     }
 
     fn save_state(&self) -> Vec<u8> {
