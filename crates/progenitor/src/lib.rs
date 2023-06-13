@@ -17,8 +17,8 @@ pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWP
 
 // simulations
 pub mod builders;
+pub mod falling_sand;
 pub mod sim1;
-pub mod sim2;
 pub mod tumblers;
 pub mod turing;
 pub mod world1;

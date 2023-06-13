@@ -35,8 +35,8 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_map(),
     load_map: map_bins_url,
 }, {
-    label: 'sim2 - sandbox',
-    create: () => progenitor.demo_sim2(),
+    label: 'falling sand (CA)',
+    create: () => progenitor.demo_falling_sand(),
     default: true,
 }, {
     label: 'turing drawings (select from map)',

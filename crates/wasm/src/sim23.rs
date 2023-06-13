@@ -2,11 +2,11 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{builders, sim2, tumblers, turing};
+use progenitor::{builders, falling_sand, tumblers, turing};
 
 #[wasm_bindgen]
-pub fn demo_sim2() -> JsSimulation {
-    let sim = sim2::World::new();
+pub fn demo_falling_sand() -> JsSimulation {
+    let sim = falling_sand::World::new();
     sim.into()
 }
 
