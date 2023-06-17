@@ -15,6 +15,9 @@ mod torus_tile;
 pub use axial_tile::AxialTile;
 pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWPORT};
 
+// shared simulation behaviour
+mod ca;
+
 // simulations
 pub mod builders;
 pub mod falling_sand;

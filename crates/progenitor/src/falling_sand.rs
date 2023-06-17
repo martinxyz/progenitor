@@ -6,6 +6,7 @@ use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
+use crate::ca;
 use crate::coords;
 use crate::CellView;
 use crate::HexgridView;
@@ -60,91 +61,88 @@ impl World {
     pub fn seed(&mut self, seed: u64) {
         self.rng = Pcg32::seed_from_u64(seed);
     }
+}
 
-    fn step_ca(&mut self) {
-        fn random_down(rng: &mut impl Rng) -> Direction {
-            [Direction::ZY, Direction::ZX]
+fn random_down(rng: &mut impl Rng) -> Direction {
+    [Direction::ZY, Direction::ZX]
+        .into_iter()
+        .choose(rng)
+        .unwrap()
+}
+
+fn random_dust_dir(rng: &mut impl Rng) -> Direction {
+    if rng.gen_bool(0.2) {
+        random_down(rng)
+    } else {
+        Direction::all().into_iter().copied().choose(rng).unwrap()
+    }
+}
+
+fn rule(local: ca::Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
+    match local.center {
+        Cell::Air => {
+            if let Some(coming_from) = local
+                .neighbours
                 .into_iter()
+                .filter_map(|(dir2, neigh)| {
+                    if let Cell::Sand(state) = neigh {
+                        if let Some(dir) = state.move_attempt {
+                            if dir == -dir2 {
+                                return Some((dir2, state));
+                            }
+                        }
+                    }
+                    None
+                })
                 .choose(rng)
-                .unwrap()
-        }
-
-        fn random_dust_dir(rng: &mut impl Rng) -> Direction {
-            if rng.gen_bool(0.2) {
-                random_down(rng)
+            {
+                Cell::Sand(SandState {
+                    dust: coming_from.1.dust,
+                    coming_from: Some(coming_from.0),
+                    move_attempt: Some((if coming_from.1.dust {
+                        random_dust_dir
+                    } else {
+                        random_down
+                    })(rng)),
+                })
             } else {
-                Direction::all().into_iter().copied().choose(rng).unwrap()
+                local.center
             }
         }
+        Cell::Sand(state) => {
+            let successfully_moved: bool =
+                local.neighbours.iter().any(|(dir2, neigh)| match neigh {
+                    Cell::Sand(SandState {
+                        coming_from: Some(dir),
+                        ..
+                    }) => *dir == -*dir2,
+                    _ => false,
+                });
+            if successfully_moved {
+                Cell::Air
+            } else {
+                Cell::Sand(SandState {
+                    dust: state.dust,
+                    coming_from: None,
+                    move_attempt: match state.move_attempt {
+                        None => Some((if state.dust {
+                            random_dust_dir
+                        } else {
+                            random_down
+                        })(rng)),
 
-        self.cells = self
-            .cells
-            .iter_radius_1()
-            .map(|(center, neighbours)| match center {
-                Cell::Air => {
-                    if let Some(coming_from) = neighbours
-                        .into_iter()
-                        .filter_map(|(dir2, neigh)| {
-                            if let Cell::Sand(state) = neigh {
-                                if let Some(dir) = state.move_attempt {
-                                    if dir == -dir2 {
-                                        return Some((dir2, state));
-                                    }
-                                }
-                            }
-                            None
-                        })
-                        .choose(&mut self.rng)
-                    {
-                        Cell::Sand(SandState {
-                            dust: coming_from.1.dust,
-                            coming_from: Some(coming_from.0),
-                            move_attempt: Some((if coming_from.1.dust {
-                                random_dust_dir
-                            } else {
-                                random_down
-                            })(&mut self.rng)),
-                        })
-                    } else {
-                        center
-                    }
-                }
-                Cell::Sand(state) => {
-                    let successfully_moved: bool =
-                        neighbours.iter().any(|(dir2, neigh)| match neigh {
-                            Cell::Sand(SandState {
-                                coming_from: Some(dir),
-                                ..
-                            }) => *dir == -*dir2,
-                            _ => false,
-                        });
-                    if successfully_moved {
-                        Cell::Air
-                    } else {
-                        Cell::Sand(SandState {
-                            dust: state.dust,
-                            coming_from: None,
-                            move_attempt: match state.move_attempt {
-                                None => Some((if state.dust {
-                                    random_dust_dir
-                                } else {
-                                    random_down
-                                })(&mut self.rng)),
-
-                                Some(_) => None,
-                            },
-                        })
-                    }
-                }
-                Cell::Grass => center,
-            })
-            .collect();
+                        Some(_) => None,
+                    },
+                })
+            }
+        }
+        Cell::Grass => local.center,
     }
 }
 
 impl Simulation for World {
     fn step(&mut self) {
-        self.step_ca()
+        self.cells = ca::step(&self.cells, |local| rule(local, &mut self.rng));
     }
 
     fn save_state(&self) -> Vec<u8> {
