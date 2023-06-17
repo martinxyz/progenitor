@@ -74,16 +74,15 @@ fn random_dust_dir(rng: &mut impl Rng) -> Direction {
     if rng.gen_bool(0.2) {
         random_down(rng)
     } else {
-        Direction::all().into_iter().copied().choose(rng).unwrap()
+        Direction::all().iter().copied().choose(rng).unwrap()
     }
 }
 
-fn rule(local: ca::Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
-    match local.center {
+fn rule(center: Cell, neighbours: ca::Neighbours<Cell>, rng: &mut impl Rng) -> Cell {
+    match center {
         Cell::Air => {
-            if let Some(coming_from) = local
-                .neighbours
-                .into_iter()
+            if let Some(coming_from) = neighbours
+                .iter()
                 .filter_map(|(dir2, neigh)| {
                     if let Cell::Sand(state) = neigh {
                         if let Some(dir) = state.move_attempt {
@@ -106,18 +105,17 @@ fn rule(local: ca::Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
                     })(rng)),
                 })
             } else {
-                local.center
+                center
             }
         }
         Cell::Sand(state) => {
-            let successfully_moved: bool =
-                local.neighbours.iter().any(|(dir2, neigh)| match neigh {
-                    Cell::Sand(SandState {
-                        coming_from: Some(dir),
-                        ..
-                    }) => *dir == -*dir2,
-                    _ => false,
-                });
+            let successfully_moved: bool = neighbours.iter().any(|(dir2, neigh)| match neigh {
+                Cell::Sand(SandState {
+                    coming_from: Some(dir),
+                    ..
+                }) => dir == -dir2,
+                _ => false,
+            });
             if successfully_moved {
                 Cell::Air
             } else {
@@ -136,13 +134,15 @@ fn rule(local: ca::Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
                 })
             }
         }
-        Cell::Grass => local.center,
+        Cell::Grass => center,
     }
 }
 
 impl Simulation for World {
     fn step(&mut self) {
-        self.cells = ca::step(&self.cells, |local| rule(local, &mut self.rng));
+        self.cells = ca::step(&self.cells, |center, neighbours| {
+            rule(center, neighbours, &mut self.rng)
+        });
     }
 
     fn save_state(&self) -> Vec<u8> {
