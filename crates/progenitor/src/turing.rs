@@ -1,4 +1,3 @@
-use hex2d::Direction;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
@@ -8,6 +7,7 @@ use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
+use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
 use crate::Simulation;

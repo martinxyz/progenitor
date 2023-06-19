@@ -1,4 +1,4 @@
-use hex2d::Direction;
+use coords::Direction;
 use serde::Serialize;
 
 use crate::coords;
@@ -30,7 +30,7 @@ pub trait HexgridView {
             lines.push(format!("Energy: {}", e));
         }
         if let Some(dir) = cv.direction {
-            lines.push(format!("Direction: {}", coords::compass_str(dir)));
+            lines.push(format!("Direction: {}", dir.name_long()));
         }
         Some(lines.join("\n"))
     }

@@ -1,6 +1,5 @@
 use hex2d::Angle;
 use hex2d::Coordinate;
-use hex2d::Direction;
 use hex2d::Spin;
 use nalgebra::SVector;
 use rand::prelude::SliceRandom;
@@ -13,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_big_array::BigArray;
 
 use crate::coords;
+use crate::coords::Direction;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
@@ -143,7 +143,7 @@ impl Builders {
         let center: coords::Cube = CENTER.into();
         let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
         for radius in 0..RING_RADIUS {
-            for pos in center.ring_iter(radius, Spin::CCW(Direction::XY)) {
+            for pos in center.ring_iter(radius, Spin::CCW(Direction::East.into())) {
                 cells.set_cell(
                     pos,
                     match rng.gen_bool(0.25) {
@@ -182,7 +182,7 @@ impl Builders {
         let mut pos = pos;
         while self.state.cells.cell(pos) != Some(Cell::Floor) {
             heading = *Direction::all().choose(rng).unwrap();
-            pos = pos + heading;
+            pos = pos + hex2d::Direction::from(heading);
         }
         self.state.cells.set_cell(pos, Cell::Builder);
         self.state.builders.push(Builder { pos, heading });
@@ -310,6 +310,7 @@ impl Builders {
     fn move_cells(&mut self) {
         for _ in 0..(TILE_WIDTH * TILE_HEIGHT) / 32 {
             let pos = self.state.cells.random_pos(&mut self.state.rng);
+            #[allow(clippy::single_match)]
             match self.state.cells.cell(pos) {
                 Some(Cell::Blob(height)) => self.move_blob(pos, height),
                 _ => {}

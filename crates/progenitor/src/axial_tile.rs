@@ -1,5 +1,4 @@
-use crate::coords::{self, Cube};
-use hex2d::Direction;
+use crate::coords::{self, Cube, Direction};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -144,7 +143,7 @@ mod tests {
 
     #[test]
     fn test_count_edges() {
-        for &offset in Direction::all() {
+        for offset in Direction::all() {
             let mut cells = AxialTile::new(20, 30, 0);
             let center: Cube = Offset { col: 5, row: 5 }.into();
             cells.set_cell(center, 1);

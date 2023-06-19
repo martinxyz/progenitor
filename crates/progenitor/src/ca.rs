@@ -1,8 +1,7 @@
 //! Cellular Automata Helpers
 
-use hex2d::Direction;
+use crate::coords::Direction;
 
-use crate::coords;
 use crate::TorusTile;
 
 pub fn step<Cell: Copy>(

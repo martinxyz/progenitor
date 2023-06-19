@@ -1,11 +1,13 @@
 //! Hex coordinate conversions
 //!
-//! All hexagons are "pointy topped".
+//! All hexagons are "pointy topped". We use axial coordinates (q, r).
+//! Incrementing q moves right (east). Incrementing r moves buttom-down (south-east).
 //!
 //! Conventions follow the redblobgames
 //! [hexagons](https://www.redblobgames.com/grids/hexagons/) article.
 
 use serde::{Deserialize, Serialize};
+use std::ops::{Add, Sub};
 
 /// Cube coordinates
 ///
@@ -17,18 +19,131 @@ pub use hex2d::Coordinate as Cube;
 
 /// One of the 6 directions
 ///
-/// Re-exported from the [hex2d](https://crates.io/crates/hex2d) crate:
+/// Compass names, assuming pointy-top hexagons.
 ///
-pub use hex2d::Direction;
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Serialize, Deserialize)]
+pub enum Direction {
+    NorthWest,
+    NorthEast,
+    East,
+    SouthEast,
+    SouthWest,
+    West,
+}
 
-pub fn compass_str(dir: Direction) -> &'static str {
-    match dir {
-        Direction::YZ => "NW",
-        Direction::XZ => "NE",
-        Direction::XY => "E",
-        Direction::ZY => "SE",
-        Direction::ZX => "SW",
-        Direction::YX => "W",
+const ALL_DIRECTIONS: [Direction; 6] = [
+    Direction::NorthWest,
+    Direction::NorthEast,
+    Direction::East,
+    Direction::SouthEast,
+    Direction::SouthWest,
+    Direction::West,
+];
+
+impl From<Direction> for hex2d::Direction {
+    fn from(value: Direction) -> Self {
+        match value {
+            Direction::NorthWest => hex2d::Direction::YZ,
+            Direction::NorthEast => hex2d::Direction::XZ,
+            Direction::East => hex2d::Direction::XY,
+            Direction::SouthEast => hex2d::Direction::ZY,
+            Direction::SouthWest => hex2d::Direction::ZX,
+            Direction::West => hex2d::Direction::YX,
+        }
+    }
+}
+
+impl From<hex2d::Direction> for Direction {
+    fn from(value: hex2d::Direction) -> Self {
+        match value {
+            hex2d::Direction::YZ => Direction::NorthWest,
+            hex2d::Direction::XZ => Direction::NorthEast,
+            hex2d::Direction::XY => Direction::East,
+            hex2d::Direction::ZY => Direction::SouthEast,
+            hex2d::Direction::ZX => Direction::SouthWest,
+            hex2d::Direction::YX => Direction::West,
+        }
+    }
+}
+
+impl Add<Direction> for hex2d::Coordinate {
+    type Output = Self;
+    fn add(self, rhs: Direction) -> Self::Output {
+        self + hex2d::Direction::from(rhs)
+    }
+}
+impl Sub<Direction> for hex2d::Coordinate {
+    type Output = Self;
+    fn sub(self, rhs: Direction) -> Self::Output {
+        self + hex2d::Direction::from(-rhs)
+    }
+}
+
+// note: hex2d::Direction doesn't implement Sub
+impl Add<hex2d::Angle> for Direction {
+    type Output = Direction;
+    fn add(self, rhs: hex2d::Angle) -> Self::Output {
+        hex2d::Direction::add(self.into(), rhs).into()
+    }
+}
+
+impl TryFrom<i32> for Direction {
+    type Error = ();
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            x if x == Direction::NorthWest as i32 => Ok(Direction::NorthWest),
+            x if x == Direction::NorthEast as i32 => Ok(Direction::NorthEast),
+            x if x == Direction::East as i32 => Ok(Direction::East),
+            x if x == Direction::SouthEast as i32 => Ok(Direction::SouthEast),
+            x if x == Direction::SouthWest as i32 => Ok(Direction::SouthWest),
+            x if x == Direction::West as i32 => Ok(Direction::West),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Direction {
+    pub fn all() -> [Direction; 6] {
+        ALL_DIRECTIONS
+    }
+
+    pub fn name_short(&self) -> &str {
+        match self {
+            Direction::NorthWest => "NW",
+            Direction::NorthEast => "NE",
+            Direction::East => "E",
+            Direction::SouthEast => "SE",
+            Direction::SouthWest => "SW",
+            Direction::West => "W",
+        }
+    }
+    pub fn name_long(&self) -> &str {
+        match self {
+            Direction::NorthWest => "NorthWest",
+            Direction::NorthEast => "NorthEast",
+            Direction::East => "East",
+            Direction::SouthEast => "SouthEast",
+            Direction::SouthWest => "SouthWest",
+            Direction::West => "West",
+        }
+    }
+
+    pub fn from_int(i: i32) -> Direction {
+        i.rem_euclid(6).try_into().unwrap()
+    }
+}
+
+impl std::ops::Neg for Direction {
+    type Output = Direction;
+    fn neg(self) -> Direction {
+        match self {
+            Direction::NorthWest => Direction::SouthEast,
+            Direction::NorthEast => Direction::SouthWest,
+            Direction::East => Direction::West,
+            Direction::SouthEast => Direction::NorthWest,
+            Direction::SouthWest => Direction::NorthEast,
+            Direction::West => Direction::East,
+        }
     }
 }
 
@@ -42,19 +157,19 @@ pub fn compass_str(dir: Direction) -> &'static str {
 /// use progenitor::{DirectionSet, Direction};
 ///
 /// let all = DirectionSet::all();
-/// assert!(all.contains(Direction::XZ));
+/// assert!(all.contains(Direction::NE));
 ///
 /// let none = DirectionSet::none();
-/// assert!(!none.contains(Direction::XZ));
+/// assert!(!none.contains(Direction::NE));
 ///
-/// let single = DirectionSet::single(Direction::XZ);
-/// assert!(single.contains(Direction::XZ));
-/// assert!(!single.contains(Direction::XY));
+/// let single = DirectionSet::single(Direction::NE);
+/// assert!(single.contains(Direction::NE));
+/// assert!(!single.contains(Direction::E));
 ///
-/// let some = DirectionSet::matching(|d| d == Direction::XY || d == Direction::YZ);
-/// assert!(some.contains(Direction::XY));
-/// assert!(some.contains(Direction::YZ));
-/// assert!(!some.contains(Direction::XZ));
+/// let some = DirectionSet::matching(|d| d == Direction::E || d == Direction::NW);
+/// assert!(some.contains(Direction::E));
+/// assert!(some.contains(Direction::NW));
+/// assert!(!some.contains(Direction::NE));
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 // #[serde(transparent)]

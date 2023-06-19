@@ -23,7 +23,7 @@ impl Default for Cell {
         Cell {
             cell_type: CellTypeRef(0),
             energy: 0,
-            direction: Direction::YZ,
+            direction: Direction::NorthWest,
             particles: DirectionSet::none(),
         }
     }

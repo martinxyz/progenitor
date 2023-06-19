@@ -1,4 +1,3 @@
-use hex2d::Direction;
 use rand::seq::IteratorRandom;
 use rand::thread_rng;
 use rand::Rng;
@@ -8,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::ca;
 use crate::coords;
+use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
 use crate::SimRng;
@@ -64,7 +64,7 @@ impl World {
 }
 
 fn random_down(rng: &mut impl Rng) -> Direction {
-    [Direction::ZY, Direction::ZX]
+    [Direction::SouthEast, Direction::SouthWest]
         .into_iter()
         .choose(rng)
         .unwrap()
