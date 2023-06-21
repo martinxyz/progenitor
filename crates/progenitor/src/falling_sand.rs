@@ -80,11 +80,13 @@ impl World {
             cells: TorusTile::from_fn(|pos| {
                 if pos.z() > SIZE as i32 - 3 {
                     Cell::Grass
+                } else if pos.z() < 5 {
+                    Cell::Sand
                 } else if rng.gen_bool(0.01) {
                     Cell::Dust(None)
-                } else if rng.gen_bool(0.2) {
+                } else if rng.gen_bool(0.02) {
                     Cell::Sand
-                } else if rng.gen_bool(0.15) {
+                } else if pos.z() > 20 && pos.z() < 24 && rng.gen_bool(0.6) {
                     Cell::Grass
                 } else {
                     Cell::Air
