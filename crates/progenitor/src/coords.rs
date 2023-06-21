@@ -157,19 +157,19 @@ impl std::ops::Neg for Direction {
 /// use progenitor::{DirectionSet, Direction};
 ///
 /// let all = DirectionSet::all();
-/// assert!(all.contains(Direction::NE));
+/// assert!(all.contains(Direction::NorthEast));
 ///
 /// let none = DirectionSet::none();
-/// assert!(!none.contains(Direction::NE));
+/// assert!(!none.contains(Direction::NorthEast));
 ///
-/// let single = DirectionSet::single(Direction::NE);
-/// assert!(single.contains(Direction::NE));
-/// assert!(!single.contains(Direction::E));
+/// let single = DirectionSet::single(Direction::NorthEast);
+/// assert!(single.contains(Direction::NorthEast));
+/// assert!(!single.contains(Direction::East));
 ///
-/// let some = DirectionSet::matching(|d| d == Direction::E || d == Direction::NW);
-/// assert!(some.contains(Direction::E));
-/// assert!(some.contains(Direction::NW));
-/// assert!(!some.contains(Direction::NE));
+/// let some = DirectionSet::matching(|d| d == Direction::East || d == Direction::NorthWest);
+/// assert!(some.contains(Direction::East));
+/// assert!(some.contains(Direction::NorthWest));
+/// assert!(!some.contains(Direction::NorthEast));
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 // #[serde(transparent)]
