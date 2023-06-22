@@ -1,6 +1,5 @@
 use hex2d::Angle;
 use hex2d::Coordinate;
-use hex2d::Spin;
 use nalgebra::SVector;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
@@ -13,6 +12,7 @@ use serde_big_array::BigArray;
 
 use crate::coords;
 use crate::coords::Direction;
+use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
@@ -81,17 +81,7 @@ pub struct Builders {
     pub encounters: i32,
 }
 
-// FIXME: Should calculate all this stuff, and also the viewport...
-//        But not here. In a new HexagonTile module.
-const RING_RADIUS: i32 = 20;
-const TILE_WIDTH: i32 = RING_RADIUS * 3;
-const TILE_HEIGHT: i32 = RING_RADIUS * 2;
-
-const CENTER: coords::Offset = coords::Offset {
-    // would be easier in axial coordinates...
-    col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
-    row: TILE_HEIGHT / 2,
-};
+const RING_RADIUS: i32 = 17;
 
 impl Simulation for Builders {
     fn step(&mut self) {
@@ -140,28 +130,19 @@ impl Builders {
         let seed = thread_rng().next_u64();
         let mut rng = SimRng::seed_from_u64(seed);
 
-        let center: coords::Cube = CENTER.into();
-        let mut cells = AxialTile::new(TILE_WIDTH, TILE_HEIGHT, Cell::Border);
-        for radius in 0..RING_RADIUS {
-            for pos in center.ring_iter(radius, Spin::CCW(Direction::East.into())) {
-                cells.set_cell(
-                    pos,
-                    match rng.gen_bool(0.25) {
-                        false => Cell::Floor,
-                        true => match rng.gen_bool(0.4) {
-                            false => Cell::Stone,
-                            true => Cell::Blob(0),
-                        },
-                    },
-                );
-            }
-        }
+        let cells = hexmap::new(RING_RADIUS, Cell::Border, |_| match rng.gen_bool(0.25) {
+            false => Cell::Floor,
+            true => match rng.gen_bool(0.4) {
+                false => Cell::Stone,
+                true => Cell::Blob(0),
+            },
+        });
         let mut builders = Builders {
             nn,
             state: State {
-                visited: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, false),
+                visited: hexmap::new(RING_RADIUS, false, |_| false),
                 cells,
-                mass: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, 2),
+                mass: hexmap::new(RING_RADIUS, 2, |_| 2),
                 builders: Vec::new(),
                 rng,
             },
@@ -169,6 +150,7 @@ impl Builders {
             encounters: 0,
         };
 
+        let center = hexmap::center(RING_RADIUS);
         for _ in 0..5 {
             builders.add_builder(center);
         }
@@ -302,13 +284,13 @@ impl Builders {
                 }
             }
             self.state.visited.set_cell(t.pos, true);
-            let center: coords::Cube = CENTER.into();
+            let center: coords::Cube = hexmap::center(RING_RADIUS);
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
         }
     }
 
     fn move_cells(&mut self) {
-        for _ in 0..(TILE_WIDTH * TILE_HEIGHT) / 32 {
+        for _ in 0..(RING_RADIUS * RING_RADIUS) / 32 {
             let pos = self.state.cells.random_pos(&mut self.state.rng);
             #[allow(clippy::single_match)]
             match self.state.cells.cell(pos) {
@@ -416,11 +398,6 @@ impl Builders {
 
 impl HexgridView for Builders {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        let pos = coords::Cube {
-            // hack to translate web UI the viewport a bit
-            x: pos.x + 12,
-            y: pos.y - 12,
-        };
         // xxx inefficient when this gets called for all cells...
         for t in self.state.builders.iter() {
             if pos == t.pos {
@@ -449,10 +426,6 @@ impl HexgridView for Builders {
     }
 
     fn viewport_hint(&self) -> coords::Rectangle {
-        coords::Rectangle {
-            pos: coords::Cube { x: 6, y: -7 }, // should calculate...
-            width: RING_RADIUS * 2 - 1,
-            height: RING_RADIUS * 2 - 1,
-        }
+        hexmap::viewport(RING_RADIUS)
     }
 }

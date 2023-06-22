@@ -31,8 +31,8 @@ fn geometry(radius: i32) -> TileGeometry {
         width,
         height,
         center: coords::Cube {
-            x: width / 2 as i32,
-            y: -(width / 2 as i32) - (height / 2 as i32),
+            x: width / 2,
+            y: -width / 2 - height / 2,
         },
     }
 }
