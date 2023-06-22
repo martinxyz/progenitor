@@ -67,7 +67,7 @@ RUSTFLAGS="-C target-cpu=native" \
 Then run one of the experiments:
 
 ```
-poetry run py/tumbler-search.py
+poetry run py/tumbler_search.py
 ```
 
 As an alternative, it is possible to build the Python module without using

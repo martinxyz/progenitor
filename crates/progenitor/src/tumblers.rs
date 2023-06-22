@@ -31,7 +31,7 @@ pub struct Tumblers {
     tumble_prob: f64,
 }
 
-const RADIUS: i32 = 9;
+const RADIUS: i32 = 12;
 
 impl Tumblers {
     pub fn new(tumble_prob: f64) -> Tumblers {
