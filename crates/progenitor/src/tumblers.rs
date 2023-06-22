@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::coords::Direction;
+use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
@@ -24,30 +25,24 @@ struct Tumbler {
 
 #[derive(Serialize, Deserialize)]
 pub struct Tumblers {
-    visited: AxialTile<bool>,
+    visited: AxialTile<Option<bool>>,
     tumblers: Vec<Tumbler>,
     rng: SimRng,
     tumble_prob: f64,
 }
 
-const TILE_WIDTH: i32 = 18;
-const TILE_HEIGHT: i32 = 29;
+const RADIUS: i32 = 9;
 
 impl Tumblers {
     pub fn new(tumble_prob: f64) -> Tumblers {
         let seed = thread_rng().next_u64();
         let mut rng = SimRng::seed_from_u64(seed);
-        let center = coords::Offset {
-            // would be easier in axial coordinates...
-            col: (2 * TILE_WIDTH + TILE_HEIGHT) / 4,
-            row: TILE_HEIGHT / 2,
-        };
         let create_tumbler = |_| Tumbler {
-            pos: center.into(),
+            pos: hexmap::center(RADIUS),
             heading: *Direction::all().choose(&mut rng).unwrap(),
         };
         Tumblers {
-            visited: AxialTile::new(TILE_WIDTH, TILE_HEIGHT, false),
+            visited: hexmap::new(RADIUS, None, |_location| Some(false)),
             tumblers: (0..32).map(create_tumbler).collect(),
             rng,
             tumble_prob,
@@ -55,7 +50,14 @@ impl Tumblers {
     }
     pub fn avg_visited(&self) -> f32 {
         let total = self.visited.area();
-        let visited: i32 = self.visited.iter_cells().map(|&v| i32::from(v)).sum();
+        let visited: i32 = self
+            .visited
+            .iter_cells()
+            .map(|&v| match v {
+                Some(true) => 1,
+                _ => 0,
+            })
+            .sum();
         visited as f32 / total as f32
     }
 }
@@ -68,9 +70,9 @@ impl Simulation for Tumblers {
                 t.heading = *Direction::all().choose(&mut self.rng).unwrap();
             }
             let new_pos = t.pos + t.heading;
-            if self.visited.valid(new_pos) {
+            if matches!(self.visited.cell(new_pos), Some(Some(_))) {
                 t.pos = new_pos;
-                self.visited.set_cell(t.pos, true);
+                self.visited.set_cell(t.pos, Some(true));
             }
         }
     }
@@ -98,14 +100,15 @@ impl HexgridView for Tumblers {
         }
         Some(CellView {
             cell_type: match self.visited.cell(pos)? {
-                false => 1,
-                true => 2,
+                None => 255,
+                Some(false) => 1,
+                Some(true) => 2,
             },
             ..Default::default()
         })
     }
 
     fn viewport_hint(&self) -> coords::Rectangle {
-        self.visited.viewport()
+        hexmap::viewport(RADIUS)
     }
 }

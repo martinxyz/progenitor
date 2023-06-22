@@ -37,7 +37,6 @@ export const rules: Rule[] = [{
 }, {
     label: 'falling sand (CA)',
     create: () => progenitor.demo_falling_sand(),
-    default: true,
 }, {
     label: 'turing drawings (select from map)',
     create: () => progenitor.demo_turing(),
@@ -45,6 +44,7 @@ export const rules: Rule[] = [{
 }, {
     label: 'tumblers (random walk)',
     create: () => progenitor.demo_tumblers(),
+    default: true,
 }, {
     label: 'builders (random nn)',
     create: () => progenitor.demo_builders_random(),

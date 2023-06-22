@@ -11,6 +11,7 @@ pub use simulation::Simulation;
 
 // map storage
 mod axial_tile;
+mod hexmap;
 mod torus_tile;
 pub use axial_tile::AxialTile;
 pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWPORT};

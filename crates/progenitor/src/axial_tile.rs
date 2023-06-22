@@ -11,16 +11,36 @@ pub struct AxialTile<CellT: Copy> {
 }
 
 impl<CellT: Copy> AxialTile<CellT> {
-    pub fn new(width: i32, height: i32, fill: CellT) -> Self {
-        let width = width;
-        let height = height;
-        let data = vec![fill; (width as usize) * (height as usize)];
+    fn new_internal(width: i32, height: i32, create: impl FnOnce() -> Vec<CellT>) -> Self {
+        assert!(width > 0 && height > 0);
+        assert!(width as i64 * height as i64 == (width * height) as i64);
         AxialTile {
             width,
             height,
-            // fill,
-            data,
+            data: create(),
         }
+    }
+
+    pub fn new(width: i32, height: i32, fill: CellT) -> Self {
+        Self::new_internal(width, height, || {
+            vec![fill; (width as usize) * (height as usize)]
+        })
+    }
+
+    pub fn from_fn(width: i32, height: i32, mut cb: impl FnMut(coords::Cube) -> CellT) -> Self {
+        let pos_from_index = |idx: i32| -> Cube {
+            let r = idx as u32 / width as u32;
+            let q = idx as u32 % width as u32;
+            coords::Cube {
+                x: q as i32,
+                y: -(q as i32) - (r as i32),
+            }
+        };
+        Self::new_internal(width, height, || {
+            (0..width * height)
+                .map(|idx| cb(pos_from_index(idx)))
+                .collect()
+        })
     }
 
     fn index(&self, pos: Cube) -> usize {
