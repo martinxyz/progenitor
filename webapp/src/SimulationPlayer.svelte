@@ -23,13 +23,18 @@
     let cursorSelected = null
     $: renderCursors(cursorSelected, cursorHover)
     $: cursor = cursorSelected || cursorHover
-    $: cellText = (sim && cursor) ? sim.get_cell_text(cursor.col, cursor.row) : null
+    $: cellText = (sim && cursor) ? sim.get_cell_text(
+        // FIXME: this leads to correct behaviour, but should be solved elsewhere
+        cursor.col + viewportCol + (viewportRow % 2 == 0 ? 0 : (cursor.row % 2)), cursor.row + viewportRow
+    ) : null
 
     let showEnergy = false
     let showDirection = true
 
     let Hex: typeof HexType
     let myGrid: Grid<HexType>
+    let viewportCol = 0
+    let viewportRow = 0
 
     let ctx: CanvasRenderingContext2D
     let overlayCtx: CanvasRenderingContext2D
@@ -153,6 +158,8 @@
             viewport.row += Math.floor((viewport.height - maxHexes) / 2)
             viewport.height = maxHexes
         }
+        viewportCol = viewport.col
+        viewportRow = viewport.row
 
         updateHexgrid(viewport, canvas)
         const detailed = (Hex.settings.dimensions.xRadius > 10)
