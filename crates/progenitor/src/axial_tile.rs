@@ -111,26 +111,37 @@ impl<CellT: Copy> AxialTile<CellT> {
         Cube { x, y }
     }
 
+    fn neighbourhood(&self, r: i32, q: i32) -> Neighbourhood<CellT> {
+        let index = r * self.width + q;
+        const OFFSETS: [(i32, i32); 6] = [
+            // (r,q)
+            (-1, 0),
+            (-1, 1),
+            (0, 1),
+            (1, 0),
+            (1, -1),
+            (0, -1),
+        ];
+        Neighbourhood {
+            center: self.data[index as usize],
+            neighbours: OFFSETS.map(|(dr, dq)| self.data[(index + self.width * dr + dq) as usize]),
+        }
+    }
+
     pub fn iter_valid_neighbourhoods(&self) -> impl Iterator<Item = Neighbourhood<CellT>> + '_ {
-        (1..self.height - 1).flat_map(move |r| {
-            (1..self.width - 1).map(move |q| {
+        (1..self.height - 1)
+            .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood(r, q)))
+    }
+
+    pub fn ca_step(&mut self, mut rule: impl FnMut(Neighbourhood<CellT>) -> CellT) {
+        let mut data_new = self.data.clone();
+        for r in 1..self.height - 1 {
+            for q in 1..self.width - 1 {
                 let index = r * self.width + q;
-                const OFFSETS: [(i32, i32); 6] = [
-                    // (r,q)  (...to be validated/improved...)
-                    (0, 1),  // 0 => YZ
-                    (1, 0),  // 1 => XZ
-                    (1, -1), // 2 => XY
-                    (0, -1), // 3 => ZY
-                    (-1, 0), // 4 => ZX
-                    (-1, 1), // 5 => YX
-                ];
-                Neighbourhood {
-                    center: self.data[index as usize],
-                    neighbours: OFFSETS
-                        .map(|(dr, dq)| self.data[(index + self.width * dr + dq) as usize]),
-                }
-            })
-        })
+                data_new[index as usize] = rule(self.neighbourhood(r, q));
+            }
+        }
+        self.data = data_new;
     }
 
     pub fn count_edges(&self, predicate: impl Fn(CellT) -> bool) -> i32 {
