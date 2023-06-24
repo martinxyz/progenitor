@@ -97,6 +97,10 @@ impl<CellT: Copy> AxialTile<CellT> {
         self.data.iter()
     }
 
+    pub fn iter_cells_mut(&mut self) -> impl ExactSizeIterator<Item = &mut CellT> {
+        self.data.iter_mut()
+    }
+
     pub fn area(&self) -> i32 {
         self.width * self.height
     }

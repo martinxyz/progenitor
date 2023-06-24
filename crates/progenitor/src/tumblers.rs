@@ -1,7 +1,9 @@
 use rand::distributions::Bernoulli;
 use rand::distributions::Distribution;
 use rand::prelude::SliceRandom;
+use rand::seq::IteratorRandom;
 use rand::thread_rng;
+use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
@@ -15,18 +17,32 @@ use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
 
-// Random walk test.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
+enum CellType {
+    Border,
+    Stone,
+    Air,
+    Blob,
+}
 
-#[derive(Serialize, Deserialize)]
-struct Tumbler {
-    pos: coords::Cube,
-    heading: Direction,
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+struct Cell {
+    kind: CellType,
+    heading: Option<Direction>,
+    // source: Option<Direction>,
+}
+
+impl Cell {
+    const BORDER: Cell = Cell {
+        kind: CellType::Border,
+        heading: None,
+    };
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Tumblers {
+    state: AxialTile<Cell>,
     visited: AxialTile<Option<bool>>,
-    tumblers: Vec<Tumbler>,
     rng: SimRng,
     tumble_prob: f64,
 }
@@ -37,43 +53,62 @@ impl Tumblers {
     pub fn new(tumble_prob: f64) -> Tumblers {
         let seed = thread_rng().next_u64();
         let mut rng = SimRng::seed_from_u64(seed);
-        let create_tumbler = |_| Tumbler {
-            pos: hexmap::center(RADIUS),
-            heading: *Direction::all().choose(&mut rng).unwrap(),
-        };
         Tumblers {
+            state: hexmap::new(
+                RADIUS,
+                Cell {
+                    kind: CellType::Border,
+                    heading: None,
+                },
+                |location| {
+                    let random_heading = Direction::try_from(rng.gen::<u8>() as i32 % 8).ok();
+                    match location.dist_from_center() {
+                        0..=1 => Cell {
+                            kind: CellType::Blob,
+                            heading: random_heading,
+                        },
+                        2 => Cell {
+                            kind: CellType::Air,
+                            heading: random_heading,
+                        },
+                        _ => Cell {
+                            kind: if rng.gen_bool(0.1) {
+                                CellType::Stone
+                            } else {
+                                CellType::Air
+                            },
+                            heading: random_heading,
+                        },
+                    }
+                },
+            ),
             visited: hexmap::new(RADIUS, None, |_location| Some(false)),
-            tumblers: (0..32).map(create_tumbler).collect(),
             rng,
             tumble_prob,
         }
     }
+
     pub fn avg_visited(&self) -> f32 {
-        let total = self.visited.area();
-        let visited: i32 = self
-            .visited
-            .iter_cells()
-            .map(|&v| match v {
-                Some(true) => 1,
-                _ => 0,
-            })
-            .sum();
+        let mut visited = 0;
+        let mut total = 0;
+        for &v in self.visited.iter_cells() {
+            if let Some(v) = v {
+                total += 1;
+                if v {
+                    visited += 1;
+                }
+            }
+        }
         visited as f32 / total as f32
     }
 }
 
 impl Simulation for Tumblers {
     fn step(&mut self) {
-        let tumble_dist = Bernoulli::new(self.tumble_prob).unwrap();
-        for t in self.tumblers.iter_mut() {
-            if tumble_dist.sample(&mut self.rng) {
-                t.heading = *Direction::all().choose(&mut self.rng).unwrap();
-            }
-            let new_pos = t.pos + t.heading;
-            if matches!(self.visited.cell(new_pos), Some(Some(_))) {
-                t.pos = new_pos;
-                self.visited.set_cell(t.pos, Some(true));
-            }
+        // let tumble_dist = Bernoulli::new(self.tumble_prob).unwrap();
+
+        for (cell, visited) in self.state.iter_cells().zip(self.visited.iter_cells_mut()) {
+            *visited = visited.map(|visited| visited || cell.kind == CellType::Blob);
         }
     }
 
@@ -88,26 +123,24 @@ impl Simulation for Tumblers {
 
 impl HexgridView for Tumblers {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
-        // xxx inefficient when this gets called for all cells...
-        for t in self.tumblers.iter() {
-            if pos == t.pos {
-                return Some(CellView {
-                    cell_type: 0,
-                    direction: Some(t.heading),
-                    ..Default::default()
-                });
-            }
-        }
+        let cell = self.state.cell(pos).unwrap_or(Cell::BORDER);
+        let visited = self.visited.cell(pos).unwrap_or(None);
         Some(CellView {
-            cell_type: match self.visited.cell(pos)? {
-                None => 255,
-                Some(false) => 1,
-                Some(true) => 2,
+            cell_type: match cell.kind {
+                CellType::Border => 255,
+                CellType::Stone => 4,
+                CellType::Air => 2,
+                CellType::Blob => 0,
             },
+            direction: cell.heading,
+            energy: visited.map(|v| if v { 1 } else { 0 }),
             ..Default::default()
         })
     }
-
+    fn cell_text(&self, pos: coords::Cube) -> Option<String> {
+        let cell = self.state.cell(pos).unwrap_or(Cell::BORDER);
+        Some(format!("{cell:?}"))
+    }
     fn viewport_hint(&self) -> coords::Rectangle {
         hexmap::viewport(RADIUS)
     }

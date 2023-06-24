@@ -42,7 +42,7 @@ export const rules: Rule[] = [{
     create: () => progenitor.demo_turing(),
     load_map: turing_bins_url,
 }, {
-    label: 'tumblers (random walk)',
+    label: 'tumblers',
     create: () => progenitor.demo_tumblers(),
     default: true,
 }, {
