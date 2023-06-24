@@ -71,7 +71,6 @@ impl<CellT: Copy> AxialTile<CellT> {
     }
 
     pub fn neighbours(&self, center_pos: Cube) -> [(Direction, Option<CellT>); 6] {
-        // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
             let pos = center_pos + dir;
@@ -79,17 +78,6 @@ impl<CellT: Copy> AxialTile<CellT> {
         };
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
-
-    /*
-    /// Iterate over all cells (in axial-storage order), yielding the cell and its 6 neighbours
-    pub fn iter_radius_1(&self) -> NeighbourIter<CellT> {
-        // Note: We might use ::ndarray::ArrayBase::windows() if it wasn't for the wrapping borders.
-        NeighbourIter {
-            tile: self,
-            pos: Cube { x: 1, y: 1 },
-        }
-    }
-     */
 
     // ??? do we gain something by returning "impl ExactSizeIterator" instead of "impl Iterator"?
     // Probably it is enough that the actual instance type is "impl ExactSizeIterator"...?
@@ -133,6 +121,7 @@ impl<CellT: Copy> AxialTile<CellT> {
             .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood(r, q)))
     }
 
+    /// Cellular automaton step (doesn't modify borders)
     pub fn ca_step(&mut self, mut rule: impl FnMut(Neighbourhood<CellT>) -> CellT) {
         let mut data_new = self.data.clone();
         for r in 1..self.height - 1 {
@@ -144,6 +133,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         self.data = data_new;
     }
 
+    /// Count true/false transitions in the binarized image
     pub fn count_edges(&self, predicate: impl Fn(CellT) -> bool) -> i32 {
         self.iter_valid_neighbourhoods()
             .map(|Neighbourhood { center, neighbours }| {
@@ -157,6 +147,7 @@ impl<CellT: Copy> AxialTile<CellT> {
             .sum()
     }
 
+    /// Viewport for implementing HexgridView
     pub fn viewport(&self) -> coords::Rectangle {
         coords::Rectangle {
             pos: Cube { x: 0, y: 0 },
