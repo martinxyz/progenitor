@@ -46,20 +46,22 @@ pub struct Tumblers {
     visited: AxialTile<Option<bool>>,
     rng: SimRng,
     tumble_prob: f64,
-    air_rule: AirRule,
+    air_rule: LutRule,
+    blob_rule: LutRule,
 }
 
-const NEIGHBOURHOOD_FEATURE_LENGTH: usize = 4;
+const NEIGHBOURHOOD_FEATURES: usize = 3;
+const TOTAL_FEATURES: usize = NEIGHBOURHOOD_FEATURES;
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct AirRule {
-    neighbourhood_features: [SVector<i8, NEIGHBOURHOOD_FEATURE_LENGTH>; 2 * 2 * 3],
-    neighbourhood_features_thresholds: [i8; NEIGHBOURHOOD_FEATURE_LENGTH],
-    transform: [bool; 1 << NEIGHBOURHOOD_FEATURE_LENGTH],
-    change_heading: [bool; 1 << NEIGHBOURHOOD_FEATURE_LENGTH],
+pub struct LutRule {
+    neighbourhood_features: [SVector<i8, NEIGHBOURHOOD_FEATURES>; 2 * 2 * 3],
+    neighbourhood_features_thresholds: [i8; NEIGHBOURHOOD_FEATURES],
+    transform: [bool; 1 << TOTAL_FEATURES],
+    change_heading: [bool; 1 << TOTAL_FEATURES],
 }
 
-impl AirRule {
+impl LutRule {
     fn new_random(rng: &mut impl Rng) -> Self {
         Self {
             neighbourhood_features: array::from_fn(|_| {
@@ -72,7 +74,7 @@ impl AirRule {
     }
 
     fn step(&self, neighbourhood: Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
-        let mut features_sum: SVector<i8, NEIGHBOURHOOD_FEATURE_LENGTH> = SVector::zeros();
+        let mut features_sum: SVector<i8, NEIGHBOURHOOD_FEATURES> = SVector::zeros();
 
         let center = neighbourhood.center;
         #[allow(clippy::identity_op)]
@@ -106,12 +108,18 @@ impl AirRule {
             }
             pow *= 2;
         }
+        assert_eq!(pow, 1 << TOTAL_FEATURES);
+
         let mut cell = center;
         if self.change_heading[idx] {
             cell.heading = Direction::try_from((rng.gen::<u8>() % 8) as i32).ok();
         }
         if self.transform[idx] {
-            cell.kind = CellType::Blob;
+            cell.kind = if cell.kind == CellType::Air {
+                CellType::Blob
+            } else {
+                CellType::Air
+            };
         }
         cell
     }
@@ -167,13 +175,15 @@ impl Tumblers {
             }
             neighbourhood.center
         });
-        let air_rule = AirRule::new_random(&mut rng);
+        let air_rule = LutRule::new_random(&mut rng);
+        let blob_rule = LutRule::new_random(&mut rng);
         Tumblers {
             state,
             visited: hexmap::new(RADIUS, None, |_location| Some(false)),
             rng,
             tumble_prob,
             air_rule,
+            blob_rule,
         }
     }
 
@@ -198,6 +208,7 @@ impl Simulation for Tumblers {
         self.state
             .ca_step(|neighbourhood| match neighbourhood.center.kind {
                 CellType::Air => self.air_rule.step(neighbourhood, &mut self.rng),
+                CellType::Blob => self.blob_rule.step(neighbourhood, &mut self.rng),
                 _ => neighbourhood.center,
             });
 
