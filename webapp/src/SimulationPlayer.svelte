@@ -281,11 +281,11 @@
         }))
     }
 
-    function offsetToHex(offsetX: number, offsetY: number): HexType {
-        // FIXME: must account for viewport, now that it can be translated
-        //        would be more elegant to translate the grid instead...
-        // start: {col: viewport.col, row: viewport.row},
-        const hexCoordinates = myGrid.pointToHex({x: offsetX, y: offsetY})
+    function cursorToHex({clientX, clientY}): HexType {
+        let rect = canvas.getBoundingClientRect();
+        const x = (clientX - rect.left) / (rect.right - rect.left) * canvas.width;
+        const y = (clientY - rect.top) / (rect.bottom - rect.top) * canvas.height;
+        const hexCoordinates = myGrid.pointToHex({x, y})
         console.log('hexCoordinates', hexCoordinates)
         if (myGrid.hasHex(hexCoordinates)) {
             return hexCoordinates
@@ -294,16 +294,16 @@
         }
     }
 
-    function onMouseMove({offsetX, offsetY}) {
-        cursorHover = offsetToHex(offsetX, offsetY)
+    function onMouseMove(event: MouseEvent) {
+        cursorHover = cursorToHex(event)
     }
 
     function onMouseLeave() {
         cursorHover = null
     }
 
-    function onClick({offsetX, offsetY}) {
-        const p = offsetToHex(offsetX, offsetY)
+    function onClick(event: MouseEvent) {
+        const p = cursorToHex(event)
         if (cursorSelected != null && p && p.equals(cursorSelected)) {
             cursorSelected = null
             cursorHover = null
