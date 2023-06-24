@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::{coords, AxialTile};
 
 pub struct Location {
