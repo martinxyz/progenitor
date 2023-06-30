@@ -45,7 +45,6 @@ pub struct Tumblers {
     state: AxialTile<Cell>,
     visited: AxialTile<Option<bool>>,
     rng: SimRng,
-    tumble_prob: f64,
     air_rule: LutRule,
     blob_rule: LutRule,
 }
@@ -128,8 +127,13 @@ impl LutRule {
 const RADIUS: i32 = 12;
 
 impl Tumblers {
-    pub fn new(tumble_prob: f64) -> Tumblers {
+    pub fn new() -> Self {
         let seed = thread_rng().next_u64();
+        Self::new_with_seed(seed)
+        // Self::new_with_seed(33)
+    }
+
+    pub fn new_with_seed(seed: u64) -> Self {
         let mut rng = SimRng::seed_from_u64(seed);
         let mut state = hexmap::new(RADIUS, Cell::BORDER, |location| {
             let random_heading = Direction::try_from(rng.gen::<u8>() as i32 % 8).ok();
@@ -181,10 +185,21 @@ impl Tumblers {
             state,
             visited: hexmap::new(RADIUS, None, |_location| Some(false)),
             rng,
-            tumble_prob,
             air_rule,
             blob_rule,
         }
+    }
+
+    pub fn sum_visited(&self) -> i32 {
+        let mut visited = 0;
+        for &v in self.visited.iter_cells() {
+            if let Some(v) = v {
+                if v {
+                    visited += 1;
+                }
+            }
+        }
+        visited
     }
 
     pub fn avg_visited(&self) -> f32 {
@@ -199,6 +214,47 @@ impl Tumblers {
             }
         }
         visited as f32 / total as f32
+    }
+
+    pub fn count_bots(&self) -> i32 {
+        self.state
+            .iter_cells()
+            .filter(|cell| cell.kind == CellType::Blob)
+            .count() as i32
+    }
+
+    pub fn loss(&self) -> f32 {
+        // this is a messy attempt to get a sensible loss function for "moving blob"
+        // (it almost worked, but not really...)
+        let visited = self.sum_visited();
+        let alive = self
+            .state
+            .iter_cells()
+            .filter(|cell| cell.kind == CellType::Blob)
+            .count() as i32;
+        let mut loss = match visited {
+            12..=50 => (alive - 12) * (alive - 12),
+            _ => 99999,
+        };
+        let center = hexmap::center(RADIUS);
+        let still_at_start_position = self
+            .state
+            .neighbours(center)
+            .into_iter()
+            .filter(|(_, cell)| cell.unwrap().kind == CellType::Blob)
+            .count() as i32;
+        loss += 2 * still_at_start_position;
+
+        let is_far_out = hexmap::new(RADIUS, true, |location| location.dist_from_center() > 6);
+        let far_out_blobs = self
+            .state
+            .iter_cells()
+            .zip(is_far_out.iter_cells())
+            .filter(|(cell, far_out)| **far_out && cell.kind == CellType::Blob)
+            .count() as i32;
+        loss += far_out_blobs * 100;
+
+        loss as f32
     }
 }
 

@@ -8,16 +8,14 @@ pub(crate) struct Tumblers {
     inner: tumblers::Tumblers,
     // #[pyo3(get)]
     // size: u32,
-    // data: [tile::CellContent; 3],
-    // data: Array2<Cell>,
 }
 
 #[pymethods]
 impl Tumblers {
     #[new]
-    fn new(prob: f64) -> Self {
+    fn new(seed: u64) -> Self {
         Self {
-            inner: tumblers::Tumblers::new(prob),
+            inner: tumblers::Tumblers::new_with_seed(seed),
         }
     }
 
@@ -27,5 +25,13 @@ impl Tumblers {
 
     fn avg_visited(&self) -> f32 {
         self.inner.avg_visited()
+    }
+
+    fn count_bots(&self) -> i32 {
+        self.inner.count_bots()
+    }
+
+    fn loss(&self) -> f32 {
+        self.inner.loss()
     }
 }
