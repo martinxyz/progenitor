@@ -67,6 +67,7 @@ impl ca::TransactionalCaRule for Rule {
                 photons: target.photons,
             },
         });
+        #[allow(clippy::collapsible_if)]
         if target.kind == CellType::Air {
             if source.kind == CellType::Dust {
                 return swap;
@@ -150,7 +151,7 @@ impl HexgridView for SunburnWorld {
     fn cell_text(&self, pos: coords::Cube) -> Option<String> {
         let cell = self.cells.cell(pos);
         match cell {
-            None | Some(BORDER) => return None,
+            None | Some(BORDER) => None,
             Some(cell) => Some(format!("{cell:?}")),
         }
     }

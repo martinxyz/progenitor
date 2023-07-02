@@ -6,6 +6,7 @@ use crate::coords;
 /// API for rendering a single hex cell.
 /// The meaning of fields depend on the simulation.
 #[derive(Default, Serialize, Debug)]
+#[non_exhaustive]
 pub struct CellView {
     /// Category. Rendered as discrete colors, usually 0 means empty/air.
     pub cell_type: u8,
