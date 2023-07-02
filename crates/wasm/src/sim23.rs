@@ -36,6 +36,6 @@ pub fn demo_builders_optimized() -> JsSimulation {
 
 #[wasm_bindgen]
 pub fn demo_sunburn() -> JsSimulation {
-    let sim = sunburn::World::new();
+    let sim = sunburn::SunburnWorld::new();
     sim.into()
 }

@@ -1,2 +1,2 @@
-mod world;
-pub use world::*;
+mod sunburn;
+pub use sunburn::*;

@@ -26,7 +26,7 @@ enum Cell {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct World {
+pub struct SunburnWorld {
     cells: AxialTile<Cell>,
     rng: SimRng,
     // visited: AxialTile<Option<bool>>,
@@ -60,8 +60,8 @@ impl ca::TransactionalCaRule for Rule {
     }
 }
 
-impl World {
-    pub fn new() -> World {
+impl SunburnWorld {
+    pub fn new() -> SunburnWorld {
         let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
 
         let cells = hexmap::new(RADIUS, Cell::Border, |location| {
@@ -77,7 +77,7 @@ impl World {
                 _ => Cell::Air,
             }
         });
-        World { cells, rng }
+        SunburnWorld { cells, rng }
     }
 
     // pub fn seed(&mut self, seed: u64) {
@@ -85,7 +85,7 @@ impl World {
     // }
 }
 
-impl Simulation for World {
+impl Simulation for SunburnWorld {
     fn step(&mut self) {
         let rule = Rule {};
         self.cells = ca::step_axial(&self.cells, Cell::Border, &rule, &mut self.rng);
@@ -101,7 +101,7 @@ impl Simulation for World {
     }
 }
 
-impl HexgridView for World {
+impl HexgridView for SunburnWorld {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         let cell = self.cells.cell(pos)?;
         Some(CellView {
@@ -119,10 +119,10 @@ impl HexgridView for World {
     }
     fn cell_text(&self, pos: coords::Cube) -> Option<String> {
         let cell = self.cells.cell(pos);
-        if cell.unwrap_or(Cell::Border) == Cell::Border {
-            return None;
+        match cell {
+            None | Some(Cell::Border) => return None,
+            Some(cell) => Some(format!("{cell:?}")),
         }
-        Some(format!("{cell:?}"))
     }
 
     fn viewport_hint(&self) -> coords::Rectangle {
@@ -130,7 +130,7 @@ impl HexgridView for World {
     }
 }
 
-impl Default for World {
+impl Default for SunburnWorld {
     fn default() -> Self {
         Self::new()
     }
