@@ -286,7 +286,6 @@
         const x = (clientX - rect.left) / (rect.right - rect.left) * canvas.width;
         const y = (clientY - rect.top) / (rect.bottom - rect.top) * canvas.height;
         const hexCoordinates = myGrid.pointToHex({x, y})
-        console.log('hexCoordinates', hexCoordinates)
         if (myGrid.hasHex(hexCoordinates)) {
             return hexCoordinates
         } else {

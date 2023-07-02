@@ -119,6 +119,9 @@ impl HexgridView for World {
     }
     fn cell_text(&self, pos: coords::Cube) -> Option<String> {
         let cell = self.cells.cell(pos);
+        if cell.unwrap_or(Cell::Border) == Cell::Border {
+            return None;
+        }
         Some(format!("{cell:?}"))
     }
 

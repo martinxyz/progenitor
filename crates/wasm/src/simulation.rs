@@ -33,9 +33,7 @@ impl JsSimulation {
     }
     pub fn cell_text(&self, col: i32, row: i32) -> String {
         let pos = coords::Offset { col, row };
-        self.0
-            .cell_text(pos.into())
-            .unwrap_or_else(|| "(invalid location)".into())
+        self.0.cell_text(pos.into()).unwrap_or_else(|| "".into())
     }
 
     pub fn steps(&mut self, count: usize) {
