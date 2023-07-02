@@ -7,7 +7,7 @@
 //! [hexagons](https://www.redblobgames.com/grids/hexagons/) article.
 
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Sub};
+use std::ops::{Add, Index, Sub};
 
 /// Cube coordinates
 ///
@@ -178,13 +178,13 @@ pub struct DirectionSet {
 }
 
 impl DirectionSet {
-    pub fn none() -> Self {
+    pub const fn none() -> Self {
         DirectionSet { mask: 0 }
     }
-    pub fn all() -> Self {
+    pub const fn all() -> Self {
         DirectionSet { mask: (1 << 6) - 1 }
     }
-    pub fn single(dir: Direction) -> Self {
+    pub const fn single(dir: Direction) -> Self {
         DirectionSet {
             mask: 1 << (dir as u8),
         }
@@ -329,5 +329,13 @@ pub struct Neighbourhood<T: Copy> {
 impl<T: Copy> Neighbourhood<T> {
     pub fn iter_dirs(&self) -> impl Iterator<Item = (Direction, T)> {
         Direction::all().into_iter().zip(self.neighbours)
+    }
+}
+
+impl<T: Copy> Index<Direction> for Neighbourhood<T> {
+    type Output = T;
+
+    fn index(&self, index: Direction) -> &Self::Output {
+        &self.neighbours[index as usize]
     }
 }
