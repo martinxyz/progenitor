@@ -1,4 +1,4 @@
-use crate::coords;
+use crate::{coords, Neighbourhood};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::iter::FromIterator;
@@ -104,12 +104,12 @@ impl<CellT: Copy> TorusTile<CellT> {
         self.data[Self::index(pos)]
     }
 
-    pub fn neighbours(&self, center_pos: coords::Cube) -> [(Direction, CellT); 6] {
+    pub fn neighbours(&self, center_pos: coords::Cube) -> [CellT; 6] {
         // const DIR2DELTA: [(i32, i32); 6] = [(1, 0), (0,1), (-1,1), (-1, 0), (0,-1), (1,-1)];
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
             let pos = center_pos + dir;
-            (dir, self.cell(pos))
+            self.cell(pos)
         };
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
@@ -163,13 +163,11 @@ pub struct NeighbourIter<'t, CellT: Copy> {
     r: i32,
 }
 
-pub type NeighbourCells<CellT> = [(Direction, CellT); 6];
-
 impl<CellT> Iterator for NeighbourIter<'_, CellT>
 where
     CellT: Copy,
 {
-    type Item = (CellT, NeighbourCells<CellT>);
+    type Item = Neighbourhood<CellT>;
     fn next(&mut self) -> Option<Self::Item> {
         // there is probably some rust-ish was to avoid doing this...
         // maybe should use an iterator that just yields the indices, separate from the data access?
@@ -187,7 +185,7 @@ where
         let center_pos = coords::Cube { x: q, y: -r - q };
         let neighbours = self.tile.neighbours(center_pos);
         let center = self.tile.cell(center_pos);
-        Some((center, neighbours))
+        Some(Neighbourhood { center, neighbours })
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -1,4 +1,7 @@
-use crate::coords::{self, Cube, Direction};
+use crate::{
+    coords::{self, Cube, Direction},
+    Neighbourhood,
+};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
@@ -159,11 +162,6 @@ impl<CellT: Copy> AxialTile<CellT> {
             height: self.height,
         }
     }
-}
-
-pub struct Neighbourhood<T> {
-    pub center: T,
-    pub neighbours: [T; 6],
 }
 
 #[cfg(test)]

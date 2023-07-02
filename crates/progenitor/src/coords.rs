@@ -319,3 +319,15 @@ pub fn iterate_rectangle(rect: Rectangle) -> impl Iterator<Item = Cube> {
     (0..rect.height)
         .flat_map(move |row| (0..rect.width).map(move |col| rect.pos + Offset { col, row }))
 }
+
+#[derive(Clone, Copy)]
+pub struct Neighbourhood<T: Copy> {
+    pub center: T,
+    pub neighbours: [T; 6],
+}
+
+impl<T: Copy> Neighbourhood<T> {
+    pub fn iter_dirs(&self) -> impl Iterator<Item = (Direction, T)> {
+        Direction::all().into_iter().zip(self.neighbours)
+    }
+}

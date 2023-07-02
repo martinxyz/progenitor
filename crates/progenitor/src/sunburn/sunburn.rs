@@ -11,6 +11,7 @@ use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
+use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 
@@ -55,8 +56,8 @@ impl ca::TransactionalCaRule for Rule {
         None
     }
 
-    fn step(&self, center: Cell, _neighbours: ca::Neighbours<Cell>, _rng: &mut SimRng) -> Cell {
-        center
+    fn step(&self, nh: Neighbourhood<Cell>, _rng: &mut SimRng) -> Cell {
+        nh.center
     }
 }
 

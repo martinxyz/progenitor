@@ -9,6 +9,7 @@ use crate::coords;
 use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
+use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
@@ -60,15 +61,15 @@ impl ca::TransactionalCaRule for Rule {
         }
     }
 
-    fn step(&self, center: Cell, _neighbours: ca::Neighbours<Cell>, rng: &mut SimRng) -> Cell {
-        if let Cell::Dust(_) = center {
+    fn step(&self, nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
+        if let Cell::Dust(_) = nh.center {
             Cell::Dust(match rng.gen_range(0..16) {
                 0 => Some(Direction::SouthWest),
                 1 => Some(Direction::SouthEast),
                 _ => None,
             })
         } else {
-            center
+            nh.center
         }
     }
 }

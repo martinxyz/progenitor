@@ -3,10 +3,7 @@
 use rand::seq::IteratorRandom;
 
 use crate::coords::Direction;
-use crate::{AxialTile, SimRng, TorusTile};
-
-// XXX should just use 'Neighbourhood' struct everywhere instead.
-pub struct Neighbours<Cell: Copy>([(Direction, Cell); 6]);
+use crate::{AxialTile, Neighbourhood, SimRng, TorusTile};
 
 /// A cellular automaton with transactions
 ///
@@ -34,12 +31,7 @@ pub trait TransactionalCaRule {
     ) -> Option<TransactionResult<Self::Cell>>;
 
     /// Calculates a CA update
-    fn step(
-        &self,
-        center: Self::Cell,
-        neighbours: Neighbours<Self::Cell>,
-        rng: &mut SimRng,
-    ) -> Self::Cell;
+    fn step(&self, neighbourhood: Neighbourhood<Self::Cell>, rng: &mut SimRng) -> Self::Cell;
 }
 
 #[derive(Clone, Copy)]
@@ -65,23 +57,18 @@ impl Decision {
     }
 }
 
-fn iter_dirs<Cell: Copy>(neighbours: [Cell; 6]) -> impl Iterator<Item = (Direction, Cell)> {
-    Direction::all().into_iter().zip(neighbours)
-}
-
 // Step 1: Each cell chooses a transaction to attempt
 fn step1<Cell: Copy>(
     rule: &impl TransactionalCaRule<Cell = Cell>,
-    center: Cell,
-    neighbours: [Cell; 6],
+    nh: Neighbourhood<Cell>,
     rng: &mut SimRng,
 ) -> Decision {
-    let center_as_source = iter_dirs(neighbours).filter_map(|(direction, neighbour)| {
-        rule.transaction(center, neighbour, direction)
+    let center_as_source = nh.iter_dirs().filter_map(|(direction, neighbour)| {
+        rule.transaction(nh.center, neighbour, direction)
             .map(|_result| Decision::Source(direction))
     });
-    let center_as_target = iter_dirs(neighbours).filter_map(|(direction, neighbour)| {
-        rule.transaction(neighbour, center, -direction)
+    let center_as_target = nh.iter_dirs().filter_map(|(direction, neighbour)| {
+        rule.transaction(neighbour, nh.center, -direction)
             .map(|_result| Decision::Target(direction))
     });
     let choices = center_as_source.chain(center_as_target);
@@ -91,31 +78,29 @@ fn step1<Cell: Copy>(
 // Step 2: Execute transactions where both cells agree
 fn step2<Cell: Copy>(
     rule: &impl TransactionalCaRule<Cell = Cell>,
-    cell: Cell,
-    cell_neighbours: [Cell; 6],
-    decision: Decision,
-    decision_neighbours: [Decision; 6],
+    cells: Neighbourhood<Cell>,
+    decisions: Neighbourhood<Decision>,
 ) -> Cell {
-    match decision {
-        Decision::NoTransaction => cell,
+    match decisions.center {
+        Decision::NoTransaction => cells.center,
         Decision::Source(direction) => {
             let idx = direction as usize;
-            if decision.invert() == decision_neighbours[idx] {
-                rule.transaction(cell, cell_neighbours[idx], direction)
+            if decisions.center.invert() == decisions.neighbours[idx] {
+                rule.transaction(cells.center, cells.neighbours[idx], direction)
                     .unwrap()
                     .source
             } else {
-                cell
+                cells.center
             }
         }
         Decision::Target(direction) => {
             let idx = direction as usize;
-            if decision.invert() == decision_neighbours[idx] {
-                rule.transaction(cell_neighbours[idx], cell, -direction)
+            if decisions.center.invert() == decisions.neighbours[idx] {
+                rule.transaction(cells.neighbours[idx], cells.center, -direction)
                     .unwrap()
                     .target
             } else {
-                cell
+                cells.center
             }
         }
     }
@@ -132,30 +117,17 @@ pub fn step_torus<Rule: TransactionalCaRule>(
 
     let step1: TorusTile<Decision> = tile
         .iter_radius_1()
-        .map(|(center, neighbours)| step1(rule, center, neighbours.map(|(_d, n)| n), rng))
+        .map(|nh| step1(rule, nh, rng))
         .collect();
 
     let step2: TorusTile<Rule::Cell> = tile
         .iter_radius_1()
         .zip(step1.iter_radius_1())
-        .map(
-            |((cell, cell_neighbours), (decision, decision_neighbours))| {
-                step2(
-                    rule,
-                    cell,
-                    cell_neighbours.map(|(_, n)| n),
-                    decision,
-                    decision_neighbours.map(|(_, n)| n),
-                )
-            },
-        )
+        .map(|(cells, decisions)| step2(rule, cells, decisions))
         .collect();
 
     // Step 3: normal CA rules
-    step2
-        .iter_radius_1()
-        .map(|(center, neighbours)| rule.step(center, Neighbours(neighbours), rng))
-        .collect()
+    step2.iter_radius_1().map(|nh| rule.step(nh, rng)).collect()
 }
 
 pub fn step_axial<Rule: TransactionalCaRule>(
@@ -165,32 +137,24 @@ pub fn step_axial<Rule: TransactionalCaRule>(
     rng: &mut SimRng,
 ) -> AxialTile<Rule::Cell> {
     let step1: AxialTile<(Rule::Cell, Decision)> = tile
-        .ca_step((fill, Decision::NoTransaction), |n| {
-            (n.center, step1(rule, n.center, n.neighbours, rng))
+        .ca_step((fill, Decision::NoTransaction), |nh| {
+            (nh.center, step1(rule, nh, rng))
         });
 
-    let step2: AxialTile<Rule::Cell> = step1.ca_step(fill, |n| {
+    let step2: AxialTile<Rule::Cell> = step1.ca_step(fill, |nh| {
         step2(
             rule,
-            n.center.0,
-            n.neighbours.map(|(c, _)| c),
-            n.center.1,
-            n.neighbours.map(|(_, d)| d),
+            Neighbourhood {
+                center: nh.center.0,
+                neighbours: nh.neighbours.map(|(c, _)| c),
+            },
+            Neighbourhood {
+                center: nh.center.1,
+                neighbours: nh.neighbours.map(|(_, d)| d),
+            },
         )
     });
 
     // Step 3: normal CA rules
-    step2.ca_step(fill, |n| {
-        rule.step(
-            n.center,
-            Neighbours(
-                // Ugh. Just use Neighbourhood everywhere, really.
-                iter_dirs(n.neighbours)
-                    .collect::<Vec<_>>()
-                    .try_into()
-                    .unwrap_or_else(|_| panic!()),
-            ),
-            rng,
-        )
-    })
+    step2.ca_step(fill, |nh| rule.step(nh, rng))
 }

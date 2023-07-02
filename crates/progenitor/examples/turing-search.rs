@@ -60,9 +60,9 @@ fn calculate_features(sim: Turing) -> [FeatureAccumulator; FEATURE_COUNT] {
 
     // features[1] measures something related to "number of edges"
     let cell2int = |c: u8| (c != sorted[1].0) as i32;
-    for (center, neighbours) in sim.grid.iter_radius_1() {
-        let center = cell2int(center);
-        let neighbours: i32 = neighbours.iter().map(|(_, c)| cell2int(*c)).sum();
+    for nh in sim.grid.iter_radius_1() {
+        let center = cell2int(nh.center);
+        let neighbours: i32 = nh.neighbours.iter().map(|&c| cell2int(c)).sum();
         // sobel edge detector (or similar)
         features[1].push_weighted((neighbours - 6 * center).abs(), 6);
     }

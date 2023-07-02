@@ -1,4 +1,4 @@
-use crate::coords::{Direction, DirectionSet};
+use crate::{Direction, DirectionSet, Neighbourhood};
 
 use super::cell::{Cell, CellTypeRef, CellTypes, GrowDirection};
 use rand::{seq::IteratorRandom, seq::SliceRandom, Rng};
@@ -46,23 +46,19 @@ pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTem
     }
 }
 
-pub fn execute_step(
-    types: &CellTypes,
-    rng: &mut impl Rng,
-    cur: Cell,
-    neighbours: [(Direction, CellTemp); 6],
-) -> Cell {
+pub fn execute_step(types: &CellTypes, rng: &mut impl Rng, nh: Neighbourhood<CellTemp>) -> Cell {
+    let cur: Cell = nh.center.cell;
     // move particles
     let mut cur = cur;
-    cur.particles = neighbours
-        .iter()
-        .fold(DirectionSet::none(), |ds, &(dir, temp)| {
+    cur.particles = nh
+        .iter_dirs()
+        .fold(DirectionSet::none(), |ds, (dir, temp)| {
             ds.with(-dir, temp.cell.particles.contains(-dir))
         });
     let cur = cur;
 
-    let growth_result: Option<Cell> = neighbours
-        .iter()
+    let growth_result: Option<Cell> = nh
+        .iter_dirs()
         .filter(|(dir, temp)| {
             let base_prio = types[cur.cell_type].priority;
             temp.grow_directions.contains(-*dir)
@@ -73,7 +69,7 @@ pub fn execute_step(
         .choose(rng)
         .map(|(dir, temp)| {
             let mut cell = types.create_cell(temp.grow_celltype);
-            cell.direction = -*dir;
+            cell.direction = -dir;
             cell.particles = DirectionSet::all(); // should depend on celltype?
             cell
         });

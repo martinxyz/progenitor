@@ -66,7 +66,7 @@ impl Simulation for World {
 
         self.cells = cells_temp
             .iter_radius_1()
-            .map(|(temp, neighbours)| rules::execute_step(types, &mut rng, temp.cell, neighbours))
+            .map(|nh| rules::execute_step(types, &mut rng, nh))
             .collect();
     }
 

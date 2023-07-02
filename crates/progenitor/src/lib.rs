@@ -3,7 +3,7 @@
 
 // foundation
 pub mod coords;
-pub use coords::{Direction, DirectionSet};
+pub use coords::{Direction, DirectionSet, Neighbourhood};
 mod hexgrid_view;
 mod simulation;
 pub use hexgrid_view::{CellView, HexgridView};

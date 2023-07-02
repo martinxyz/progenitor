@@ -8,13 +8,13 @@ use rand::RngCore;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 
-use crate::axial_tile::Neighbourhood;
 use crate::coords;
 use crate::coords::Direction;
 use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
+use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 
