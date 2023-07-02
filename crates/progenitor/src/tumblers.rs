@@ -156,7 +156,7 @@ impl Tumblers {
                 },
             }
         });
-        state.ca_step(|neighbourhood| {
+        state = state.ca_step(Cell::BORDER, |neighbourhood| {
             if neighbourhood.center.kind == CellType::Air {
                 if Direction::all()
                     .iter()
@@ -261,12 +261,13 @@ impl Tumblers {
 impl Simulation for Tumblers {
     fn step(&mut self) {
         // let tumble_dist = Bernoulli::new(self.tumble_prob).unwrap();
-        self.state
-            .ca_step(|neighbourhood| match neighbourhood.center.kind {
+        self.state = self.state.ca_step(Cell::BORDER, |neighbourhood| {
+            match neighbourhood.center.kind {
                 CellType::Air => self.air_rule.step(neighbourhood, &mut self.rng),
                 CellType::Blob => self.blob_rule.step(neighbourhood, &mut self.rng),
                 _ => neighbourhood.center,
-            });
+            }
+        });
 
         for (cell, visited) in self.state.iter_cells().zip(self.visited.iter_cells_mut()) {
             *visited = visited.map(|visited| visited || cell.kind == CellType::Blob);

@@ -121,16 +121,20 @@ impl<CellT: Copy> AxialTile<CellT> {
             .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood(r, q)))
     }
 
-    /// Cellular automaton step (doesn't modify borders)
-    pub fn ca_step(&mut self, mut rule: impl FnMut(Neighbourhood<CellT>) -> CellT) {
-        let mut data_new = self.data.clone();
+    /// Cellular automaton step
+    pub fn ca_step<Cell2: Copy>(
+        &self,
+        fill: Cell2,
+        mut rule: impl FnMut(Neighbourhood<CellT>) -> Cell2,
+    ) -> AxialTile<Cell2> {
+        let mut result = AxialTile::new(self.width, self.height, fill);
         for r in 1..self.height - 1 {
             for q in 1..self.width - 1 {
                 let index = r * self.width + q;
-                data_new[index as usize] = rule(self.neighbourhood(r, q));
+                result.data[index as usize] = rule(self.neighbourhood(r, q));
             }
         }
-        self.data = data_new;
+        result
     }
 
     /// Count true/false transitions in the binarized image

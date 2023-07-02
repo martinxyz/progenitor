@@ -23,6 +23,7 @@ mod ca;
 pub mod builders;
 pub mod falling_sand;
 pub mod sim1;
+pub mod sunburn;
 pub mod tumblers;
 pub mod turing;
 pub mod world1;

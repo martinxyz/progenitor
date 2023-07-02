@@ -104,7 +104,7 @@ impl World {
 impl Simulation for World {
     fn step(&mut self) {
         let rule = Rule {};
-        self.cells = ca::step(&self.cells, &rule, &mut self.rng);
+        self.cells = ca::step_torus(&self.cells, &rule, &mut self.rng);
     }
 
     fn save_state(&self) -> Vec<u8> {

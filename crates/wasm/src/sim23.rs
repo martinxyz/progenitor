@@ -2,7 +2,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{builders, falling_sand, tumblers, turing};
+use progenitor::{builders, falling_sand, sunburn, tumblers, turing};
 
 #[wasm_bindgen]
 pub fn demo_falling_sand() -> JsSimulation {
@@ -31,5 +31,11 @@ pub fn demo_builders_random() -> JsSimulation {
 #[wasm_bindgen]
 pub fn demo_builders_optimized() -> JsSimulation {
     let sim = builders::Builders::new_optimized();
+    sim.into()
+}
+
+#[wasm_bindgen]
+pub fn demo_sunburn() -> JsSimulation {
+    let sim = sunburn::World::new();
     sim.into()
 }
