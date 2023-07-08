@@ -11,6 +11,9 @@ impl Location {
     pub fn dist_from_center(&self) -> i32 {
         self.from_center.distance(coords::Cube::new(0, 0))
     }
+    pub fn dist_from_border(&self) -> i32 {
+        self.radius - self.dist_from_center()
+    }
     pub fn dist_from_top(&self) -> i32 {
         self.from_center.z() + self.radius
     }
