@@ -88,11 +88,16 @@ pub struct Params {
     #[serde(with = "BigArray")]
     pub builder_weights: [f32; nn::PARAM_COUNT],
     pub builder_hyperparams: nn::Hyperparams,
+    pub memory_clamp: f32,
+    pub memory_halftime: f32,
 }
 
 pub struct Builders {
     state: State,
     nn: nn::Network,
+    // our own hyperparams
+    memory_decay: f32,
+    memory_clamp: f32,
     // for score or BCs:
     pub max_depth_reached: i32,
     pub encounters: i32,
@@ -138,6 +143,8 @@ impl Builders {
                 init_fac: 1.0,
                 bias_fac: 0.1,
             },
+            memory_halftime: 20.0,
+            memory_clamp: 5.0,
         })
     }
 
@@ -206,6 +213,8 @@ impl Builders {
             },
             max_depth_reached: 0,
             encounters: 0,
+            memory_decay: f32::ln(2.) / params.memory_halftime.max(0.001),
+            memory_clamp: params.memory_clamp.max(0.001),
         };
 
         let center = hexmap::center(RING_RADIUS);
@@ -307,12 +316,12 @@ impl Builders {
             let outputs: SVector<f32, 6> = self.nn.forward(inputs);
             let action_logits = outputs.fixed_rows::<4>(0);
             let memory_update = outputs.fixed_rows::<2>(4);
-            t.memory *= 0.9;
-            t.memory += 0.1 * memory_update;
+            t.memory *= self.memory_decay;
+            t.memory += (1. - self.memory_decay) * memory_update;
             t.memory = nalgebra::clamp(
                 t.memory,
-                SVector::from_element(-10.0),
-                SVector::from_element(10.0),
+                SVector::from_element(-self.memory_clamp),
+                SVector::from_element(self.memory_clamp),
             );
 
             let action = nn::softmax_choice::<4, _>(&action_logits, &mut self.state.rng).into();

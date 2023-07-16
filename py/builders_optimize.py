@@ -25,7 +25,9 @@ def get_params(x, config):
     Params = progenitor.mod.Params
     hyperparams = {
         "init_fac": config["init_fac"],
-        "bias_fac": config["bias_fac"]
+        "bias_fac": config["bias_fac"],
+        "memory_clamp": config["memory_clamp"],
+        "memory_halftime": config["memory_halftime"],
     }
     return Params(x, **hyperparams)
 
@@ -37,7 +39,7 @@ def evaluate(x, config, episodes, stats=False):
     score = 0
     for i in range(episodes):
         sim = Builders(params)
-        sim.steps(2000)
+        sim.steps(3000)
         if stats and i == 0:
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
@@ -117,10 +119,12 @@ def train(config, tuning=True):
 
 def main_tune():
     search_space = {
-        "popsize": tune.lograndint(7, 200),            # plausible: ~70
-        "episodes_per_eval": tune.lograndint(3, 200),  # plausible: ~50
-        "init_fac": tune.loguniform(0.2, 4.0),         # plausible: 0.25..3.0
-        "bias_fac": tune.loguniform(0.005, 0.5),       # plausible: 0.0..0.4
+        "popsize": tune.lograndint(7, 100),
+        "episodes_per_eval": tune.lograndint(10, 20),
+        "init_fac": tune.loguniform(0.1, 2.0),
+        "bias_fac": tune.loguniform(0.005, 0.6),
+        "memory_clamp": tune.loguniform(0.1, 100.0),
+        "memory_halftime": tune.loguniform(0.5, 100.0),
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     tune_config = tune.TuneConfig(
@@ -136,9 +140,15 @@ def main_tune():
             brackets=1,
         )
     )
-    # resources_per_trial={'cpu': 2, 'gpu': 0}
+    # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
-        [{'CPU': 1.0}] + [{'CPU': 1.0}] * 1
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 1
+        #-------------   --------------
+        # train() task,        evaluate() tasks spawned by train(),
+        # does work once       could use more CPUs, how many depends
+        # per generation.      on the population_size (a hyperparam).
+        # (short burst)        So if we reserve more here I guess
+        #                      they would idle once per generation?
     )
     tuner = tune.Tuner(
         tune.with_resources(train, resources_per_trial),
@@ -170,8 +180,10 @@ def main_simple():
         "episodes_per_eval": 14,
         "init_fac": 1.3,
         "bias_fac": 0.08,
+        "memory_clamp": 10.0,
+        "memory_halftime": 50.0,
     }, tuning=False)
 
 if __name__ == '__main__':
-    main_simple()
-    # main_tune()
+    # main_simple()
+    main_tune()

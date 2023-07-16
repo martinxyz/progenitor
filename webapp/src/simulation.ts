@@ -47,10 +47,10 @@ export const rules: Rule[] = [{
 }, {
     label: 'builders (random nn)',
     create: () => progenitor.demo_builders_random(),
-    default: true,
 }, {
     label: 'builders (optimized nn)',
     create: () => progenitor.demo_builders_optimized(),
+    default: true,
 }, {
     label: 'sunburn',
     create: () => progenitor.demo_sunburn(),

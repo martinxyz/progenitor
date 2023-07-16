@@ -1,5 +1,6 @@
 use std::convert::TryInto;
 
+use bincode::{DefaultOptions, Options};
 use progenitor::{
     builders::{Builders as BuildersImpl, Hyperparams, Params as ParamsImpl},
     Simulation,
@@ -66,12 +67,20 @@ pub(crate) struct Params {
 #[pymethods]
 impl Params {
     #[new]
-    fn new(weights: Vec<f32>, init_fac: f32, bias_fac: f32) -> Params {
+    fn new(
+        weights: Vec<f32>,
+        init_fac: f32,
+        bias_fac: f32,
+        memory_clamp: f32,
+        memory_halftime: f32,
+    ) -> Params {
         assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
         Self {
             inner: progenitor::builders::Params {
                 builder_weights: weights.try_into().expect("param_count should match"),
                 builder_hyperparams: Hyperparams { init_fac, bias_fac },
+                memory_clamp,
+                memory_halftime,
             },
         }
     }
@@ -83,7 +92,9 @@ impl Params {
     #[staticmethod]
     fn deserialize(bytes: &PyBytes) -> Self {
         Self {
-            inner: bincode::deserialize(bytes.as_bytes())
+            inner: DefaultOptions::new()
+                .reject_trailing_bytes()
+                .deserialize(bytes.as_bytes())
                 .expect("bytes should deserialize to valid Params"),
         }
     }

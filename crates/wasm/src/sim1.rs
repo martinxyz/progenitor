@@ -1,3 +1,4 @@
+use bincode::{DefaultOptions, Options};
 use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
@@ -112,7 +113,12 @@ pub struct Snapshots(Vec<((i32, i32), Vec<u8>)>);
 impl Snapshots {
     #[wasm_bindgen(constructor)]
     pub fn new(data: &[u8]) -> Self {
-        Self(bincode::deserialize(data).unwrap_or_default())
+        Self(
+            DefaultOptions::new()
+                .reject_trailing_bytes()
+                .deserialize(data)
+                .unwrap_or_default(),
+        )
     }
 
     // that works:
