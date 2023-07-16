@@ -1,16 +1,16 @@
 // later, maybe: (and especially in case the NNs get larger: enable blas)
 // use ndarray::prelude::*;
 
-use nalgebra::{SMatrix, SVector};
+use nalgebra::{Const, Matrix, SMatrix, SVector, Storage, U1};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
-const N_INPUTS: usize = 2 * 6 + 3;
+const N_INPUTS: usize = 2 * 6 /* eye */ + 3 /* special */ + 2 /* memory */;
 const N_HIDDEN: usize = 10;
-const N_OUTPUTS: usize = 4;
+const N_OUTPUTS: usize = 6;
 
 pub struct Network {
     weights: Weights,
@@ -102,11 +102,17 @@ impl Network {
 }
 
 // note: this seems to be the current performance bottleneck
-pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl Rng) -> usize {
+pub fn softmax_choice<const N: usize, StorageT>(
+    outputs: &Matrix<f32, Const<N>, U1, StorageT>, // ugly?
+    rng: &mut impl Rng,
+) -> usize
+where
+    StorageT: Storage<f32, Const<N>, U1>,
+{
     for v in outputs.iter() {
         assert!(v.is_finite(), "output[_] = {}", v);
     }
-    let mut x = outputs;
+    let mut x = outputs.clone_owned();
     let max = x.max();
     x.apply(|v| *v = (*v - max).exp());
     WeightedIndex::new(x.into_iter()).unwrap().sample(rng)

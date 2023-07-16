@@ -27,6 +27,8 @@ use super::optimized_params;
 struct Builder {
     pos: coords::Cube,
     heading: Direction,
+    exhausted: u8,
+    memory: SVector<f32, 2>,
 }
 
 #[derive(PartialEq)]
@@ -59,8 +61,15 @@ enum Cell {
 }
 
 impl Cell {
+    fn move_cost(self) -> u8 {
+        match self {
+            Cell::Wall => 6,
+            Cell::Food => 2,
+            _ => 255,
+        }
+    }
     fn can_move(self) -> bool {
-        matches!(self, Cell::Wall | Cell::Food)
+        self.move_cost() < 255
     }
 }
 
@@ -215,7 +224,12 @@ impl Builders {
             pos = pos + hex2d::Direction::from(heading);
         }
         self.state.cells.set_cell(pos, Cell::Builder);
-        self.state.builders.push(Builder { pos, heading });
+        self.state.builders.push(Builder {
+            pos,
+            heading,
+            exhausted: 0,
+            memory: SVector::zeros(),
+        });
     }
 
     fn kick_dust(&mut self, pos: Coordinate) {
@@ -237,6 +251,12 @@ impl Builders {
 
     fn move_builders(&mut self) {
         for t in self.state.builders.iter_mut() {
+            if t.exhausted > 0 {
+                t.exhausted -= 1;
+                if t.exhausted > 8 {
+                    continue; // rest
+                }
+            }
             // let action = self.agent.act(&mut self.state.rng).into();
             let look = |item: Cell, angle: Angle| {
                 let present = self
@@ -274,11 +294,23 @@ impl Builders {
                 look(Cell::Builder, Angle::Forward),
                 self.state.mass.cell(t.pos).unwrap_or(0).into(),
                 builders_nearby as f32,
+                t.memory[0],
+                t.memory[1],
             ];
             self.encounters += builders_nearby;
 
-            let outputs: SVector<f32, 4> = self.nn.forward(inputs);
-            let action = nn::softmax_choice(outputs, &mut self.state.rng).into();
+            let outputs: SVector<f32, 6> = self.nn.forward(inputs);
+            let action_logits = outputs.fixed_rows::<4>(0);
+            let memory_update = outputs.fixed_rows::<2>(4);
+            t.memory *= 0.9;
+            t.memory += 0.1 * memory_update;
+            t.memory = nalgebra::clamp(
+                t.memory,
+                SVector::from_element(-10.0),
+                SVector::from_element(10.0),
+            );
+
+            let action = nn::softmax_choice::<4, _>(&action_logits, &mut self.state.rng).into();
 
             let turn = match action {
                 Action::Left => Angle::Left,
@@ -296,6 +328,7 @@ impl Builders {
                         if let Some(cell_back) = self.state.cells.cell(pos_back) {
                             if cell_back == Cell::Air {
                                 if cell_forward.can_move() {
+                                    t.exhausted += cell_forward.move_cost();
                                     self.state.cells.set_cell(pos_forward, Cell::Air);
                                     self.state.cells.set_cell(t.pos, cell_forward);
                                 } else {
@@ -312,6 +345,7 @@ impl Builders {
                             let pos_forward2x = pos_forward + t.heading;
                             if let Some(cell_forward2x) = self.state.cells.cell(pos_forward2x) {
                                 if cell_forward2x == Cell::Air {
+                                    t.exhausted += cell_forward.move_cost();
                                     self.state.cells.set_cell(pos_forward2x, cell_forward);
                                     self.state.cells.set_cell(t.pos, Cell::Air);
                                     t.pos = pos_forward;
