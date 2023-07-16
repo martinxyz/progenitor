@@ -334,6 +334,15 @@ impl<T: Copy> Neighbourhood<T> {
     pub fn iter_dirs(&self) -> impl Iterator<Item = (Direction, T)> {
         Direction::all().into_iter().zip(self.neighbours)
     }
+
+    pub fn count_neighbours(&self, condition: impl Fn(T) -> bool) -> i32 {
+        self.neighbours
+            .into_iter()
+            .filter(|&n| condition(n))
+            .count()
+            .try_into()
+            .unwrap()
+    }
 }
 
 impl<T: Copy> Index<Direction> for Neighbourhood<T> {

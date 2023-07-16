@@ -44,6 +44,10 @@ impl Builders {
         self.inner.max_depth_reached
     }
 
+    fn hoarding_score(&self) -> i32 {
+        self.inner.hoarding_score()
+    }
+
     #[classattr]
     fn param_count() -> usize {
         BuildersImpl::PARAM_COUNT

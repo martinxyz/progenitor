@@ -37,12 +37,12 @@ def evaluate(x, config, episodes, stats=False):
     score = 0
     for i in range(episodes):
         sim = Builders(params)
-        sim.steps(1000)
+        sim.steps(2000)
         if stats and i == 0:
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
             # (Just return a metrics dict? Averaged/Stats?)
-        score -= sim.relative_wall_edges()
+        score += sim.hoarding_score()
 
     cost = - score / episodes
 
@@ -173,5 +173,5 @@ def main_simple():
     }, tuning=False)
 
 if __name__ == '__main__':
-    # main_simple()
-    main_tune()
+    main_simple()
+    # main_tune()

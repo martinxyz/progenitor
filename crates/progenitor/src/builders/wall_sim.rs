@@ -16,6 +16,7 @@ use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
+use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 
@@ -33,7 +34,7 @@ enum Action {
     Forward,
     Left,
     Right,
-    Pullback,
+    Pull,
 }
 
 impl From<usize> for Action {
@@ -42,7 +43,7 @@ impl From<usize> for Action {
             0 => Action::Forward,
             1 => Action::Left,
             2 => Action::Right,
-            3 => Action::Pullback,
+            3 => Action::Pull,
             _ => panic!("invalid action choice"),
         }
     }
@@ -50,11 +51,17 @@ impl From<usize> for Action {
 
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
 enum Cell {
-    Floor,
-    Stone,
     Border,
+    Air,
+    Wall,
     Builder,
-    Blob(u8),
+    Food,
+}
+
+impl Cell {
+    fn can_move(self) -> bool {
+        matches!(self, Cell::Wall | Cell::Food)
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -81,7 +88,7 @@ pub struct Builders {
     pub encounters: i32,
 }
 
-const RING_RADIUS: i32 = 17;
+const RING_RADIUS: i32 = 23;
 
 impl Simulation for Builders {
     fn step(&mut self) {
@@ -90,7 +97,6 @@ impl Simulation for Builders {
             self.kick_dust(pos);
         }
         self.move_builders();
-        self.move_cells();
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -130,13 +136,55 @@ impl Builders {
         let seed = thread_rng().next_u64();
         let mut rng = SimRng::seed_from_u64(seed);
 
-        let cells = hexmap::new(RING_RADIUS, Cell::Border, |_| match rng.gen_bool(0.25) {
-            false => Cell::Floor,
-            true => match rng.gen_bool(0.4) {
-                false => Cell::Stone,
-                true => Cell::Blob(0),
-            },
+        let mut cells = hexmap::new(RING_RADIUS, Cell::Border, |loc| {
+            let c = loc.dist_from_center();
+            let mut wall_prob: f32 = match c % 4 {
+                0 => 0.4,
+                _ => 0.1,
+            };
+            let fadeout = 16;
+            if loc.dist_from_center() < fadeout {
+                wall_prob *= (loc.dist_from_center() as f32 / fadeout as f32).powi(2)
+            }
+            if rng.gen_bool(wall_prob as f64) {
+                return Cell::Wall;
+            }
+            if rng.gen_bool(0.05) && loc.dist_from_top() > RING_RADIUS {
+                Cell::Food
+            } else {
+                Cell::Air
+            }
         });
+
+        fn rule(nh: Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
+            let walls = nh.count_neighbours(|n| n == Cell::Wall);
+            let foods = nh.count_neighbours(|n| n == Cell::Food);
+            match nh.center {
+                Cell::Food => {
+                    if foods > 0 {
+                        return Cell::Air;
+                    }
+                }
+                Cell::Air => {
+                    if walls > 0 {
+                        if rng.gen_bool(0.05) {
+                            return Cell::Wall;
+                        } else if walls == 1 {
+                            if rng.gen_bool(0.1) {
+                                return Cell::Wall;
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+            nh.center
+        }
+
+        for _ in 0..6 {
+            cells = cells.ca_step(Cell::Border, |nh| rule(nh, &mut rng));
+        }
+
         let mut builders = Builders {
             nn,
             state: State {
@@ -162,7 +210,7 @@ impl Builders {
         let rng = &mut self.state.rng;
         let mut heading = *Direction::all().choose(rng).unwrap();
         let mut pos = pos;
-        while self.state.cells.cell(pos) != Some(Cell::Floor) {
+        while self.state.cells.cell(pos) != Some(Cell::Air) {
             heading = *Direction::all().choose(rng).unwrap();
             pos = pos + hex2d::Direction::from(heading);
         }
@@ -173,7 +221,7 @@ impl Builders {
     fn kick_dust(&mut self, pos: Coordinate) {
         let rng = &mut self.state.rng;
         let dir = *Direction::all().choose(rng).unwrap();
-        if let (Some(Cell::Builder), Some(Cell::Floor)) =
+        if let (Some(Cell::Builder), Some(Cell::Air)) =
             (self.state.cells.cell(pos), self.state.cells.cell(pos + dir))
         {
             if let (Some(src), Some(dst)) =
@@ -211,12 +259,18 @@ impl Builders {
                 .iter()
                 .sum();
             let inputs = [
-                look(Cell::Floor, Angle::Forward),
-                look(Cell::Floor, Angle::Left),
-                look(Cell::Floor, Angle::Right),
-                look(Cell::Floor, Angle::LeftBack),
-                look(Cell::Floor, Angle::RightBack),
-                look(Cell::Floor, Angle::Back),
+                look(Cell::Air, Angle::Forward),
+                look(Cell::Air, Angle::Left),
+                look(Cell::Air, Angle::Right),
+                look(Cell::Air, Angle::LeftBack),
+                look(Cell::Air, Angle::RightBack),
+                look(Cell::Air, Angle::Back),
+                look(Cell::Food, Angle::Forward),
+                look(Cell::Food, Angle::Left),
+                look(Cell::Food, Angle::Right),
+                look(Cell::Food, Angle::LeftBack),
+                look(Cell::Food, Angle::RightBack),
+                look(Cell::Food, Angle::Back),
                 look(Cell::Builder, Angle::Forward),
                 self.state.mass.cell(t.pos).unwrap_or(0).into(),
                 builders_nearby as f32,
@@ -238,14 +292,14 @@ impl Builders {
 
             if let Some(cell_forward) = self.state.cells.cell(pos_forward) {
                 match action {
-                    Action::Pullback => {
+                    Action::Pull => {
                         if let Some(cell_back) = self.state.cells.cell(pos_back) {
-                            if cell_back == Cell::Floor {
-                                if cell_forward == Cell::Stone {
-                                    self.state.cells.set_cell(pos_forward, Cell::Floor);
+                            if cell_back == Cell::Air {
+                                if cell_forward.can_move() {
+                                    self.state.cells.set_cell(pos_forward, Cell::Air);
                                     self.state.cells.set_cell(t.pos, cell_forward);
                                 } else {
-                                    self.state.cells.set_cell(t.pos, Cell::Floor);
+                                    self.state.cells.set_cell(t.pos, Cell::Air);
                                 }
                                 t.pos = pos_back;
                                 self.state.cells.set_cell(t.pos, Cell::Builder);
@@ -253,30 +307,26 @@ impl Builders {
                         }
                     }
                     Action::Forward => {
-                        match cell_forward {
-                            Cell::Stone => {
-                                // push
-                                let pos_forward2x = pos_forward + t.heading;
-                                if let Some(cell_forward2x) = self.state.cells.cell(pos_forward2x) {
-                                    if cell_forward2x == Cell::Floor {
-                                        self.state.cells.set_cell(pos_forward2x, cell_forward);
-                                        self.state.cells.set_cell(t.pos, Cell::Floor);
-                                        t.pos = pos_forward;
-                                        self.state.cells.set_cell(t.pos, Cell::Builder);
-                                    }
+                        if cell_forward.can_move() {
+                            // push
+                            let pos_forward2x = pos_forward + t.heading;
+                            if let Some(cell_forward2x) = self.state.cells.cell(pos_forward2x) {
+                                if cell_forward2x == Cell::Air {
+                                    self.state.cells.set_cell(pos_forward2x, cell_forward);
+                                    self.state.cells.set_cell(t.pos, Cell::Air);
+                                    t.pos = pos_forward;
+                                    self.state.cells.set_cell(t.pos, Cell::Builder);
                                 }
                             }
-                            Cell::Floor => {
-                                self.state.cells.set_cell(t.pos, Cell::Floor);
-                                t.pos = pos_forward;
-                                self.state.cells.set_cell(t.pos, Cell::Builder);
-                            }
-                            _ => {}
+                        } else if cell_forward == Cell::Air {
+                            self.state.cells.set_cell(t.pos, Cell::Air);
+                            t.pos = pos_forward;
+                            self.state.cells.set_cell(t.pos, Cell::Builder);
                         }
                     }
                     Action::Left | Action::Right => {
-                        if cell_forward == Cell::Floor {
-                            self.state.cells.set_cell(t.pos, Cell::Floor);
+                        if cell_forward == Cell::Air {
+                            self.state.cells.set_cell(t.pos, Cell::Air);
                             t.pos = pos_forward;
                             self.state.cells.set_cell(t.pos, Cell::Builder);
                         }
@@ -286,89 +336,6 @@ impl Builders {
             self.state.visited.set_cell(t.pos, true);
             let center: coords::Cube = hexmap::center(RING_RADIUS);
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
-        }
-    }
-
-    fn move_cells(&mut self) {
-        for _ in 0..(RING_RADIUS * RING_RADIUS) / 32 {
-            let pos = self.state.cells.random_pos(&mut self.state.rng);
-            #[allow(clippy::single_match)]
-            match self.state.cells.cell(pos) {
-                Some(Cell::Blob(height)) => self.move_blob(pos, height),
-                _ => {}
-            }
-        }
-    }
-
-    fn move_blob(&mut self, pos: Coordinate, height: u8) {
-        let rng = &mut self.state.rng;
-        let neighbours = self.state.cells.neighbours(pos);
-        let target = neighbours.choose(rng).copied();
-        let (target_dir, target_cell) = match target {
-            Some((dir, Some(cell))) => (dir, cell),
-            _ => return,
-        };
-        match target_cell {
-            Cell::Floor => {
-                if height > 0 {
-                    self.state.cells.set_cell(pos, Cell::Blob(height - 1));
-                    self.state.cells.set_cell(pos + target_dir, Cell::Blob(0));
-                } else {
-                    // Check if moving to `dir` would break a link with another neighbour-blob.
-                    // Because we are currently connected to all 6 neighbours (if they are blob),
-                    // the resulting 6-ring must be a single connected blob (at most one gap).
-                    let neighbours_will_be_blob = neighbours.map(|(dir2, cell2)| {
-                        dir2 == target_dir || matches!(cell2, Some(Cell::Blob(_)))
-                    });
-                    let changes = {
-                        let mut n: u8 = 0;
-                        for i in 0..6 {
-                            if neighbours_will_be_blob[i] != neighbours_will_be_blob[(i + 1) % 6] {
-                                n += 1;
-                            }
-                        }
-                        n
-                    };
-                    if changes <= 2 {
-                        self.state.cells.set_cell(pos, Cell::Floor);
-                        self.state.cells.set_cell(pos + target_dir, Cell::Blob(0));
-                    }
-                }
-            }
-            Cell::Blob(target_height) => {
-                if target_height < 255 {
-                    if height > 0 {
-                        self.state.cells.set_cell(pos, Cell::Blob(height - 1));
-                        self.state
-                            .cells
-                            .set_cell(pos + target_dir, Cell::Blob(target_height + 1));
-                    } else {
-                        // Check if moving to `dir` would break a link with another neighbour-blob.
-                        // Because we are currently connected to all 6 neighbours (if they are blob),
-                        // the resulting 6-ring must be a single connected blob (at most one gap).
-                        let neighbours_will_be_blob =
-                            neighbours.map(|(_, cell2)| matches!(cell2, Some(Cell::Blob(_))));
-                        let changes = {
-                            let mut n: u8 = 0;
-                            for i in 0..6 {
-                                if neighbours_will_be_blob[i]
-                                    != neighbours_will_be_blob[(i + 1) % 6]
-                                {
-                                    n += 1;
-                                }
-                            }
-                            n
-                        };
-                        if changes <= 2 {
-                            self.state.cells.set_cell(pos, Cell::Floor);
-                            self.state
-                                .cells
-                                .set_cell(pos + target_dir, Cell::Blob(target_height + 1));
-                        }
-                    }
-                }
-            }
-            _ => {}
         }
     }
 
@@ -388,7 +355,17 @@ impl Builders {
 
     pub fn relative_wall_edges(&self) -> f32 {
         let cells = &self.state.cells;
-        cells.count_edges(|cell| matches!(cell, Cell::Stone)) as f32 / cells.area() as f32
+        cells.count_edges(|cell| matches!(cell, Cell::Wall)) as f32 / cells.area() as f32
+    }
+
+    pub fn hoarding_score(&self) -> i32 {
+        let mut count = 0;
+        for nh in self.state.cells.iter_valid_neighbourhoods() {
+            if nh.center == Cell::Food {
+                count += nh.count_neighbours(|c| c == Cell::Food).pow(2)
+            }
+        }
+        count
     }
 
     pub fn print_stats(&self) {
@@ -411,12 +388,11 @@ impl HexgridView for Builders {
 
         let energy: u8 = self.state.mass.cell(pos)?;
         let cell_type = match self.state.cells.cell(pos)? {
-            Cell::Floor => 2,
-            Cell::Stone => 4,
             Cell::Border => 255,
+            Cell::Air => 2,
+            Cell::Wall => 4,
             Cell::Builder => 0,
-            Cell::Blob(0) => 3,
-            Cell::Blob(_) => 5,
+            Cell::Food => 1,
         };
         Some(CellView {
             cell_type,

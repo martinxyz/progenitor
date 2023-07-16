@@ -141,7 +141,7 @@ impl<CellT: Copy> AxialTile<CellT> {
     }
 
     /// Count true/false transitions in the binarized image
-    pub fn count_edges(&self, predicate: impl Fn(CellT) -> bool) -> i32 {
+    pub fn count_edges(&self, mut predicate: impl FnMut(CellT) -> bool) -> i32 {
         self.iter_valid_neighbourhoods()
             .map(|Neighbourhood { center, neighbours }| {
                 let c = predicate(center);

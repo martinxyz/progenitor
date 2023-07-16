@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
-const N_INPUTS: usize = 9;
+const N_INPUTS: usize = 2 * 6 + 3;
 const N_HIDDEN: usize = 10;
 const N_OUTPUTS: usize = 4;
 
