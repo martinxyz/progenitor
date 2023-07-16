@@ -1,6 +1,7 @@
 use hex2d::Angle;
 use hex2d::Coordinate;
 use nalgebra::SVector;
+use rand::distributions;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
@@ -224,11 +225,15 @@ impl Builders {
             pos = pos + hex2d::Direction::from(heading);
         }
         self.state.cells.set_cell(pos, Cell::Builder);
+        let memory = {
+            let dist = distributions::Uniform::new(-1.0f32, 1.0f32);
+            SVector::from_distribution(&dist, &mut self.state.rng)
+        };
         self.state.builders.push(Builder {
             pos,
             heading,
             exhausted: 0,
-            memory: SVector::zeros(),
+            memory,
         });
     }
 
