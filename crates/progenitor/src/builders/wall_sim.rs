@@ -149,8 +149,12 @@ impl Builders {
     }
 
     pub fn new_with_params(params: Params) -> Builders {
-        let nn = nn::Network::new(&params.builder_weights, params.builder_hyperparams);
         let seed = thread_rng().next_u64();
+        Self::new_with_params_and_seed(params, seed)
+    }
+
+    pub fn new_with_params_and_seed(params: Params, seed: u64) -> Builders {
+        let nn = nn::Network::new(&params.builder_weights, params.builder_hyperparams);
         let mut rng = SimRng::seed_from_u64(seed);
 
         let mut cells = hexmap::new(RING_RADIUS, Cell::Border, |loc| {

@@ -19,9 +19,12 @@ pub(crate) struct Builders {
 #[pymethods]
 impl Builders {
     #[new]
-    fn new(params: &Params) -> Builders {
+    fn new(params: &Params, seed: Option<u64>) -> Builders {
         Self {
-            inner: BuildersImpl::new_with_params(params.inner.clone()),
+            inner: match seed {
+                None => BuildersImpl::new_with_params(params.inner.clone()),
+                Some(seed) => BuildersImpl::new_with_params_and_seed(params.inner.clone(), seed),
+            },
         }
     }
 

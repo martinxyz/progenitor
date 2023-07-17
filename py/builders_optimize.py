@@ -5,7 +5,8 @@ import cma
 import ray
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from ray.air import session
+from ray.air import session, RunConfig
+import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
@@ -32,13 +33,15 @@ def get_params(x, config):
     return Params(x, **hyperparams)
 
 @ray.remote
-def evaluate(x, config, episodes, stats=False):
+def evaluate(x, config, episodes, stats=False, seed=None):
     Builders = progenitor.mod.Builders
     params = get_params(x, config)
 
     score = 0
     for i in range(episodes):
-        sim = Builders(params)
+        if seed is not None:
+            seed += 1
+        sim = Builders(params, seed)
         sim.steps(3000)
         if stats and i == 0:
             sim.print_stats()
@@ -69,16 +72,13 @@ def train(config, tuning=True):
     next_report_at = 0
     while not es.stop():
         solutions = es.ask()
-        futures = [evaluate.remote(x, config, episodes=config["episodes_per_eval"]) for x in solutions]
-        # costs = [evaluate(x) for x in solutions]
+        seed = random.randrange(1_000_000_000)
+        futures = [evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed) for x in solutions]
         costs = ray.get(futures)
 
         evaluation += len(solutions)
         iteration += 1
         episodes = evaluation * config["episodes_per_eval"]
-        # print(f'evaluation {evaluation} ({episodes} epoisodes)')
-        # print('computed costs:', list(reversed(sorted(costs))))
-        # print('avg costs:', np.mean(costs))
 
         es.tell(solutions, costs)
 
@@ -119,23 +119,23 @@ def train(config, tuning=True):
 
 def main_tune():
     search_space = {
-        "popsize": tune.lograndint(7, 100),
-        "episodes_per_eval": tune.lograndint(10, 20),
-        "init_fac": tune.loguniform(0.1, 2.0),
-        "bias_fac": tune.loguniform(0.005, 0.6),
-        "memory_clamp": tune.loguniform(0.1, 100.0),
-        "memory_halftime": tune.loguniform(0.5, 100.0),
+        "popsize": tune.lograndint(20, 300),  # plausible range: 20..?>100?
+        "episodes_per_eval": 16, # ("denoising" effect ~= popsize*episodes_per_eval)
+        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.2..?>1.5?
+        "bias_fac": tune.loguniform(0.001, 4.0), # (no effect?)
+        "memory_clamp": tune.loguniform(0.1, 100.0),  # (no effect?)
+        "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.0..?28?
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=300,  # "runs" or "restarts"
+        num_samples=(3**5),  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
             grace_period=50_000,  # training "time" allowed for every "sample" (run)
-            max_t=2_000_000,      # training "time" allowed for the best run(s)
+            max_t=5_000_000,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
         )
@@ -143,12 +143,18 @@ def main_tune():
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
         [{'CPU': 0.0}] + [{'CPU': 1.0}] * 1
-        #-------------   --------------
-        # train() task,        evaluate() tasks spawned by train(),
-        # does work once       could use more CPUs, how many depends
+        #-------------   ------------------
+        # train() task,        evaluate() tasks spawned by train().
+        # does work once       They could use more CPUs, how many depends
         # per generation.      on the population_size (a hyperparam).
         # (short burst)        So if we reserve more here I guess
-        #                      they would idle once per generation?
+        #                      they would idle during generation-evaluation?
+        #                      (And a larger reservation means fewer parallel
+        #                      training runs allowed.)
+        #
+        #
+        # https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
+        # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
     )
     tuner = tune.Tuner(
         tune.with_resources(train, resources_per_trial),
@@ -170,14 +176,8 @@ def main_tune():
 
 def main_simple():
     train(config = {
-        # My original params:
-        # "popsize": 18,            <-- okay (CMA-ES default)
-        # "episodes_per_eval": 400, <-- much too high
-        # "init_fac": 1.0,          <-- great
-        # "bias_fac": 0.1,          <-- great
-        # Tuning result:
         "popsize": 32,
-        "episodes_per_eval": 14,
+        "episodes_per_eval": 16,
         "init_fac": 1.3,
         "bias_fac": 0.08,
         "memory_clamp": 10.0,
