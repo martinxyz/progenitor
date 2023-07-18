@@ -76,6 +76,7 @@ impl Params {
         bias_fac: f32,
         memory_clamp: f32,
         memory_halftime: f32,
+        actions_scale: f32,
     ) -> Params {
         assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
         Self {
@@ -84,6 +85,7 @@ impl Params {
                 builder_hyperparams: Hyperparams { init_fac, bias_fac },
                 memory_clamp,
                 memory_halftime,
+                actions_scale,
             },
         }
     }

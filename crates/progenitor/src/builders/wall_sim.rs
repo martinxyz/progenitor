@@ -90,6 +90,7 @@ pub struct Params {
     pub builder_hyperparams: nn::Hyperparams,
     pub memory_clamp: f32,
     pub memory_halftime: f32,
+    pub actions_scale: f32,
 }
 
 pub struct Builders {
@@ -98,6 +99,7 @@ pub struct Builders {
     // our own hyperparams
     memory_decay: f32,
     memory_clamp: f32,
+    actions_scale: f32,
     // for score or BCs:
     pub max_depth_reached: i32,
     pub encounters: i32,
@@ -145,6 +147,7 @@ impl Builders {
             },
             memory_halftime: 20.0,
             memory_clamp: 5.0,
+            actions_scale: 3.0,
         })
     }
 
@@ -219,6 +222,7 @@ impl Builders {
             encounters: 0,
             memory_decay: f32::ln(2.) / params.memory_halftime.max(0.001),
             memory_clamp: params.memory_clamp.max(0.001),
+            actions_scale: params.actions_scale,
         };
 
         let center = hexmap::center(RING_RADIUS);
@@ -296,6 +300,19 @@ impl Builders {
                 .map(|(_, cell)| (cell == Some(Cell::Builder)) as i32)
                 .iter()
                 .sum();
+
+            let dust_here = self.state.mass.cell(t.pos).unwrap_or(0).into();
+            let dust_nearby = self
+                .state
+                .mass
+                .neighbourhood(t.pos)
+                .unwrap()
+                .neighbours
+                .into_iter()
+                .map(|mass| mass as f32)
+                .sum::<f32>()
+                * 0.1;
+
             let inputs = [
                 look(Cell::Air, Angle::Forward),
                 look(Cell::Air, Angle::Left),
@@ -310,16 +327,17 @@ impl Builders {
                 look(Cell::Food, Angle::RightBack),
                 look(Cell::Food, Angle::Back),
                 look(Cell::Builder, Angle::Forward),
-                self.state.mass.cell(t.pos).unwrap_or(0).into(),
-                builders_nearby as f32,
+                dust_here,
+                dust_nearby,
+                builders_nearby as f32 * 10.,
                 t.memory[0],
                 t.memory[1],
             ];
             self.encounters += builders_nearby;
 
             let outputs: SVector<f32, 6> = self.nn.forward(inputs);
-            let action_logits = outputs.fixed_rows::<4>(0);
-            let memory_update = outputs.fixed_rows::<2>(4);
+            let mut action_logits = outputs.fixed_rows::<4>(0).clone_owned();
+            let memory_update = outputs.fixed_rows::<2>(4).clone_owned();
             t.memory *= self.memory_decay;
             t.memory += (1. - self.memory_decay) * memory_update;
             t.memory = nalgebra::clamp(
@@ -328,7 +346,8 @@ impl Builders {
                 SVector::from_element(self.memory_clamp),
             );
 
-            let action = nn::softmax_choice::<4, _>(&action_logits, &mut self.state.rng).into();
+            action_logits.apply(|v| *v *= self.actions_scale);
+            let action = nn::softmax_choice(action_logits, &mut self.state.rng).into();
 
             let turn = match action {
                 Action::Left => Angle::Left,

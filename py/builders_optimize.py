@@ -3,6 +3,7 @@ import numpy as np
 import os
 import cma
 import ray
+import sys
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from ray.air import session, RunConfig
@@ -29,6 +30,7 @@ def get_params(x, config):
         "bias_fac": config["bias_fac"],
         "memory_clamp": config["memory_clamp"],
         "memory_halftime": config["memory_halftime"],
+        "actions_scale": config["actions_scale"],
     }
     return Params(x, **hyperparams)
 
@@ -118,6 +120,8 @@ def train(config, tuning=True):
 
 
 def main_tune():
+    run_name = 'builders-' + sys.argv[1]
+
     search_space = {
         "popsize": tune.lograndint(20, 300),  # plausible range: 20..?>100?
         "episodes_per_eval": 16, # ("denoising" effect ~= popsize*episodes_per_eval)
@@ -125,6 +129,7 @@ def main_tune():
         "bias_fac": tune.loguniform(0.001, 4.0), # (no effect?)
         "memory_clamp": tune.loguniform(0.1, 100.0),  # (no effect?)
         "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.0..?28?
+        "actions_scale": tune.loguniform(0.2, 5.),
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     tune_config = tune.TuneConfig(
@@ -158,6 +163,7 @@ def main_tune():
     )
     tuner = tune.Tuner(
         tune.with_resources(train, resources_per_trial),
+        run_config=RunConfig(name=run_name),  # + timestamp?
         param_space=search_space,
         tune_config=tune_config
     )
@@ -182,6 +188,7 @@ def main_simple():
         "bias_fac": 0.08,
         "memory_clamp": 10.0,
         "memory_halftime": 50.0,
+        "actions_scale": 1.0,
     }, tuning=False)
 
 if __name__ == '__main__':

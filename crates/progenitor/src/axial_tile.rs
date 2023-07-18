@@ -102,7 +102,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         Cube { x, y }
     }
 
-    fn neighbourhood(&self, r: i32, q: i32) -> Neighbourhood<CellT> {
+    fn neighbourhood_rq(&self, r: i32, q: i32) -> Neighbourhood<CellT> {
         let index = r * self.width + q;
         const OFFSETS: [(i32, i32); 6] = [
             // (r,q)
@@ -119,9 +119,20 @@ impl<CellT: Copy> AxialTile<CellT> {
         }
     }
 
+    pub fn neighbourhood(&self, pos: Cube) -> Option<Neighbourhood<CellT>> {
+        let q = pos.x;
+        let r = pos.z();
+        let r_outside = r < 1 || r > self.height - 2;
+        let q_outside = q < 1 || q > self.width - 2;
+        if r_outside || q_outside {
+            return None;
+        }
+        Some(self.neighbourhood_rq(r, q))
+    }
+
     pub fn iter_valid_neighbourhoods(&self) -> impl Iterator<Item = Neighbourhood<CellT>> + '_ {
         (1..self.height - 1)
-            .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood(r, q)))
+            .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood_rq(r, q)))
     }
 
     /// Cellular automaton step
@@ -134,7 +145,7 @@ impl<CellT: Copy> AxialTile<CellT> {
         for r in 1..self.height - 1 {
             for q in 1..self.width - 1 {
                 let index = r * self.width + q;
-                result.data[index as usize] = rule(self.neighbourhood(r, q));
+                result.data[index as usize] = rule(self.neighbourhood_rq(r, q));
             }
         }
         result
