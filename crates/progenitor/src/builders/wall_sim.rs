@@ -29,7 +29,7 @@ struct Builder {
     pos: coords::Cube,
     heading: Direction,
     exhausted: u8,
-    memory: SVector<f32, 2>,
+    memory: SVector<f32, 4>,
 }
 
 #[derive(PartialEq)]
@@ -293,6 +293,19 @@ impl Builders {
                     0.0
                 }
             };
+            let look_far = |item: Cell, angle: Angle| {
+                let present = self
+                    .state
+                    .cells
+                    .cell(t.pos + (t.heading + angle) + (t.heading + angle))
+                    .map(|c| c == item)
+                    .unwrap_or(false);
+                if present {
+                    1.0
+                } else {
+                    0.0
+                }
+            };
             let builders_nearby: i32 = self
                 .state
                 .cells
@@ -320,24 +333,28 @@ impl Builders {
                 look(Cell::Air, Angle::LeftBack),
                 look(Cell::Air, Angle::RightBack),
                 look(Cell::Air, Angle::Back),
+                look_far(Cell::Air, Angle::Forward),
                 look(Cell::Food, Angle::Forward),
                 look(Cell::Food, Angle::Left),
                 look(Cell::Food, Angle::Right),
                 look(Cell::Food, Angle::LeftBack),
                 look(Cell::Food, Angle::RightBack),
                 look(Cell::Food, Angle::Back),
+                look_far(Cell::Food, Angle::Forward),
                 look(Cell::Builder, Angle::Forward),
                 dust_here,
                 dust_nearby,
                 builders_nearby as f32 * 10.,
                 t.memory[0],
                 t.memory[1],
+                t.memory[2],
+                t.memory[3],
             ];
             self.encounters += builders_nearby;
 
-            let outputs: SVector<f32, 6> = self.nn.forward(inputs);
+            let outputs: SVector<f32, 8> = self.nn.forward(inputs);
             let mut action_logits = outputs.fixed_rows::<4>(0).clone_owned();
-            let memory_update = outputs.fixed_rows::<2>(4).clone_owned();
+            let memory_update = outputs.fixed_rows::<4>(4).clone_owned();
             t.memory *= self.memory_decay;
             t.memory += (1. - self.memory_decay) * memory_update;
             t.memory = nalgebra::clamp(
@@ -457,14 +474,14 @@ impl HexgridView for Builders {
             }
         }
 
-        let energy: u8 = self.state.mass.cell(pos)?;
         let cell_type = match self.state.cells.cell(pos)? {
-            Cell::Border => 255,
+            Cell::Border => return None,
             Cell::Air => 2,
             Cell::Wall => 4,
             Cell::Builder => 0,
             Cell::Food => 1,
         };
+        let energy: u8 = self.state.mass.cell(pos)?;
         Some(CellView {
             cell_type,
             energy: Some(energy),

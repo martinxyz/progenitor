@@ -12,6 +12,8 @@ import random
 
 import progenitor
 print(progenitor.__file__)
+progenitor_version_expected = 1
+assert progenitor.mod.version_check == progenitor_version_expected
 
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently (I think the @ray.remote object fails to serialize). The attempts
@@ -37,6 +39,7 @@ def get_params(x, config):
 @ray.remote
 def evaluate(x, config, episodes, stats=False, seed=None):
     Builders = progenitor.mod.Builders
+    assert progenitor.mod.version_check == progenitor_version_expected
     params = get_params(x, config)
 
     score = 0
@@ -63,8 +66,12 @@ def save_array(filename, data):
 def train(config, tuning=True):
     N = progenitor.mod.Builders.param_count
 
+    x0 = N * [0]
+    # x0 = np.load('/home/martin/ray_results/builders-restarted/train_c6318_00154_154_memory_halftime=1.6286,popsize=167.5861_2023-07-21_00-28-58/xfavorite-14995264.npy')
+    sigma0 = 1.0
+
     # episodes_budget = 20_000_000
-    es = cma.CMAEvolutionStrategy(N * [0], 1.0, {
+    es = cma.CMAEvolutionStrategy(x0, sigma0, {
         'popsize': config["popsize"],
         # 'maxfevals': episodes_budget / config["episodes_per_eval"],
     })
@@ -123,40 +130,43 @@ def main_tune():
     run_name = 'builders-' + sys.argv[1]
 
     search_space = {
-        "popsize": tune.lograndint(20, 300),  # plausible range: 20..?>100?
+        "popsize": 200,  # plausible range: 50..?200? (large values have )
+        # high popsize: lowers the chance to get a good result, but the few good ones get better
+        #               (they fail because we stop them early...?)
         "episodes_per_eval": 16, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.2..?>1.5?
-        "bias_fac": tune.loguniform(0.001, 4.0), # (no effect?)
-        "memory_clamp": tune.loguniform(0.1, 100.0),  # (no effect?)
-        "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.0..?28?
-        "actions_scale": tune.loguniform(0.2, 5.),
+        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.3..2.0
+        "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
+        "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
+        "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
+        "actions_scale": tune.loguniform(0.7, 15.),  # plausible range: 0.7..?>5?
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=(3**5),  # "runs" or "restarts"
+        num_samples=300,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
             grace_period=50_000,  # training "time" allowed for every "sample" (run)
-            max_t=5_000_000,      # training "time" allowed for the best run(s)
+            max_t=15_000_000,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
         )
     )
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 1
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 8
         #-------------   ------------------
-        # train() task,        evaluate() tasks spawned by train().
-        # does work once       They could use more CPUs, how many depends
+        # train() task,      ^ evaluate() tasks spawned by train().
+        # does work once       They can use more CPUs, how many depends
         # per generation.      on the population_size (a hyperparam).
-        # (short burst)        So if we reserve more here I guess
-        #                      they would idle during generation-evaluation?
-        #                      (And a larger reservation means fewer parallel
-        #                      training runs allowed.)
-        #
+        # (short burst)        But those we reserve (but one) will idle during
+        #                      each generation-evaluation. If we reserve
+        #                      just one, utilization will be nearly 100% at the
+        #                      beginning but the last few runs remaining will
+        #                      use a single CPU each, when they could parallelize.
+        #                      ...any good solution for that? (Fractional CPUs?)
         #
         # https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
         # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
