@@ -96,6 +96,9 @@ def train(config, tuning=True):
             print(f'report at {episodes}: (past {next_report_at})')
             next_report_at += 10_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
 
+            # FIXME: this is hurting parallelism
+            #        especially with large episodes_per_eval
+            #        (no need waiting for this evaulation before starting the next generation)
             mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
             fn_prefix = 'output/'
             if tuning:
@@ -134,22 +137,23 @@ def main_tune():
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (they fail because we stop them early...?)
         "episodes_per_eval": 16, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.3..2.0
+        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.2..1.5
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
         "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
-        "actions_scale": tune.loguniform(0.7, 15.),  # plausible range: 0.7..?>5?
+        "actions_scale": tune.loguniform(1.5, 30.),  # plausible range: 2.0..20
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
+    max_t = 15_000_000
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=300,  # "runs" or "restarts"
+        num_samples=100,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=50_000,  # training "time" allowed for every "sample" (run)
-            max_t=15_000_000,      # training "time" allowed for the best run(s)
+            grace_period=max_t // 100,  # training "time" allowed for every "sample" (run)
+            max_t=max_t,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
         )
