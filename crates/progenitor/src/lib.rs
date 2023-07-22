@@ -1,5 +1,9 @@
-#![allow(clippy::new_without_default)]
-// #![feature(array_windows)]
+#![allow(
+    clippy::new_without_default,
+    clippy::match_like_matches_macro,
+    clippy::manual_range_patterns,
+    clippy::collapsible_if
+)]
 
 // foundation
 pub mod coords;
