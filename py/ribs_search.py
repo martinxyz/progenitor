@@ -27,6 +27,9 @@ def evaluate(x):
     hyperparams = {
         "init_fac": 1.0, #config["init_fac"],
         "bias_fac": 0.1, #config["bias_fac"]
+        "memory_clamp": 10.0,
+        "memory_halftime": 50.0,
+        "actions_scale": 1.0,
     }
 
     score = 0.0
@@ -57,7 +60,7 @@ population_size = 120
 # evaluations = 500
 evaluations = 1000_000
 
-archive = GridArchive(param_count, [40, 100], [(0, 0.08), (3, 10)])
+archive = GridArchive(solution_dim=param_count, dims=[40, 100], ranges=[(0, 0.08), (3, 10)])
 # emitters = [EvolutionStrategyEmitter(
 #     archive,
 #     x0 = [0.0] * param_count,
