@@ -232,6 +232,24 @@ constrained-solution-tracking = ["moarchiving"]
 plotting = ["matplotlib"]
 
 [[package]]
+name = "cmaes"
+version = "0.10.0"
+description = "Lightweight Covariance Matrix Adaptation Evolution Strategy (CMA-ES) implementation for Python 3."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "cmaes-0.10.0-py3-none-any.whl", hash = "sha256:72cea747ad37b1780b0eb6f3c098cee33907fafbf6690c0c02db1e010cab72f6"},
+    {file = "cmaes-0.10.0.tar.gz", hash = "sha256:48afc70df027114739872b50489ae6b32461c307b92d084a63c7090a9742faf9"},
+]
+
+[package.dependencies]
+numpy = "*"
+
+[package.extras]
+cmawm = ["scipy"]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 description = "Cross-platform colored terminal text."
@@ -2201,4 +2219,4 @@ test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "cb91cf469aced96ee8d114b89665820158e8ea377abfed4f77c1994fe64fa7cc"
+content-hash = "460f5c4a4832fc3ee6ae0240b4b9726af9f436b554a93830dcf11acd8e793ef1"

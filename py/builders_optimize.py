@@ -2,6 +2,7 @@
 import numpy as np
 import os
 import cma
+import cmaes
 import ray
 import sys
 from ray import tune
@@ -65,22 +66,35 @@ def save_array(filename, data):
 
 def train(config, tuning=True):
     N = progenitor.mod.Builders.param_count
+    print('param_count:', N)
 
     x0 = N * [0]
     # x0 = np.load('/home/martin/ray_results/builders-restarted/train_c6318_00154_154_memory_halftime=1.6286,popsize=167.5861_2023-07-21_00-28-58/xfavorite-14995264.npy')
     sigma0 = 1.0
 
     # episodes_budget = 20_000_000
-    es = cma.CMAEvolutionStrategy(x0, sigma0, {
-        'popsize': config["popsize"],
-        # 'maxfevals': episodes_budget / config["episodes_per_eval"],
-    })
+    if config["optimizer"] == 'cmaes_1':
+        es = cma.CMAEvolutionStrategy(x0, sigma0, {
+            'popsize': config["popsize"],
+            # 'maxfevals': episodes_budget / config["episodes_per_eval"],
+        })
+        es.should_stop = es.stop
+    elif config["optimizer"] == 'cmaes_2':
+        es = cmaes.CMA(mean=x0, sigma=sigma0, population_size=config["popsize"])
+    elif config["optimizer"] == 'sep-cmaes':
+        es = cmaes.SepCMA(mean=x0, sigma=sigma0, population_size=config["popsize"])
+    else:
+        raise NotImplementedError(config["optimizer"])
+
 
     iteration = 0
     evaluation = 0
     next_report_at = 0
-    while not es.stop():
-        solutions = es.ask()
+    while not es.should_stop():
+        if config["optimizer"] == 'cmaes_1':
+            solutions = es.ask()
+        else:
+            solutions = [es.ask() for _ in range(es.population_size)]
         seed = random.randrange(1_000_000_000)
         futures = [evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed) for x in solutions]
         costs = ray.get(futures)
@@ -89,7 +103,10 @@ def train(config, tuning=True):
         iteration += 1
         episodes = evaluation * config["episodes_per_eval"]
 
-        es.tell(solutions, costs)
+        if config["optimizer"] == 'cmaes_1':
+            es.tell(solutions, costs)
+        else:
+            es.tell(list(zip(solutions, costs)))
 
         while episodes > next_report_at:
             print()
@@ -99,7 +116,10 @@ def train(config, tuning=True):
             # FIXME: this is hurting parallelism
             #        especially with large episodes_per_eval
             #        (no need waiting for this evaulation before starting the next generation)
-            mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
+            if config["optimizer"] == 'cmaes_1':
+                mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
+            else:
+                mean_cost = ray.get(evaluate.remote(es._mean, config, episodes=500, stats=False))
             fn_prefix = 'output/'
             if tuning:
                 fn_prefix = ''
@@ -117,11 +137,16 @@ def train(config, tuning=True):
 
             else:
                 print(f'score = {-mean_cost:.3f}')
-                es.disp()
+                if config["optimizer"] == 'cmaes_1':
+                    es.disp()
 
 
-            np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es.result.xfavorite)
-            params_favourite = get_params(es.result.xfavorite, config)
+            if config["optimizer"] == 'cmaes_1':
+                np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es.result.xfavorite)
+                params_favourite = get_params(es.result.xfavorite, config)
+            else:
+                np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es._mean)
+                params_favourite = get_params(es._mean, config)
             with open(f'{fn_prefix}xfavorite-{episodes}.params.bin', 'wb') as f:
                 f.write(params_favourite.serialize())
 
@@ -142,6 +167,7 @@ def main_tune():
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
         "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
         "actions_scale": tune.loguniform(1.5, 30.),  # plausible range: 2.0..20
+        "optimizer": tune.choice(["cmaes_1", "cmaes_2", "sep-cmaes"])
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     max_t = 15_000_000
@@ -152,7 +178,7 @@ def main_tune():
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=max_t // 100,  # training "time" allowed for every "sample" (run)
+            grace_period=max_t // 20,  # training "time" allowed for every "sample" (run)
             max_t=max_t,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
@@ -203,6 +229,7 @@ def main_simple():
         "memory_clamp": 10.0,
         "memory_halftime": 50.0,
         "actions_scale": 1.0,
+        "optimizer": "sep-cmaes",
     }, tuning=False)
 
 if __name__ == '__main__':
