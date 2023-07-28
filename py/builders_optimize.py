@@ -12,19 +12,11 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-print(progenitor.__file__)
-progenitor_version_expected = 1
-assert progenitor.mod.version_check == progenitor_version_expected
-
+version_check = 7
+assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
-# apparently (I think the @ray.remote object fails to serialize). The attempts
-# below do not help: (at least not when running local-only)
-#
-# ray.init(runtime_env={"py_modules": [progenitor]})
-# ray.init(runtime_env={'py_modules': ['crates/python/progenitor']})
-# ray.init(runtime_env={"py_modules": ["/home/martin/code/progenitor/target/wheels/progenitor-0.0.0-cp310-cp310-linux_x86_64.whl"]})
-# ray.init(runtime_env={"pip": ["/home/martin/code/progenitor/target/wheels/progenitor-0.0.0-cp310-cp310-linux_x86_64.whl"]})
-# ray.init()
+# apparently. (I think the @ray.remote object fails to serialize.)
+# (Is this still true when starting with the submit-job.sh script?)
 
 def get_params(x, config):
     Params = progenitor.mod.Params
@@ -40,7 +32,7 @@ def get_params(x, config):
 @ray.remote
 def evaluate(x, config, episodes, stats=False, seed=None):
     Builders = progenitor.mod.Builders
-    assert progenitor.mod.version_check == progenitor_version_expected
+    assert progenitor.mod.version_check == version_check
     params = get_params(x, config)
 
     score = 0
@@ -186,7 +178,7 @@ def main_tune():
     )
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 8
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 1
         #-------------   ------------------
         # train() task,      ^ evaluate() tasks spawned by train().
         # does work once       They can use more CPUs, how many depends
@@ -213,9 +205,9 @@ def main_tune():
     # best_trial = analysis.get_best_trial(metric="accuracy", mode="max", scope="all")
     # best_checkpoint = analysis.get_best_checkpoint(best_trial, metric="accuracy")
 
-    df = analysis.get_dataframe()
-    df = df.sort_values('score', ascending=False)
-    df.to_csv('output/tuner_result.csv')
+    # df = analysis.get_dataframe()
+    # df = df.sort_values('score', ascending=False)  # keyerror: score
+    # df.to_csv('output/tuner_result.csv')
     # ...or just start tensorboard in ~/ray_results/
 
     print("Config of best run:", analysis.get_best_result().config)
