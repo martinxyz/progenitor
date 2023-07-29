@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 // use super::stats::RangeTracker;
 
 const N_INPUTS: usize = 2 * 6 + 2 /* eye */ + 4 /* special */ + 4 /* memory */;
-const N_HIDDEN: usize = 20;
-const N_HIDDEN2: usize = 16;
+const N_HIDDEN: usize = 15;
+const N_HIDDEN2: usize = 15;
 const N_OUTPUTS: usize = 4 /* actions */ + 4 /* memory */;
 
 pub struct Network {
@@ -36,6 +36,10 @@ fn relu(value: f32) -> f32 {
     f32::max(0., value)
 }
 
+// This becomes the bottleneck if the NN is large-ish (~30k weights), and the
+// rest of the simulation doesn't do much. Could do fused multiply-accumulate,
+// for starters. Could do integers instead of floats. Batching would be possible
+// only when doing multiple parallel evals with the same weights.
 fn forward(
     params: &Weights,
     inputs: [f32; N_INPUTS],

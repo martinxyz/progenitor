@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import numpy as np
 import os
+import shutil
+import glob
 import cma
 import cmaes
 import ray
@@ -12,7 +14,7 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-version_check = 7
+version_check = 8
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently. (I think the @ray.remote object fails to serialize.)
@@ -32,7 +34,7 @@ def get_params(x, config):
 @ray.remote
 def evaluate(x, config, episodes, stats=False, seed=None):
     Builders = progenitor.mod.Builders
-    assert progenitor.mod.version_check == version_check
+    assert progenitor.mod.version_check == version_check, f'wrong module version: {Builders.__file__}'
     params = get_params(x, config)
 
     score = 0
@@ -65,14 +67,20 @@ def train(config, tuning=True):
     sigma0 = 1.0
 
     # episodes_budget = 20_000_000
-    if config["optimizer"] == 'cmaes_1':
+    if config["optimizer"] == 'cmaes-1':
         es = cma.CMAEvolutionStrategy(x0, sigma0, {
             'popsize': config["popsize"],
             # 'maxfevals': episodes_budget / config["episodes_per_eval"],
         })
         es.should_stop = es.stop
-    elif config["optimizer"] == 'cmaes_2':
+    elif config["optimizer"] == 'cmaes-2':
+        # This gives slightly different (more variance? and slightly worse) results compared to 'cmaes-2'.
+        # There must be some subtle difference...? could be the reporting (xfavorite vs es._mean)
         es = cmaes.CMA(mean=x0, sigma=sigma0, population_size=config["popsize"])
+    elif config["optimizer"] == 'cmaes-2-lr':
+        # This one fails horribly. Looks as if it optimizes in the wrong direction.
+        # (May have been caused by my "epoch" seeding strategy.)
+        es = cmaes.CMA(mean=x0, sigma=sigma0, population_size=config["popsize"], lr_adapt=True)
     elif config["optimizer"] == 'sep-cmaes':
         es = cmaes.SepCMA(mean=x0, sigma=sigma0, population_size=config["popsize"])
     else:
@@ -82,63 +90,67 @@ def train(config, tuning=True):
     iteration = 0
     evaluation = 0
     next_report_at = 0
+
+    pending_report = None
+    pending_report_at = None
+
     while not es.should_stop():
-        if config["optimizer"] == 'cmaes_1':
+        seed = random.randrange(1_000_000_000) if config['seeding'] == 'epoch' else None
+        if config["optimizer"] == 'cmaes-1':
             solutions = es.ask()
+            futures = [evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed) for x in solutions]
         else:
-            solutions = [es.ask() for _ in range(es.population_size)]
-        seed = random.randrange(1_000_000_000)
-        futures = [evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed) for x in solutions]
+            solutions = []
+            futures = []
+            for _ in range(es.population_size):
+                # This is a performance bottleneck for cmaes.CMA. Time is spent
+                # in numpy matrix operations; "popsize" size was <= 120.
+                # Creating tasks as samples arrive helps a bit, I guess?
+                x = es.ask()
+                solutions.append(x)
+                futures.append(evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed))
         costs = ray.get(futures)
 
         evaluation += len(solutions)
         iteration += 1
         episodes = evaluation * config["episodes_per_eval"]
 
-        if config["optimizer"] == 'cmaes_1':
+        if config["optimizer"] == 'cmaes-1':
             es.tell(solutions, costs)
         else:
             es.tell(list(zip(solutions, costs)))
+
+        def emit_report(r_episodes, r_mean_cost):
+            if tuning:
+                session.report(metrics={'score': -r_mean_cost, 'total_episodes': r_episodes})
+            else:
+                print(f'score = {-r_mean_cost:.3f}')
 
         while episodes > next_report_at:
             print()
             print(f'report at {episodes}: (past {next_report_at})')
             next_report_at += 10_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
 
-            # FIXME: this is hurting parallelism
-            #        especially with large episodes_per_eval
-            #        (no need waiting for this evaulation before starting the next generation)
-            if config["optimizer"] == 'cmaes_1':
-                mean_cost = ray.get(evaluate.remote(es.result.xfavorite, config, episodes=500, stats=False))
-            else:
-                mean_cost = ray.get(evaluate.remote(es._mean, config, episodes=500, stats=False))
-            fn_prefix = 'output/'
+            if pending_report:
+                emit_report(pending_report_at, ray.get(pending_report))
+            r_x = es.result.xfavorite if config["optimizer"] == 'cmaes-1' else es._mean
+            pending_report = evaluate.remote(r_x, config, episodes=500)
+            pending_report_at = episodes
+
+            if not tuning and config["optimizer"] == 'cmaes-1':
+                es.disp()
+
+            fn_prefix = '' if tuning else 'output/'
             if tuning:
-                fn_prefix = ''
-                # cp = Checkpoint()
-                # run an evaluation that is independent of hyperparams
-                # note: technically, we don't need to wait for the result - could do this in parallel?
+                # only keep latest params per run
+                os.makedirs('old', exist_ok=True)
+                for fn in os.listdir('old'):
+                    os.remove(f'old/{fn}')
+                for fn in glob.glob(fn_prefix + 'xfavorite-*'):
+                    os.rename(fn, f'old/{fn}')
 
-                session.report(metrics={
-                    'score': -mean_cost,
-                    'total_episodes': episodes,
-                    # 'foobar': 5,
-                })
-                # }, checkpoint=Checkpoint())
-                # should we also report a "iterations=iteration"? (is it special somehow?)
-
-            else:
-                print(f'score = {-mean_cost:.3f}')
-                if config["optimizer"] == 'cmaes_1':
-                    es.disp()
-
-
-            if config["optimizer"] == 'cmaes_1':
-                np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es.result.xfavorite)
-                params_favourite = get_params(es.result.xfavorite, config)
-            else:
-                np.save(f'{fn_prefix}xfavorite-{episodes}.npy', es._mean)
-                params_favourite = get_params(es._mean, config)
+            np.save(f'{fn_prefix}xfavorite-{episodes}.npy', r_x)
+            params_favourite = get_params(r_x, config)
             with open(f'{fn_prefix}xfavorite-{episodes}.params.bin', 'wb') as f:
                 f.write(params_favourite.serialize())
 
@@ -150,22 +162,24 @@ def main_tune():
     run_name = 'builders-' + sys.argv[1]
 
     search_space = {
-        "popsize": 200,  # plausible range: 50..?200? (large values have )
+        "popsize": tune.lograndint(15, 120),  # plausible range: 50..?200?
         # high popsize: lowers the chance to get a good result, but the few good ones get better
-        #               (they fail because we stop them early...?)
-        "episodes_per_eval": 16, # ("denoising" effect ~= popsize*episodes_per_eval)
+        #               (maybe they fail only because we stop them early...?)
+        "episodes_per_eval": 100, # ("denoising" effect ~= popsize*episodes_per_eval)
         "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.2..1.5
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
         "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
         "actions_scale": tune.loguniform(1.5, 30.),  # plausible range: 2.0..20
-        "optimizer": tune.choice(["cmaes_1", "cmaes_2", "sep-cmaes"])
+        # "optimizer": tune.choice(["cmaes-1", "cmaes-2"] + 3*["sep-cmaes"]),
+        "optimizer": 'sep-cmaes',
+        "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
         # "sigma0": tune.loguniform(0.2, 5.0),
     }
     max_t = 15_000_000
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=100,  # "runs" or "restarts"
+        num_samples=120,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
@@ -178,7 +192,7 @@ def main_tune():
     )
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 1
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 4
         #-------------   ------------------
         # train() task,      ^ evaluate() tasks spawned by train().
         # does work once       They can use more CPUs, how many depends
@@ -194,7 +208,11 @@ def main_tune():
         # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
     )
     tuner = tune.Tuner(
-        tune.with_resources(train, resources_per_trial),
+        tune.with_resources(
+            train,
+            resources=resources_per_trial
+            # resources=lambda config: {"GPU": 1} if config["use_gpu"] else {"GPU": 0},
+        ),
         run_config=RunConfig(name=run_name),  # + timestamp?
         param_space=search_space,
         tune_config=tune_config
