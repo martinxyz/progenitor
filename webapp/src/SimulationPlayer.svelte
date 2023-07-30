@@ -1,11 +1,12 @@
 <script lang="ts">
     import Sidebar from './Sidebar.svelte'
     import type Simulation from './simulation'
-    import { createHexDimensions, defineHex, Grid, rectangle, type HexCoordinates } from 'honeycomb-grid'
     import type { Viewport } from 'progenitor';
 
     import { onMount } from 'svelte'
+    import { createHexDimensions, defineHex, Grid, rectangle, type HexCoordinates } from 'honeycomb-grid'
     import type { Hex as HexType } from 'honeycomb-grid'
+    import Color from 'colorjs.io'
 
     export let sim: Simulation
 
@@ -179,12 +180,18 @@
             let dir = data_direction[idx]
 
             let color = '#000'
-            if (ct == 0) color = '#AAA'
-            if (ct == 1) color = '#292'
-            if (ct == 2) color = '#268'
-            if (ct == 3) color = '#188'
-            if (ct == 4) color = '#843'
+            if (ct == 0) color = '#efe'
+            if (ct == 1) color = '#b57'
+            if (ct == 2) color = '#997'
+            if (ct == 3) color = '#6b3'
+            if (ct == 4) color = '#651'
             if (ct == 5) color = '#87c'
+
+            if (showEnergy && e !== 255) {
+                let c = new Color(color)
+                c.lab.l += (e - 2) * 2
+                color = c.toString({format: "hex"})
+            }
 
             ctx.save()
             if (detailed) {
@@ -198,29 +205,8 @@
 
             ctx.fillStyle = color
             ctx.fill()
-            if (showEnergy && e !== 255) {
-                ctx.fillStyle = '#555A'
-                ctx.fill()
-            }
             ctx.restore()
 
-            if (showEnergy && e !== 255) {
-                if (e === 0) color = '#000'
-                if (e === 1) color = '#880'
-                if (e === 2) color = '#AA0'
-                if (e === 3) color = '#CC0'
-                if (e === 4) color = '#DD0'
-                if (e === 5) color = '#EE2'
-                if (e >= 6) color = '#FF6'
-                ctx.save()
-                ctx.translate(hex.x, hex.y)
-                ctx.scale(hex.dimensions.xRadius, hex.dimensions.yRadius)
-                ctx.beginPath()
-                ctx.arc(0, 0, 0.45, 0, 2*Math.PI)
-                ctx.fillStyle = color
-                ctx.fill()
-                ctx.restore()
-            }
             if (showDirection && dir !== 255) {
                 ctx.save()
                 ctx.translate(hex.x, hex.y)
