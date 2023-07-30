@@ -8,8 +8,8 @@ use serde::{Deserialize, Serialize};
 // use super::stats::RangeTracker;
 
 const N_INPUTS: usize = 2 * 6 + 2 /* eye */ + 4 /* special */ + 4 /* memory */;
-const N_HIDDEN: usize = 15;
-const N_HIDDEN2: usize = 15;
+const N_HIDDEN: usize = 50;
+const N_HIDDEN2: usize = 30;
 const N_OUTPUTS: usize = 4 /* actions */ + 4 /* memory */;
 
 pub struct Network {
@@ -40,6 +40,8 @@ fn relu(value: f32) -> f32 {
 // rest of the simulation doesn't do much. Could do fused multiply-accumulate,
 // for starters. Could do integers instead of floats. Batching would be possible
 // only when doing multiple parallel evals with the same weights.
+// Note: nalgebra will use matrixmultiply() only if the matrix is "large", and
+// defines "large" as "not compile-time sized".
 fn forward(
     params: &Weights,
     inputs: [f32; N_INPUTS],

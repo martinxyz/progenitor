@@ -14,7 +14,7 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-version_check = 8
+version_check = 11
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently. (I think the @ray.remote object fails to serialize.)
@@ -63,7 +63,7 @@ def train(config, tuning=True):
     print('param_count:', N)
 
     x0 = N * [0]
-    # x0 = np.load('/home/martin/ray_results/builders-restarted/train_c6318_00154_154_memory_halftime=1.6286,popsize=167.5861_2023-07-21_00-28-58/xfavorite-14995264.npy')
+    # x0 = np.load('checkpoint-score-196.npy')
     sigma0 = 1.0
 
     # episodes_budget = 20_000_000
@@ -129,7 +129,7 @@ def train(config, tuning=True):
         while episodes > next_report_at:
             print()
             print(f'report at {episodes}: (past {next_report_at})')
-            next_report_at += 10_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
+            next_report_at += 100_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
 
             if pending_report:
                 emit_report(pending_report_at, ray.get(pending_report))
@@ -148,6 +148,9 @@ def train(config, tuning=True):
                     os.remove(f'old/{fn}')
                 for fn in glob.glob(fn_prefix + 'xfavorite-*'):
                     os.rename(fn, f'old/{fn}')
+            else:
+                # ugh, those files end up somewhere in the /tmp/ray/ workdir...
+                os.makedirs(fn_prefix, exist_ok=True)
 
             np.save(f'{fn_prefix}xfavorite-{episodes}.npy', r_x)
             params_favourite = get_params(r_x, config)
@@ -162,29 +165,31 @@ def main_tune():
     run_name = 'builders-' + sys.argv[1]
 
     search_space = {
-        "popsize": tune.lograndint(15, 120),  # plausible range: 50..?200?
+        "popsize": 200,  # plausible range: 50..?200?
+        # "popsize": tune.lograndint(15, 120),  # plausible range: 50..?200?
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
-        "episodes_per_eval": 100, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": tune.loguniform(0.2, 3.0),  # (clear effect) plausible range: 0.2..1.5
+        "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
+        "init_fac": tune.loguniform(0.1, 1.5),  # (clear effect) plausible range: 0.2..1.3
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
-        "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
+        # "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
+        "memory_clamp": 50.,  # plausible range: 1.0..?>100?
         "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
-        "actions_scale": tune.loguniform(1.5, 30.),  # plausible range: 2.0..20
+        "actions_scale": tune.loguniform(2.0, 20.),  # plausible range: 2.0..20
         # "optimizer": tune.choice(["cmaes-1", "cmaes-2"] + 3*["sep-cmaes"]),
         "optimizer": 'sep-cmaes',
-        "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
-        # "sigma0": tune.loguniform(0.2, 5.0),
+        # "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
+        "seeding": "epoch",
     }
-    max_t = 15_000_000
+    max_t = 30_000_000
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=120,  # "runs" or "restarts"
+        num_samples=150,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=max_t // 20,  # training "time" allowed for every "sample" (run)
+            grace_period=max_t // 30,  # training "time" allowed for every "sample" (run)
             max_t=max_t,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
@@ -192,7 +197,8 @@ def main_tune():
     )
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 4
+        # [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 16
         #-------------   ------------------
         # train() task,      ^ evaluate() tasks spawned by train().
         # does work once       They can use more CPUs, how many depends
@@ -232,14 +238,15 @@ def main_tune():
 
 def main_simple():
     train(config = {
-        "popsize": 32,
-        "episodes_per_eval": 16,
-        "init_fac": 1.3,
-        "bias_fac": 0.08,
-        "memory_clamp": 10.0,
-        "memory_halftime": 50.0,
-        "actions_scale": 1.0,
+        "actions_scale": 6,
+        "bias_fac": 0.1,
+        "episodes_per_eval": 300,
+        "init_fac": 0.2,
+        "memory_clamp": 50,
+        "memory_halftime": 6,
         "optimizer": "sep-cmaes",
+        "popsize": 197,
+        "seeding": "epoch"
     }, tuning=False)
 
 if __name__ == '__main__':
