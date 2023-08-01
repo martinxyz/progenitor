@@ -4,7 +4,6 @@ use nalgebra::SVector;
 use rand::distributions;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
-use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
@@ -17,12 +16,13 @@ use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
-use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 
 use super::nn;
 use super::optimized_params;
+use super::worldgen;
+use super::worldgen::RING_RADIUS;
 
 #[derive(Serialize, Deserialize)]
 struct Builder {
@@ -53,7 +53,7 @@ impl From<usize> for Action {
 }
 
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
-enum Cell {
+pub enum Cell {
     Border,
     Air,
     Wall,
@@ -104,8 +104,6 @@ pub struct Builders {
     pub max_depth_reached: i32,
     pub encounters: i32,
 }
-
-const RING_RADIUS: i32 = 23;
 
 impl Simulation for Builders {
     fn step(&mut self) {
@@ -160,54 +158,7 @@ impl Builders {
         let nn = nn::Network::new(&params.builder_weights, params.builder_hyperparams);
         let mut rng = SimRng::seed_from_u64(seed);
 
-        let mut cells = hexmap::new(RING_RADIUS, Cell::Border, |loc| {
-            let c = loc.dist_from_center();
-            let mut wall_prob: f32 = match c % 4 {
-                0 => 0.4,
-                _ => 0.1,
-            };
-            let fadeout = 16;
-            if loc.dist_from_center() < fadeout {
-                wall_prob *= (loc.dist_from_center() as f32 / fadeout as f32).powi(2)
-            }
-            if rng.gen_bool(wall_prob as f64) {
-                return Cell::Wall;
-            }
-            if rng.gen_bool(0.05) && loc.dist_from_top() > RING_RADIUS {
-                Cell::Food
-            } else {
-                Cell::Air
-            }
-        });
-
-        fn rule(nh: Neighbourhood<Cell>, rng: &mut impl Rng) -> Cell {
-            let walls = nh.count_neighbours(|n| n == Cell::Wall);
-            let foods = nh.count_neighbours(|n| n == Cell::Food);
-            match nh.center {
-                Cell::Food => {
-                    if foods > 0 {
-                        return Cell::Air;
-                    }
-                }
-                Cell::Air => {
-                    if walls > 0 {
-                        if rng.gen_bool(0.05) {
-                            return Cell::Wall;
-                        } else if walls == 1 {
-                            if rng.gen_bool(0.1) {
-                                return Cell::Wall;
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            }
-            nh.center
-        }
-
-        for _ in 0..6 {
-            cells = cells.ca_step(Cell::Border, |nh| rule(nh, &mut rng));
-        }
+        let cells = worldgen::create_world(&mut rng);
 
         let mut builders = Builders {
             nn,
@@ -225,30 +176,24 @@ impl Builders {
             actions_scale: params.actions_scale,
         };
 
-        let center = hexmap::center(RING_RADIUS);
         for _ in 0..5 {
-            builders.add_builder(center);
+            builders.add_builder();
         }
 
         builders
     }
 
-    fn add_builder(&mut self, pos: Coordinate) {
+    fn add_builder(&mut self) {
         let rng = &mut self.state.rng;
-        let mut heading = *Direction::all().choose(rng).unwrap();
-        let mut pos = pos;
-        while self.state.cells.cell(pos) != Some(Cell::Air) {
-            heading = *Direction::all().choose(rng).unwrap();
-            pos = pos + hex2d::Direction::from(heading);
-        }
+        let pos = worldgen::find_agent_starting_place(rng, &self.state.cells);
         self.state.cells.set_cell(pos, Cell::Builder);
         let memory = {
             let dist = distributions::Uniform::new(-1.0f32, 1.0f32);
-            SVector::from_distribution(&dist, &mut self.state.rng)
+            SVector::from_distribution(&dist, rng)
         };
         self.state.builders.push(Builder {
             pos,
-            heading,
+            heading: *Direction::all().choose(rng).unwrap(),
             exhausted: 0,
             memory,
         });
