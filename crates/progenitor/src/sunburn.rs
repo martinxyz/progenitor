@@ -99,7 +99,6 @@ impl ca::TransactionalCaRule for Rule {
                 photons: target.photons,
             },
         });
-        #[allow(clippy::collapsible_if)]
         if target.kind == CellType::Air {
             if source.kind == CellType::Dust {
                 return swap;

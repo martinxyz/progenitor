@@ -76,7 +76,6 @@ impl LutRule {
         let mut features_sum: SVector<i8, NEIGHBOURHOOD_FEATURES> = SVector::zeros();
 
         let center = neighbourhood.center;
-        #[allow(clippy::identity_op)]
         for i in 0..6usize {
             let dir = Direction::from_int(i as i32);
             let neigh = neighbourhood.neighbours[i];
