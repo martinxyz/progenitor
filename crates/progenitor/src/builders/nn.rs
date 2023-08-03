@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 
 // use super::stats::RangeTracker;
 
-const N_INPUTS: usize = 2 * 6 + 2 /* eye */ + 4 /* special */ + 4 /* memory */;
+pub const N_INPUTS: usize = 3 * 6 /* eye */ + 3 /* special */ + 4 /* memory */;
 const N_HIDDEN: usize = 50;
 const N_HIDDEN2: usize = 30;
-const N_OUTPUTS: usize = 4 /* actions */ + 4 /* memory */;
+pub const N_OUTPUTS: usize = 9 /* actions */ + 4 /* memory */;
 
 pub struct Network {
     weights: Weights,

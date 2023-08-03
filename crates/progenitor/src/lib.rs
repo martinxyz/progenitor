@@ -8,6 +8,9 @@
     clippy::identity_op  // I'll multiply by one whenever I like!
 )]
 
+#[macro_use]
+extern crate num_derive;
+
 // foundation
 pub mod coords;
 pub use coords::{Direction, DirectionSet, Neighbourhood};

@@ -1,9 +1,11 @@
 use hex2d::Angle;
 use hex2d::Coordinate;
 use nalgebra::SVector;
+use num_traits::FromPrimitive;
 use rand::distributions;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
@@ -29,25 +31,37 @@ struct Builder {
     pos: coords::Cube,
     heading: Direction,
     exhausted: u8,
-    memory: SVector<f32, 4>,
+    memory: SVector<f32, N_MEMORY>,
 }
 
-#[derive(PartialEq)]
+const N_ACTIONS: usize = 9;
+const N_MEMORY: usize = 4;
+
+#[derive(PartialEq, FromPrimitive)]
 enum Action {
     Forward,
-    Left,
-    Right,
-    Pull,
+    ForwardLeft,
+    ForwardRight,
+    CircleLeft,
+    CircleRight,
+    PullBack,
+    PullBackLeft,
+    PullBackRight,
+    Mark,
 }
 
-impl From<usize> for Action {
-    fn from(idx: usize) -> Self {
-        match idx {
-            0 => Action::Forward,
-            1 => Action::Left,
-            2 => Action::Right,
-            3 => Action::Pull,
-            _ => panic!("invalid action choice"),
+impl Action {
+    fn cost(&self) -> u8 {
+        match self {
+            Action::Forward => 0,
+            Action::ForwardLeft => 0,
+            Action::ForwardRight => 0,
+            Action::CircleLeft => 1,
+            Action::CircleRight => 1,
+            Action::PullBack => 2,
+            Action::PullBackLeft => 3,
+            Action::PullBackRight => 3,
+            Action::Mark => 2,
         }
     }
 }
@@ -57,15 +71,15 @@ pub enum Cell {
     Border,
     Air,
     Wall,
-    Builder,
+    Agent,
     Food,
 }
 
 impl Cell {
     fn move_cost(self) -> u8 {
         match self {
-            Cell::Wall => 6,
-            Cell::Food => 2,
+            Cell::Wall => 3,
+            Cell::Food => 1,
             _ => 255,
         }
     }
@@ -78,7 +92,7 @@ impl Cell {
 struct State {
     cells: AxialTile<Cell>,
     visited: AxialTile<bool>,
-    mass: AxialTile<u8>,
+    marker: AxialTile<u8>,
     builders: Vec<Builder>,
     rng: SimRng,
 }
@@ -109,7 +123,7 @@ impl Simulation for Builders {
     fn step(&mut self) {
         let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect();
         for pos in builder_positions {
-            self.kick_dust(pos);
+            self.disturb_marker(pos);
         }
         self.move_builders();
     }
@@ -165,7 +179,7 @@ impl Builders {
             state: State {
                 visited: hexmap::new(RING_RADIUS, false, |_| false),
                 cells,
-                mass: hexmap::new(RING_RADIUS, 2, |_| 2),
+                marker: hexmap::new(RING_RADIUS, 2, |_| 2),
                 builders: Vec::new(),
                 rng,
             },
@@ -186,7 +200,7 @@ impl Builders {
     fn add_builder(&mut self) {
         let rng = &mut self.state.rng;
         let pos = worldgen::find_agent_starting_place(rng, &self.state.cells);
-        self.state.cells.set_cell(pos, Cell::Builder);
+        self.state.cells.set_cell(pos, Cell::Agent);
         let memory = {
             let dist = distributions::Uniform::new(-1.0f32, 1.0f32);
             SVector::from_distribution(&dist, rng)
@@ -199,18 +213,21 @@ impl Builders {
         });
     }
 
-    fn kick_dust(&mut self, pos: Coordinate) {
+    fn disturb_marker(&mut self, pos: Coordinate) {
         let rng = &mut self.state.rng;
         let dir = *Direction::all().choose(rng).unwrap();
-        if let (Some(Cell::Builder), Some(Cell::Air)) =
+        if let (Some(Cell::Agent), Some(Cell::Air)) =
             (self.state.cells.cell(pos), self.state.cells.cell(pos + dir))
         {
-            if let (Some(src), Some(dst)) =
-                (self.state.mass.cell(pos), self.state.mass.cell(pos + dir))
-            {
-                if src > 0 && dst < 255 {
-                    self.state.mass.set_cell(pos, src - 1);
-                    self.state.mass.set_cell(pos + dir, dst + 1);
+            if let (Some(src), Some(dst)) = (
+                self.state.marker.cell(pos),
+                self.state.marker.cell(pos + dir),
+            ) {
+                if src > 0 {
+                    self.state.marker.set_cell(pos, src - 1);
+                    if rng.gen_bool(0.8) {
+                        self.state.marker.set_cell(pos + dir, dst.saturating_add(1));
+                    }
                 }
             }
         }
@@ -238,68 +255,54 @@ impl Builders {
                     0.0
                 }
             };
-            let look_far = |item: Cell, angle: Angle| {
-                let present = self
-                    .state
-                    .cells
-                    .cell(t.pos + (t.heading + angle) + (t.heading + angle))
-                    .map(|c| c == item)
-                    .unwrap_or(false);
-                if present {
-                    1.0
-                } else {
-                    0.0
-                }
+            let look_marker = |angle: Angle| {
+                self.state
+                    .marker
+                    .cell(t.pos + (t.heading + angle))
+                    .map(|c| c as f32 * (1. / 512.))
+                    .unwrap_or(0.)
             };
             let builders_nearby: i32 = self
                 .state
                 .cells
                 .neighbours(t.pos)
-                .map(|(_, cell)| (cell == Some(Cell::Builder)) as i32)
+                .map(|(_, cell)| (cell == Some(Cell::Agent)) as i32)
                 .iter()
                 .sum();
 
-            let dust_here = self.state.mass.cell(t.pos).unwrap_or(0).into();
-            let dust_nearby = self
-                .state
-                .mass
-                .neighbourhood(t.pos)
-                .unwrap()
-                .neighbours
-                .into_iter()
-                .map(|mass| mass as f32)
-                .sum::<f32>()
-                * 0.1;
+            let marker_here = self.state.marker.cell(t.pos).unwrap() as f32 * (1. / 512.);
 
-            let inputs = [
+            let mut inputs = vec![
                 look(Cell::Air, Angle::Forward),
                 look(Cell::Air, Angle::Left),
                 look(Cell::Air, Angle::Right),
                 look(Cell::Air, Angle::LeftBack),
                 look(Cell::Air, Angle::RightBack),
                 look(Cell::Air, Angle::Back),
-                look_far(Cell::Air, Angle::Forward),
                 look(Cell::Food, Angle::Forward),
                 look(Cell::Food, Angle::Left),
                 look(Cell::Food, Angle::Right),
                 look(Cell::Food, Angle::LeftBack),
                 look(Cell::Food, Angle::RightBack),
                 look(Cell::Food, Angle::Back),
-                look_far(Cell::Food, Angle::Forward),
-                look(Cell::Builder, Angle::Forward),
-                dust_here,
-                dust_nearby,
+                look_marker(Angle::Forward),
+                look_marker(Angle::Left),
+                look_marker(Angle::Right),
+                look_marker(Angle::LeftBack),
+                look_marker(Angle::RightBack),
+                look_marker(Angle::Back),
+                look(Cell::Agent, Angle::Forward),
+                marker_here,
                 builders_nearby as f32 * 10.,
-                t.memory[0],
-                t.memory[1],
-                t.memory[2],
-                t.memory[3],
             ];
+            inputs.extend(t.memory.iter());
             self.encounters += builders_nearby;
 
-            let outputs: SVector<f32, 8> = self.nn.forward(inputs);
-            let mut action_logits = outputs.fixed_rows::<4>(0).clone_owned();
-            let memory_update = outputs.fixed_rows::<4>(4).clone_owned();
+            let outputs: SVector<f32, { nn::N_OUTPUTS }> = self
+                .nn
+                .forward(inputs.try_into().expect("input count should match"));
+            let mut action_logits = outputs.fixed_rows::<N_ACTIONS>(0).clone_owned();
+            let memory_update = outputs.fixed_rows::<N_MEMORY>(N_ACTIONS).clone_owned();
             t.memory *= self.memory_decay;
             t.memory += (1. - self.memory_decay) * memory_update;
             t.memory = nalgebra::clamp(
@@ -309,63 +312,52 @@ impl Builders {
             );
 
             action_logits.apply(|v| *v *= self.actions_scale);
-            let action = nn::softmax_choice(action_logits, &mut self.state.rng).into();
+            let action = Action::from_usize(nn::softmax_choice(action_logits, &mut self.state.rng))
+                .expect("logits should match action count");
+            t.exhausted += action.cost();
 
-            let turn = match action {
-                Action::Left => Angle::Left,
-                Action::Right => Angle::Right,
-                _ => Angle::Forward,
+            let (step, turn) = match action {
+                Action::Forward => (Angle::Forward, Angle::Forward),
+                Action::ForwardLeft => (Angle::Left, Angle::Left),
+                Action::ForwardRight => (Angle::Right, Angle::Right),
+                Action::CircleLeft => (Angle::Left, Angle::Right),
+                Action::CircleRight => (Angle::Right, Angle::Left),
+                Action::PullBack => (Angle::Back, Angle::Forward),
+                Action::PullBackLeft => (Angle::LeftBack, Angle::Right),
+                Action::PullBackRight => (Angle::RightBack, Angle::Left),
+                Action::Mark => (Angle::Forward, Angle::Forward),
             };
-            t.heading = t.heading + turn;
 
             let pos_forward = t.pos + t.heading;
-            let pos_back = t.pos - t.heading;
+            let pos_step = t.pos + (t.heading + step);
+            t.heading = t.heading + turn;
 
-            if let Some(cell_forward) = self.state.cells.cell(pos_forward) {
-                match action {
-                    Action::Pull => {
-                        if let Some(cell_back) = self.state.cells.cell(pos_back) {
-                            if cell_back == Cell::Air {
-                                if cell_forward.can_move() {
-                                    t.exhausted += cell_forward.move_cost();
-                                    self.state.cells.set_cell(pos_forward, Cell::Air);
-                                    self.state.cells.set_cell(t.pos, cell_forward);
-                                } else {
-                                    self.state.cells.set_cell(t.pos, Cell::Air);
-                                }
-                                t.pos = pos_back;
-                                self.state.cells.set_cell(t.pos, Cell::Builder);
-                            }
-                        }
-                    }
-                    Action::Forward => {
-                        if cell_forward.can_move() {
-                            // push
-                            let pos_forward2x = pos_forward + t.heading;
-                            if let Some(cell_forward2x) = self.state.cells.cell(pos_forward2x) {
-                                if cell_forward2x == Cell::Air {
-                                    t.exhausted += cell_forward.move_cost();
-                                    self.state.cells.set_cell(pos_forward2x, cell_forward);
-                                    self.state.cells.set_cell(t.pos, Cell::Air);
-                                    t.pos = pos_forward;
-                                    self.state.cells.set_cell(t.pos, Cell::Builder);
-                                }
-                            }
-                        } else if cell_forward == Cell::Air {
-                            self.state.cells.set_cell(t.pos, Cell::Air);
-                            t.pos = pos_forward;
-                            self.state.cells.set_cell(t.pos, Cell::Builder);
-                        }
-                    }
-                    Action::Left | Action::Right => {
-                        if cell_forward == Cell::Air {
-                            self.state.cells.set_cell(t.pos, Cell::Air);
-                            t.pos = pos_forward;
-                            self.state.cells.set_cell(t.pos, Cell::Builder);
-                        }
+            if action == Action::Mark {
+                if let Some(marker_forward) = self.state.marker.cell(pos_forward) {
+                    if marker_forward < 7 {
+                        self.state.marker.set_cell(pos_forward, marker_forward + 3);
                     }
                 }
             }
+
+            if self.state.cells.cell(pos_step) == Some(Cell::Air) {
+                self.state.cells.set_cell(t.pos, Cell::Air);
+                self.state.cells.set_cell(pos_step, Cell::Agent);
+                if matches!(
+                    action,
+                    Action::PullBack | Action::PullBackLeft | Action::PullBackRight
+                ) {
+                    if let Some(cell_forward) = self.state.cells.cell(pos_forward) {
+                        if cell_forward.can_move() {
+                            t.exhausted += cell_forward.move_cost();
+                            self.state.cells.set_cell(pos_forward, Cell::Air);
+                            self.state.cells.set_cell(t.pos, cell_forward);
+                        }
+                    }
+                }
+                t.pos = pos_step;
+            }
+
             self.state.visited.set_cell(t.pos, true);
             let center: coords::Cube = hexmap::center(RING_RADIUS);
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
@@ -423,10 +415,10 @@ impl HexgridView for Builders {
             Cell::Border => return None,
             Cell::Air => 2,
             Cell::Wall => 4,
-            Cell::Builder => 0,
+            Cell::Agent => 0,
             Cell::Food => 1,
         };
-        let energy: u8 = self.state.mass.cell(pos)?;
+        let energy: u8 = self.state.marker.cell(pos)?;
         Some(CellView {
             cell_type,
             energy: Some(energy),
