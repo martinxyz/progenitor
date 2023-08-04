@@ -237,11 +237,8 @@ impl Builders {
         for t in self.state.builders.iter_mut() {
             if t.exhausted > 0 {
                 t.exhausted -= 1;
-                if t.exhausted > 8 {
-                    continue; // rest
-                }
+                continue;
             }
-            // let action = self.agent.act(&mut self.state.rng).into();
             let look = |item: Cell, angle: Angle| {
                 let present = self
                     .state
@@ -259,7 +256,7 @@ impl Builders {
                 self.state
                     .marker
                     .cell(t.pos + (t.heading + angle))
-                    .map(|c| c as f32 * (1. / 512.))
+                    .map(|c| c as f32 * (1. / 8.))
                     .unwrap_or(0.)
             };
             let builders_nearby: i32 = self
@@ -270,7 +267,7 @@ impl Builders {
                 .iter()
                 .sum();
 
-            let marker_here = self.state.marker.cell(t.pos).unwrap() as f32 * (1. / 512.);
+            let marker_here = self.state.marker.cell(t.pos).unwrap() as f32 * (1. / 8.);
 
             let mut inputs = vec![
                 look(Cell::Air, Angle::Forward),
@@ -334,8 +331,8 @@ impl Builders {
 
             if action == Action::Mark {
                 if let Some(marker_forward) = self.state.marker.cell(pos_forward) {
-                    if marker_forward < 7 {
-                        self.state.marker.set_cell(pos_forward, marker_forward + 3);
+                    if marker_forward < 16 {
+                        self.state.marker.set_cell(pos_forward, marker_forward + 4);
                     }
                 }
             }

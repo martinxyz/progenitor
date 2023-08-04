@@ -44,6 +44,8 @@ impl<const N: usize> Debug for RangeTracker<N> {
         } else {
             let means = self.means();
             let stds = self.stds();
+            dbg!(means);
+            dbg!(stds);
             write!(
                 f,
                 "[mean: {:.2}..{:.2}, std: {:.2}..{:.2}, N={}, {} neurons]",

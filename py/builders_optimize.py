@@ -170,12 +170,12 @@ def main_tune():
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": tune.loguniform(0.1, 1.5),  # (clear effect) plausible range: 0.2..1.3
+        "init_fac": tune.loguniform(0.3, 0.8),  # (clear effect) plausible range: 0.2..1.3
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
         # "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
         "memory_clamp": 50.,  # plausible range: 1.0..?>100?
-        "memory_halftime": tune.loguniform(1.5, 100.0), # plausible range: 1.5..?~100?
-        "actions_scale": tune.loguniform(2.0, 20.),  # plausible range: 2.0..20
+        "memory_halftime": tune.loguniform(1.5, 8.0), # plausible range: 1.5..?~100?
+        "actions_scale": tune.loguniform(5.0, 10.),  # plausible range: 2.0..20
         # "optimizer": tune.choice(["cmaes-1", "cmaes-2"] + 3*["sep-cmaes"]),
         "optimizer": 'sep-cmaes',
         # "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
@@ -184,12 +184,12 @@ def main_tune():
     max_t = 30_000_000
     tune_config = tune.TuneConfig(
         # num_samples=-1,
-        num_samples=150,  # "runs" or "restarts"
+        num_samples=16,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='total_episodes',
-            grace_period=max_t // 30,  # training "time" allowed for every "sample" (run)
+            grace_period=max_t // 50,  # training "time" allowed for every "sample" (run)
             max_t=max_t,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
@@ -198,7 +198,7 @@ def main_tune():
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
         # [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 16
+        [{'CPU': 1.0}] + [{'CPU': 1.0}] * 63
         #-------------   ------------------
         # train() task,      ^ evaluate() tasks spawned by train().
         # does work once       They can use more CPUs, how many depends
@@ -212,6 +212,7 @@ def main_tune():
         #
         # https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
         # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
+        , strategy='PACK'
     )
     tuner = tune.Tuner(
         tune.with_resources(

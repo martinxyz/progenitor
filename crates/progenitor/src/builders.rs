@@ -1,6 +1,7 @@
 mod nn;
+mod normalization;
 mod optimized_params;
-// mod stats;
+mod stats;
 mod wall_sim;
 mod worldgen;
 

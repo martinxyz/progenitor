@@ -5,7 +5,8 @@ use rand::distributions::{Distribution, WeightedIndex};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-// use super::stats::RangeTracker;
+use super::normalization::normalize_inputs;
+use super::stats::RangeTracker;
 
 pub const N_INPUTS: usize = 3 * 6 /* eye */ + 3 /* special */ + 4 /* memory */;
 const N_HIDDEN: usize = 50;
@@ -14,7 +15,6 @@ pub const N_OUTPUTS: usize = 9 /* actions */ + 4 /* memory */;
 
 pub struct Network {
     weights: Weights,
-    // stats: Statistics,
 }
 
 struct Weights {
@@ -45,9 +45,11 @@ fn relu(value: f32) -> f32 {
 fn forward(
     params: &Weights,
     inputs: [f32; N_INPUTS],
-    // update_statistics: impl FnOnce(ForwardTrace),
+    update_statistics: impl FnOnce(ForwardTrace),
 ) -> SVector<f32, N_OUTPUTS> {
-    let inputs: SVector<f32, N_INPUTS> = inputs.into();
+    let mut inputs: SVector<f32, N_INPUTS> = inputs.into();
+    normalize_inputs(&mut inputs);
+
     // // first layer
     let a1 = params.l1_w * inputs + params.l1_b;
     let a1 = a1.map(relu);
@@ -55,26 +57,26 @@ fn forward(
     let a2 = a2.map(relu);
     // output layer
     let outputs = params.o_w * a2 + params.o_b;
-    // update_statistics(ForwardTrace {
-    //     inputs,
-    //     a1,
-    //     outputs,
-    // });
+    update_statistics(ForwardTrace {
+        inputs,
+        // a1,
+        // outputs,
+    });
     outputs
 }
 
-// struct ForwardTrace {
-//     inputs: SVector<f32, N_INPUTS>,
-//     a1: SVector<f32, N_HIDDEN>,
-//     outputs: SVector<f32, N_OUTPUTS>,
-// }
+struct ForwardTrace {
+    inputs: SVector<f32, N_INPUTS>,
+    // a1: SVector<f32, N_HIDDEN>,
+    // outputs: SVector<f32, N_OUTPUTS>,
+}
 
-// #[derive(Default)]
-// struct Statistics {
-//     inputs: RangeTracker<N_INPUTS>,
-//     a1: RangeTracker<N_HIDDEN>,
-//     outputs: RangeTracker<N_OUTPUTS>,
-// }
+#[derive(Default)]
+struct Statistics {
+    inputs: RangeTracker<N_INPUTS>,
+    //     a1: RangeTracker<N_HIDDEN>,
+    //     outputs: RangeTracker<N_OUTPUTS>,
+}
 
 /*
 pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
@@ -101,11 +103,11 @@ impl Network {
     }
 
     pub fn forward(&mut self, inputs: [f32; N_INPUTS]) -> SVector<f32, N_OUTPUTS> {
-        forward(&self.weights, inputs)
+        forward(&self.weights, inputs, |_| {})
         // forward(&self.weights, inputs, |trace| {
-        //     self.stats.inputs.track(&trace.inputs);
-        //     self.stats.a1.track(&trace.a1);
-        //     self.stats.outputs.track(&trace.outputs);
+        // self.stats.inputs.track(&trace.inputs);
+        // self.stats.a1.track(&trace.a1);
+        // self.stats.outputs.track(&trace.outputs);
         // })
     }
 
