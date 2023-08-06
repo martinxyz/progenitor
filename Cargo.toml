@@ -13,7 +13,7 @@ debug = 1  # no slowdown (certainly less than 2%)
 # also: 9% speedup from 'export RUSTFLAGS="-C target-cpu=native"'
 # overall 2x faster than "cargo release" without the stuff above
 
-overflow-checks = true # performance impact not measured yet
+# overflow-checks = true # performance impact not measured yet
 
 [profile.bench]
 debug = true  # for better profiling

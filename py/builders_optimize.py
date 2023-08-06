@@ -63,7 +63,7 @@ def train(config, tuning=True):
     print('param_count:', N)
 
     x0 = N * [0]
-    # x0 = np.load('checkpoint-score-196.npy')
+    # x0 = np.load('checkpoint-score-70.npy')
     sigma0 = 1.0
 
     # episodes_budget = 20_000_000
@@ -239,17 +239,17 @@ def main_tune():
 
 def main_simple():
     train(config = {
-        "actions_scale": 6,
+        "actions_scale": 6.828237606450091,
         "bias_fac": 0.1,
-        "episodes_per_eval": 300,
-        "init_fac": 0.2,
+        "episodes_per_eval": 60,
+        "init_fac": 0.6638224750359086,
         "memory_clamp": 50,
-        "memory_halftime": 6,
+        "memory_halftime": 2.696255937359819,
         "optimizer": "sep-cmaes",
-        "popsize": 197,
+        "popsize": 400,
         "seeding": "epoch"
     }, tuning=False)
 
 if __name__ == '__main__':
-    # main_simple()
-    main_tune()
+    main_simple()
+    # main_tune()
