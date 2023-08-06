@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import numpy as np
 from tqdm import tqdm, trange
-import random
 import ray
 import pickle
+import random
+import os
 import time
 
 from ribs.archives import GridArchive
@@ -13,6 +14,8 @@ from ribs.schedulers import Scheduler
 import progenitor
 version_check = 12
 assert progenitor.mod.version_check == version_check, progenitor.__file__
+
+os.makedirs('output', exist_ok=True)
 
 def get_params(x, config):
     Params = progenitor.mod.Params
@@ -68,39 +71,37 @@ print('param_count:', param_count)
 population_size = 48
 evaluations = 100_000
 
-# https://docs.pyribs.org/en/stable/tutorials/cma_mae.html#cma-mae-with-pyribs
+archive_dims=[50, 50]
+archive_ranges=[(0.0, 25.0), (0.8, 1.1)]
+
+# https://docs.pyribs.org/en/stable/tutorials/cma_mae.html
 archive = GridArchive(
     solution_dim=param_count,
-    dims=[50, 50],
-    ranges=[(0.0, 25.0), (0.8, 1.1)],
-    # learning_rate=0.01,
-    # threshold_min=0.0
+    dims=archive_dims,
+    ranges=archive_ranges,
+    learning_rate=0.01,
+    threshold_min=0.0
     # qd_score_offset=-600
 )
-# emitters = [GaussianEmitter(archive, x0 = [0.0] * param_count, sigma = 0.5, batch_size=population_size)]
-# emitters = [EvolutionStrategyEmitter(
-#     archive,
-#     x0 = [0.0] * param_count,
-#     sigma0 = 1.0,
-#     ranker='2imp' if i < 5 else 'rd',
-#     # batch_size=50,
-#     batch_size=population_size,
-#     selection_rule='mu',
-#     restart_rule='basic',
-# ) for i in range(10)]
+
+# to be validated: does the separate result_archive really help?
+# (not using it may help filtering the evaluation noise, maybe?)
+result_archive = GridArchive(solution_dim=param_count, dims=archive_dims, ranges=archive_ranges)
+
+# emitters = [GaussianEmitter(archive, x0 = np.zeros(param_count), sigma = 0.5, batch_size=population_size)]
 emitters = [EvolutionStrategyEmitter(
     archive,
     x0 = np.zeros(param_count),
     sigma0 = 1.0,
-    # ranker='imp',
-    ranker='2imp',
     batch_size=population_size,
-    # selection_rule='mu',
-    # restart_rule='basic',
+    #ranker='2imp' if i < 5 else 'rd',
+    # CMA-MAE
+    ranker='imp',
+    selection_rule='mu',
+    restart_rule='basic',  # maybe also try 'no_improvement'? (I think 'basic' will never restart for my task. Or just increase the number of emitters instead, which probably serves a similar purpose...?)
 ) for _ in range(5)]
 
-scheduler = Scheduler(archive, emitters)
-# scheduler = Scheduler(archive, emitters, result_archive=result_archive)
+scheduler = Scheduler(archive, emitters, result_archive=result_archive)
 
 actual_total_evals = 0
 start_time = time.time()

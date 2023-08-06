@@ -12,10 +12,10 @@ clusterdir="/home/martin/aws-ray-cluster"
 name="$1"
 jobdir="${clusterdir}/job_${name}"
 
-if test -f "${jobdir}"; then
-    echo "${jobdir} already exists!"
-    exit 1
-fi
+# if test -d "${jobdir}"; then
+#     echo "${jobdir} already exists!"
+#     exit 1
+# fi
 
 git add -u
 git checkout-index -a -f --prefix="${jobdir}/"
@@ -39,7 +39,7 @@ ray job submit \
   --no-wait --working-dir="." \
   --runtime-env-json='{"py_modules": ["crates/python/progenitor"]}' \
   -- \
-  python py/builders_optimize.py ${name}
+  python py/ribs_search.py ${name}
 
 EOF
 chmod +x "${jobdir}/start-job.sh"
