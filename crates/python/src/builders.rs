@@ -36,6 +36,7 @@ impl Builders {
         self.inner.avg_visited()
     }
 
+    #[getter]
     fn encounters(&self) -> i32 {
         self.inner.encounters
     }
@@ -44,10 +45,17 @@ impl Builders {
         self.inner.relative_wall_edges()
     }
 
+    #[getter]
     fn max_depth_reached(&self) -> i32 {
         self.inner.max_depth_reached
     }
 
+    #[getter]
+    fn walls_nearby(&self) -> i32 {
+        self.inner.walls_nearby
+    }
+
+    #[getter]
     fn hoarding_score(&self) -> i32 {
         self.inner.hoarding_score()
     }

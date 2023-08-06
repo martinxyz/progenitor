@@ -1764,7 +1764,7 @@ files = [
 ]
 
 [package.dependencies]
-matplotlib = {version = ">=3.0.0", optional = true, markers = "extra == \"all\""}
+matplotlib = {version = ">=3.0.0", optional = true, markers = "extra == \"visualize\""}
 numba = ">=0.51.0"
 numpy = ">=1.17.0"
 numpy-groupies = ">=0.9.16"
@@ -2127,6 +2127,27 @@ files = [
 ]
 
 [[package]]
+name = "tqdm"
+version = "4.65.0"
+description = "Fast, Extensible Progress Meter"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "tqdm-4.65.0-py3-none-any.whl", hash = "sha256:c4f53a17fe37e132815abceec022631be8ffe1b9381c2e6e30aa70edc99e9671"},
+    {file = "tqdm-4.65.0.tar.gz", hash = "sha256:1871fb68a86b8fb3b59ca4cdd3dcccbc7e6d613eeed31f4c332531977b89beb5"},
+]
+
+[package.dependencies]
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[package.extras]
+dev = ["py-make (>=0.1.0)", "twine", "wheel"]
+notebook = ["ipywidgets (>=6)"]
+slack = ["slack-sdk"]
+telegram = ["requests"]
+
+[[package]]
 name = "traitlets"
 version = "5.9.0"
 description = "Traitlets Python configuration system"
@@ -2219,4 +2240,4 @@ test = ["pytest (>=6.0.0)", "setuptools (>=65)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.11,<3.13"
-content-hash = "460f5c4a4832fc3ee6ae0240b4b9726af9f436b554a93830dcf11acd8e793ef1"
+content-hash = "d9a69269ddb651a68965b00e3e8d0d45989e99c14ec7e3444d29be8d9c13578d"

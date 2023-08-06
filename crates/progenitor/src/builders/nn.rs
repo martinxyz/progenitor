@@ -9,8 +9,8 @@ use super::normalization::normalize_inputs;
 use super::stats::RangeTracker;
 
 pub const N_INPUTS: usize = 3 * 6 /* eye */ + 3 /* special */ + 4 /* memory */;
-const N_HIDDEN: usize = 50;
-const N_HIDDEN2: usize = 30;
+const N_HIDDEN: usize = 20;
+const N_HIDDEN2: usize = 20;
 pub const N_OUTPUTS: usize = 9 /* actions */ + 4 /* memory */;
 
 pub struct Network {

@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 import numpy as np
+from tqdm import tqdm, trange
 import random
 import ray
 import pickle
+import time
 
 from ribs.archives import GridArchive
 from ribs.emitters import GaussianEmitter, EvolutionStrategyEmitter
 from ribs.schedulers import Scheduler
 
 import progenitor
+version_check = 12
+assert progenitor.mod.version_check == version_check, progenitor.__file__
 
 def get_params(x, config):
     Params = progenitor.mod.Params
@@ -22,45 +26,58 @@ def get_params(x, config):
 def evaluate(x):
     Builders = progenitor.mod.Builders
     Params = progenitor.mod.Params
-    episodes=100
+    assert progenitor.mod.version_check == version_check, f'wrong module version: {Builders.__file__}'
+
+    episodes=300
 
     hyperparams = {
-        "init_fac": 1.0, #config["init_fac"],
-        "bias_fac": 0.1, #config["bias_fac"]
-        "memory_clamp": 10.0,
-        "memory_halftime": 50.0,
-        "actions_scale": 1.0,
+        "actions_scale": 6,
+        "bias_fac": 0.1,
+        "init_fac": 0.7,
+        "memory_clamp": 50,
+        "memory_halftime": 2.5,
     }
 
     score = 0.0
-    bc1 = 0.0
-    bc2 = 0.0
+    measure1 = 0.0
+    measure2 = 0.0
+    measure3 = 0.0
     for _ in range(episodes):
         params = Params(x, **hyperparams)
         sim = Builders(params)
+        steps = 2000
+        sim.steps(steps)
+        measure1 += sim.walls_nearby / steps  # / n_agents
+        # measure2 += np.log(sim.encounters + 10)
+        measure3 += sim.relative_wall_edges()
+        score += sim.hoarding_score
 
-        sim.steps(20)
-        bc1 += sim.avg_visited()
-        sim.steps(980)
-        bc2 += np.log(sim.encounters() + 100)
-        score += sim.max_depth_reached()
+    score /= episodes
+    measure1 /= episodes
+    # measure2 /= episodes
+    measure3 /= episodes
 
-    score = score / episodes
-    bc1 = bc1 / episodes
-    bc2 = bc2 / episodes
-
-    return (score, bc1, bc2)
+    # return (score, measure1, measure2, measure3)
+    return (score, measure1, measure3)
 
 
 
 param_count = progenitor.mod.Builders.param_count
-# population_size = 500
-# evaluations = 10_000
-population_size = 120
-# evaluations = 500
-evaluations = 1000_000
+print('param_count:', param_count)
+# population_size = 120
+population_size = 48
+evaluations = 100_000
 
-archive = GridArchive(solution_dim=param_count, dims=[40, 100], ranges=[(0, 0.08), (3, 10)])
+# https://docs.pyribs.org/en/stable/tutorials/cma_mae.html#cma-mae-with-pyribs
+archive = GridArchive(
+    solution_dim=param_count,
+    dims=[50, 50],
+    ranges=[(0.0, 25.0), (0.8, 1.1)],
+    # learning_rate=0.01,
+    # threshold_min=0.0
+    # qd_score_offset=-600
+)
+# emitters = [GaussianEmitter(archive, x0 = [0.0] * param_count, sigma = 0.5, batch_size=population_size)]
 # emitters = [EvolutionStrategyEmitter(
 #     archive,
 #     x0 = [0.0] * param_count,
@@ -68,47 +85,74 @@ archive = GridArchive(solution_dim=param_count, dims=[40, 100], ranges=[(0, 0.08
 #     ranker='2imp' if i < 5 else 'rd',
 #     # batch_size=50,
 #     batch_size=population_size,
-#     # restart_rule='basic',
-#     # selection_rule='mu',
+#     selection_rule='mu',
+#     restart_rule='basic',
 # ) for i in range(10)]
-emitters = [GaussianEmitter(
+emitters = [EvolutionStrategyEmitter(
     archive,
-    x0 = [0.0] * param_count,
-    sigma = 0.5,
+    x0 = np.zeros(param_count),
+    sigma0 = 1.0,
+    # ranker='imp',
+    ranker='2imp',
     batch_size=population_size,
-)]
-optimizer = Scheduler(archive, emitters)
+    # selection_rule='mu',
+    # restart_rule='basic',
+) for _ in range(5)]
 
-for itr in range(evaluations // population_size):
-    solutions = optimizer.ask()
+scheduler = Scheduler(archive, emitters)
+# scheduler = Scheduler(archive, emitters, result_archive=result_archive)
 
-    # bcs = np.array([evaluate(x) for x in solutions])
+actual_total_evals = 0
+start_time = time.time()
+
+for itr in trange(evaluations // (population_size * len(emitters))):
+    solutions = scheduler.ask()
 
     futures = [evaluate.remote(x) for x in solutions]
-    bcs = np.array(ray.get(futures))
+    actual_total_evals += len(futures)
+    results = np.array(ray.get(futures))
+    objectives, measures = results[:, 0], results[:, 1:]
 
-    # print('bcs[0]', bcs[0])
-    print('asked to evaluate', len(solutions), solutions)
-    # evaluate(solutions, bcs)
-    objectives, bcs = bcs[:, 0], bcs[:, 1:]
+    scheduler.tell(objectives, measures)
 
-    optimizer.tell(objectives, bcs)
+    if itr % 10 == 0:
+        futures_2 = [evaluate.remote(x) for x in solutions]
+        results_2 = np.array(ray.get(futures_2))
+        objectives_2, measures_2 = results_2[:, 0], results_2[:, 1:]
+        print('measures, measures_2:', np.hstack((measures, measures_2)))
+        m_idx = archive.index_of(measures)
+        m_idx_2 = archive.index_of(measures_2)
+        print(f'stable measures: {(m_idx == m_idx_2).sum() / len(m_idx) * 100:.1f}%')
 
     best = archive.best_elite
     assert best is not None
-    print(archive.stats)
+    print(archive.stats)  # this one is good...
 
-    if itr % 20 == 0:
-        fn = 'archive_autosave.pik'
-        print('saving to', fn)
+    if itr % 1 == 0:
+        tqdm.write(f"> {itr} itrs completed after {time.time() - start_time:.2f}s")
+        tqdm.write(f"  - Size: {archive.stats.num_elites}")
+        tqdm.write(f"  - Coverage: {archive.stats.coverage}")
+        tqdm.write(f"  - QD Score: {archive.stats.qd_score}")
+        tqdm.write(f"  - Max Obj: {archive.stats.obj_max}")
+        tqdm.write(f"  - Mean Obj: {archive.stats.obj_mean}")
+        tqdm.write(f"  - Actual Evals: {actual_total_evals}")
+
+        fn = 'output/archive_autosave.pik'
+        # print('saving to', fn)
         with open(fn, 'wb') as f:
             pickle.dump(archive, f)
-
-    print(f'({itr*population_size / evaluations * 100:.01f}%) best: {best.objective:.3f}, size: {len(archive)}')
 
 
 import matplotlib.pyplot as plt
 from ribs.visualize import grid_archive_heatmap
 
 grid_archive_heatmap(archive)
+plt.ylabel("walls_nearby")
+plt.xlabel("relative_wall_edges")
 plt.show()
+
+# plt.figure(figsize=(8, 6))
+# grid_archive_heatmap(archive, vmin=-300, vmax=300)
+# plt.gca().invert_yaxis()  # Makes more sense if larger velocities are on top.
+# plt.ylabel("Impact y-velocity")
+# plt.xlabel("Impact x-position")

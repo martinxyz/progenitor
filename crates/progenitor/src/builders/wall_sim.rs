@@ -61,7 +61,7 @@ impl Action {
             Action::PullBack => 2,
             Action::PullBackLeft => 3,
             Action::PullBackRight => 3,
-            Action::Mark => 2,
+            Action::Mark => 1,
         }
     }
 }
@@ -117,6 +117,7 @@ pub struct Builders {
     // for score or BCs:
     pub max_depth_reached: i32,
     pub encounters: i32,
+    pub walls_nearby: i32,
 }
 
 impl Simulation for Builders {
@@ -185,6 +186,7 @@ impl Builders {
             },
             max_depth_reached: 0,
             encounters: 0,
+            walls_nearby: 0,
             memory_decay: f32::ln(2.) / params.memory_halftime.max(0.001),
             memory_clamp: params.memory_clamp.max(0.001),
             actions_scale: params.actions_scale,
@@ -332,7 +334,12 @@ impl Builders {
             if action == Action::Mark {
                 if let Some(marker_forward) = self.state.marker.cell(pos_forward) {
                     if marker_forward < 16 {
-                        self.state.marker.set_cell(pos_forward, marker_forward + 4);
+                        self.state.marker.set_cell(pos_forward, 16);
+                    }
+                }
+                if let Some(marker_here) = self.state.marker.cell(t.pos) {
+                    if marker_here < 32 {
+                        self.state.marker.set_cell(t.pos, marker_here + 4);
                     }
                 }
             }
@@ -357,6 +364,11 @@ impl Builders {
 
             self.state.visited.set_cell(t.pos, true);
             let center: coords::Cube = hexmap::center(RING_RADIUS);
+
+            if let Some(nh) = self.state.cells.neighbourhood(t.pos) {
+                self.walls_nearby +=
+                    nh.count_neighbours(|n| matches!(n, Cell::Wall | Cell::Border));
+            }
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
         }
     }
@@ -365,14 +377,6 @@ impl Builders {
         let total = self.state.visited.area();
         let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
         visited as f32 / total as f32
-    }
-
-    pub fn encounters(&self) -> i32 {
-        self.encounters
-    }
-
-    pub fn max_depth_reached(&self) -> i32 {
-        self.max_depth_reached
     }
 
     pub fn relative_wall_edges(&self) -> f32 {
