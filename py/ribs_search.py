@@ -31,7 +31,7 @@ def evaluate(x):
     Params = progenitor.mod.Params
     assert progenitor.mod.version_check == version_check, f'wrong module version: {Builders.__file__}'
 
-    episodes=300
+    episodes=500
 
     hyperparams = {
         "actions_scale": 6,
@@ -69,10 +69,10 @@ param_count = progenitor.mod.Builders.param_count
 print('param_count:', param_count)
 # population_size = 120
 population_size = 48
-evaluations = 100_000
+evaluations = 10_000_000
 
-archive_dims=[50, 50]
-archive_ranges=[(0.0, 25.0), (0.8, 1.1)]
+archive_dims=[50, 100]
+archive_ranges=[(0.0, 25.0), (0.7, 1.1)]
 
 # https://docs.pyribs.org/en/stable/tutorials/cma_mae.html
 archive = GridArchive(
@@ -127,6 +127,7 @@ for itr in trange(evaluations // (population_size * len(emitters))):
 
     best = archive.best_elite
     assert best is not None
+    assert archive.stats
     print(archive.stats)  # this one is good...
 
     if itr % 1 == 0:
@@ -138,6 +139,7 @@ for itr in trange(evaluations // (population_size * len(emitters))):
         tqdm.write(f"  - Mean Obj: {archive.stats.obj_mean}")
         tqdm.write(f"  - Actual Evals: {actual_total_evals}")
 
+    if itr % 10 == 0:
         fn = 'output/archive_autosave.pik'
         # print('saving to', fn)
         with open(fn, 'wb') as f:

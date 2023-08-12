@@ -6,13 +6,14 @@ authors = ["Martin Renold <martin@log2.ch>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.13"
+# python = ">=3.11,<3.13"
+# ray 2.6 doesn't support python 3.11 yet (it only fails when using the jobs API)
+python = ">=3.10,<3.11"
 maturin = "^1.1.0"
 # progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
 ribs = {extras = ["visualize"], version = "^0.5.2"}
 cma = "^3.2.2"
-# ray = {extras = ["default", "tune"], version = "^2.4.0"}  # Ray 2.4 doesn't work with Python >= 3.11
-ray = {extras = ["tune"], version = "^2.6.1"}
+ray = {extras = ["default", "tune"], version = "^2.6.1"}
 llvmlite = "^0.40.1"
 numba = "^0.57.1"
 numpy = "1.24.4"
@@ -20,6 +21,9 @@ matplotlib = "^3.7.2"
 scipy = "^1.11.1"
 cmaes = "^0.10.0"
 tqdm = "^4.65.0"
+fsspec = "^2023.6.0"
+blosc = "^1.11.1"
+s3fs = "^2023.6.0"
 
 [tool.poetry.group.dev.dependencies]
 tensorboard = "^2.13.0"
