@@ -122,9 +122,8 @@ pub struct Builders {
 
 impl Simulation for Builders {
     fn step(&mut self) {
-        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect(); // FIXME: malloc/free shows up in benchmark...
-        for pos in builder_positions {
-            disturb_marker(&mut self.state.markers, &self.state.cells, pos, &mut self.state.rng);
+        for builder in &self.state.builders {
+            disturb_marker(&mut self.state.markers, &self.state.cells, builder.pos, &mut self.state.rng);
         }
         self.move_builders();
     }
