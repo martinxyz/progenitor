@@ -123,7 +123,12 @@ pub struct Builders {
 impl Simulation for Builders {
     fn step(&mut self) {
         for builder in &self.state.builders {
-            disturb_marker(&mut self.state.markers, &self.state.cells, builder.pos, &mut self.state.rng);
+            disturb_marker(
+                &mut self.state.markers,
+                &self.state.cells,
+                builder.pos,
+                &mut self.state.rng,
+            );
         }
         self.move_builders();
     }
@@ -221,13 +226,7 @@ impl Builders {
                 continue;
             }
             let look = |item: Cell, angle: Angle| {
-                let present = self
-                    .state
-                    .cells
-                    .cell(t.pos + (t.heading + angle))
-                    .map(|c| c == item)
-                    .unwrap_or(false);
-                if present {
+                if self.state.cells.cell_unchecked(t.pos + (t.heading + angle)) == item {
                     1.0
                 } else {
                     0.0
@@ -236,19 +235,18 @@ impl Builders {
             let look_marker = |angle: Angle| {
                 self.state
                     .markers
-                    .cell(t.pos + (t.heading + angle))
-                    .map(|c| c as f32 * (1. / 8.))
-                    .unwrap_or(0.)
+                    .cell_unchecked(t.pos + (t.heading + angle)) as f32
+                    * (1. / 8.)
             };
             let builders_nearby: i32 = self
                 .state
                 .cells
-                .neighbours(t.pos)
-                .map(|(_, cell)| (cell == Some(Cell::Agent)) as i32)
+                .neighbours_unchecked(t.pos)
+                .map(|(_, cell)| (cell == Cell::Agent) as i32)
                 .iter()
                 .sum();
 
-            let marker_here = self.state.markers.cell(t.pos).unwrap() as f32 * (1. / 8.);
+            let marker_here = self.state.markers.cell_unchecked(t.pos) as f32 * (1. / 8.);
 
             let inputs = [
                 look(Cell::Air, Angle::Forward),
@@ -315,31 +313,28 @@ impl Builders {
             t.heading = t.heading + turn;
 
             if action == Action::Mark {
-                if let Some(marker_forward) = self.state.markers.cell(pos_forward) {
-                    if marker_forward < 16 {
-                        self.state.markers.set_cell(pos_forward, 16);
-                    }
+                let marker_forward = self.state.markers.cell_unchecked(pos_forward);
+                if marker_forward < 16 {
+                    self.state.markers.set_cell(pos_forward, 16);
                 }
-                if let Some(marker_here) = self.state.markers.cell(t.pos) {
-                    if marker_here < 32 {
-                        self.state.markers.set_cell(t.pos, marker_here + 4);
-                    }
+                let marker_here = self.state.markers.cell_unchecked(t.pos);
+                if marker_here < 32 {
+                    self.state.markers.set_cell(t.pos, marker_here + 4);
                 }
             }
 
-            if self.state.cells.cell(pos_step) == Some(Cell::Air) {
+            if self.state.cells.cell_unchecked(pos_step) == Cell::Air {
                 self.state.cells.set_cell(t.pos, Cell::Air);
                 self.state.cells.set_cell(pos_step, Cell::Agent);
                 if matches!(
                     action,
                     Action::PullBack | Action::PullBackLeft | Action::PullBackRight
                 ) {
-                    if let Some(cell_forward) = self.state.cells.cell(pos_forward) {
-                        if cell_forward.can_move() {
-                            t.exhausted += cell_forward.move_cost();
-                            self.state.cells.set_cell(pos_forward, Cell::Air);
-                            self.state.cells.set_cell(t.pos, cell_forward);
-                        }
+                    let cell_forward = self.state.cells.cell_unchecked(pos_forward);
+                    if cell_forward.can_move() {
+                        t.exhausted += cell_forward.move_cost();
+                        self.state.cells.set_cell(pos_forward, Cell::Air);
+                        self.state.cells.set_cell(t.pos, cell_forward);
                     }
                 }
                 t.pos = pos_step;
@@ -382,25 +377,24 @@ impl Builders {
     }
 }
 
-
-fn disturb_marker(markers: &mut AxialTile<u8>, cells: &AxialTile<Cell>, pos: Coordinate, rng: &mut impl Rng) {
-        let dir = *Direction::all().choose(rng).unwrap();
-        if let (Some(Cell::Agent), Some(Cell::Air)) =
-            (cells.cell(pos), cells.cell(pos + dir))
-        {
-            if let (Some(src), Some(dst)) = (
-                markers.cell(pos),
-                markers.cell(pos + dir),
-            ) {
-                if src > 0 {
-                    markers.set_cell(pos, src - 1);
-                    if rng.gen_bool(0.8) {
-                        markers.set_cell(pos + dir, dst.saturating_add(1));
-                    }
+fn disturb_marker(
+    markers: &mut AxialTile<u8>,
+    cells: &AxialTile<Cell>,
+    pos: Coordinate,
+    rng: &mut impl Rng,
+) {
+    let dir = *Direction::all().choose(rng).unwrap();
+    if let (Some(Cell::Agent), Some(Cell::Air)) = (cells.cell(pos), cells.cell(pos + dir)) {
+        if let (Some(src), Some(dst)) = (markers.cell(pos), markers.cell(pos + dir)) {
+            if src > 0 {
+                markers.set_cell(pos, src - 1);
+                if rng.gen_bool(0.8) {
+                    markers.set_cell(pos + dir, dst.saturating_add(1));
                 }
             }
         }
     }
+}
 
 impl HexgridView for Builders {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {

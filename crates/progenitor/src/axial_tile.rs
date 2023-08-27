@@ -73,11 +73,24 @@ impl<CellT: Copy> AxialTile<CellT> {
         }
     }
 
+    pub fn cell_unchecked(&self, pos: Cube) -> CellT {
+        self.data[self.index(pos)]
+    }
+
     pub fn neighbours(&self, center_pos: Cube) -> [(Direction, Option<CellT>); 6] {
         let neigh = |idx| {
             let dir = Direction::from_int(idx);
             let pos = center_pos + dir;
             (dir, self.cell(pos))
+        };
+        [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
+    }
+
+    pub fn neighbours_unchecked(&self, center_pos: Cube) -> [(Direction, CellT); 6] {
+        let neigh = |idx| {
+            let dir = Direction::from_int(idx);
+            let pos = center_pos + dir;
+            (dir, self.cell_unchecked(pos))
         };
         [neigh(0), neigh(1), neigh(2), neigh(3), neigh(4), neigh(5)]
     }
