@@ -271,7 +271,7 @@ impl Builders {
 
             let marker_here = self.state.marker.cell(t.pos).unwrap() as f32 * (1. / 8.);
 
-            let mut inputs = vec![
+            let inputs = [
                 look(Cell::Air, Angle::Forward),
                 look(Cell::Air, Angle::Left),
                 look(Cell::Air, Angle::Right),
@@ -293,8 +293,12 @@ impl Builders {
                 look(Cell::Agent, Angle::Forward),
                 marker_here,
                 builders_nearby as f32 * 10.,
+                t.memory[0],
+                t.memory[1],
+                t.memory[2],
+                t.memory[3],
             ];
-            inputs.extend(t.memory.iter());
+            assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 
             let outputs: SVector<f32, { nn::N_OUTPUTS }> = self
