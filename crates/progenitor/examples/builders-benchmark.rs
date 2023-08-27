@@ -7,7 +7,7 @@ fn main() {
     }
 
     let mut total = 0.;
-    const N: usize = 50;
+    const N: usize = 2000;
     for _ in 0..N {
         let mut sim = Builders::new_with_random_params();
         for _ in 0..3000 {

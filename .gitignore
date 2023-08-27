@@ -8,3 +8,8 @@ output*.txt
 /output
 outcmaes
 flycheck_*
+perf.*
+flamegraph.svg
+profile.html
+profile.json
+profile.svg

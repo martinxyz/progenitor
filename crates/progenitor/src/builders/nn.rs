@@ -48,7 +48,7 @@ fn forward(
     update_statistics: impl FnOnce(ForwardTrace),
 ) -> SVector<f32, N_OUTPUTS> {
     let mut inputs: SVector<f32, N_INPUTS> = inputs.into();
-    normalize_inputs(&mut inputs);
+    normalize_inputs(&mut inputs);  // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
     // // first layer
     let a1 = params.l1_w * inputs + params.l1_b;
@@ -119,7 +119,15 @@ impl Network {
     }
 }
 
-// note: this seems to be the current performance bottleneck
+// Performance: this is sometimes a bottleneck. Time is spent in exp().
+// Things tried:
+// - The fastapprox crate's faster::exp() made it slower.
+// - Much faster, but wrong: `max - *v + 1.0`
+// - Faster by at least ~2x: `let x = *v - max; 1. / (1. + x*x)`
+// - Faster, but not by much: `let x = *v - max; if x < -30. {0.} else {1. / (1. + x*x)}`
+// - For large N: https://proceedings.neurips.cc/paper_files/paper/2017/file/4e2a6330465c8ffcaa696a5a16639176-Paper.pdf
+// - Or maybe don't worry. It may become irrelevant as the simulation gets more fancy.
+// - Or maybe don't optimize softmax, try something else and see how it trains.
 #[allow(clippy::useless_conversion)]
 pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl Rng) -> usize {
     for v in outputs.iter() {
