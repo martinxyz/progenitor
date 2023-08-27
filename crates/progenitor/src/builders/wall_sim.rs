@@ -92,7 +92,7 @@ impl Cell {
 struct State {
     cells: AxialTile<Cell>,
     visited: AxialTile<bool>,
-    marker: AxialTile<u8>,
+    markers: AxialTile<u8>,
     builders: Vec<Builder>,
     rng: SimRng,
 }
@@ -122,9 +122,9 @@ pub struct Builders {
 
 impl Simulation for Builders {
     fn step(&mut self) {
-        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect();
+        let builder_positions: Vec<_> = self.state.builders.iter().map(|t| t.pos).collect(); // FIXME: malloc/free shows up in benchmark...
         for pos in builder_positions {
-            self.disturb_marker(pos);
+            disturb_marker(&mut self.state.markers, &self.state.cells, pos, &mut self.state.rng);
         }
         self.move_builders();
     }
@@ -180,7 +180,7 @@ impl Builders {
             state: State {
                 visited: hexmap::new(RING_RADIUS, false, |_| false),
                 cells,
-                marker: hexmap::new(RING_RADIUS, 2, |_| 2),
+                markers: hexmap::new(RING_RADIUS, 2, |_| 2),
                 builders: Vec::new(),
                 rng,
             },
@@ -215,26 +215,6 @@ impl Builders {
         });
     }
 
-    fn disturb_marker(&mut self, pos: Coordinate) {
-        let rng = &mut self.state.rng;
-        let dir = *Direction::all().choose(rng).unwrap();
-        if let (Some(Cell::Agent), Some(Cell::Air)) =
-            (self.state.cells.cell(pos), self.state.cells.cell(pos + dir))
-        {
-            if let (Some(src), Some(dst)) = (
-                self.state.marker.cell(pos),
-                self.state.marker.cell(pos + dir),
-            ) {
-                if src > 0 {
-                    self.state.marker.set_cell(pos, src - 1);
-                    if rng.gen_bool(0.8) {
-                        self.state.marker.set_cell(pos + dir, dst.saturating_add(1));
-                    }
-                }
-            }
-        }
-    }
-
     fn move_builders(&mut self) {
         for t in self.state.builders.iter_mut() {
             if t.exhausted > 0 {
@@ -256,7 +236,7 @@ impl Builders {
             };
             let look_marker = |angle: Angle| {
                 self.state
-                    .marker
+                    .markers
                     .cell(t.pos + (t.heading + angle))
                     .map(|c| c as f32 * (1. / 8.))
                     .unwrap_or(0.)
@@ -269,7 +249,7 @@ impl Builders {
                 .iter()
                 .sum();
 
-            let marker_here = self.state.marker.cell(t.pos).unwrap() as f32 * (1. / 8.);
+            let marker_here = self.state.markers.cell(t.pos).unwrap() as f32 * (1. / 8.);
 
             let inputs = [
                 look(Cell::Air, Angle::Forward),
@@ -336,14 +316,14 @@ impl Builders {
             t.heading = t.heading + turn;
 
             if action == Action::Mark {
-                if let Some(marker_forward) = self.state.marker.cell(pos_forward) {
+                if let Some(marker_forward) = self.state.markers.cell(pos_forward) {
                     if marker_forward < 16 {
-                        self.state.marker.set_cell(pos_forward, 16);
+                        self.state.markers.set_cell(pos_forward, 16);
                     }
                 }
-                if let Some(marker_here) = self.state.marker.cell(t.pos) {
+                if let Some(marker_here) = self.state.markers.cell(t.pos) {
                     if marker_here < 32 {
-                        self.state.marker.set_cell(t.pos, marker_here + 4);
+                        self.state.markers.set_cell(t.pos, marker_here + 4);
                     }
                 }
             }
@@ -403,6 +383,26 @@ impl Builders {
     }
 }
 
+
+fn disturb_marker(markers: &mut AxialTile<u8>, cells: &AxialTile<Cell>, pos: Coordinate, rng: &mut impl Rng) {
+        let dir = *Direction::all().choose(rng).unwrap();
+        if let (Some(Cell::Agent), Some(Cell::Air)) =
+            (cells.cell(pos), cells.cell(pos + dir))
+        {
+            if let (Some(src), Some(dst)) = (
+                markers.cell(pos),
+                markers.cell(pos + dir),
+            ) {
+                if src > 0 {
+                    markers.set_cell(pos, src - 1);
+                    if rng.gen_bool(0.8) {
+                        markers.set_cell(pos + dir, dst.saturating_add(1));
+                    }
+                }
+            }
+        }
+    }
+
 impl HexgridView for Builders {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         // xxx inefficient when this gets called for all cells...
@@ -423,7 +423,7 @@ impl HexgridView for Builders {
             Cell::Agent => 0,
             Cell::Food => 1,
         };
-        let energy: u8 = self.state.marker.cell(pos)?;
+        let energy: u8 = self.state.markers.cell(pos)?;
         Some(CellView {
             cell_type,
             energy: Some(energy),
