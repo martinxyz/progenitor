@@ -90,6 +90,8 @@ class RibsTrainable(ray.tune.Trainable):
         while self.episodes // episodes_per_report <= reports_done:
             solutions = self.scheduler.ask()
             futures = [evaluate.remote(x, self.hyperparams, self.episodes_per_eval) for x in solutions]
+            if self.episodes < 5:
+                print("evaluating", len(futures), "solutions")
             self.evals += len(futures)
             self.episodes += len(futures) * self.episodes_per_eval
             self.generations += 1
@@ -97,7 +99,7 @@ class RibsTrainable(ray.tune.Trainable):
             objectives, measures = results[:, 0], results[:, 1:]
             self.scheduler.tell(objectives, measures)
 
-            if self.generations % 20 == 1:
+            if self.generations % 100 == 1:
                 futures_2 = [evaluate.remote(x, self.hyperparams, self.episodes_per_eval) for x in solutions]
                 results_2 = np.array(ray.get(futures_2))
                 objectives_2, measures_2 = results_2[:, 0], results_2[:, 1:]
@@ -105,7 +107,7 @@ class RibsTrainable(ray.tune.Trainable):
                 # print('objectives, objectives_2:', np.hstack((measures, measures_2)))
                 m_idx = self.archive.index_of(measures)
                 m_idx_2 = self.archive.index_of(measures_2)
-                print(f'expensive report at generation {self.generations} ({self.evals/1e6:.3f} Mevals)')
+                print(f'expensive report at generation {self.generations} ({self.evals/1e6:.3f} M evals)')
                 print(f'evals with stable measures (same archive bin): {(m_idx == m_idx_2).sum() / len(m_idx) * 100:.1f}% (N={len(futures_2)})')
                 print('archive:', self.archive.stats)
                 print('result_archive:', self.result_archive.stats)
@@ -138,14 +140,17 @@ class RibsTrainable(ray.tune.Trainable):
         # full state is 0.5GB compressed; seems excessive given my expectation
         # that it holds just a few sep_cma_es emitter states plus the two archives
         # (At least resuming from node failure works this way!)
-        full_state = (self.archive, self.result_archive, self.evals, self.episodes, self.generations, self.scheduler, self.pending_reports)
-        save_blosc(full_state, os.path.join(tmpdir, "full_state.pik.blosc"))
+        #
+        # full_state = (self.archive, self.result_archive, self.evals, self.episodes, self.generations, self.scheduler, self.pending_reports)
+        # save_blosc(full_state, os.path.join(tmpdir, "full_state.pik.blosc"))
 
         return tmpdir
 
     def load_checkpoint(self, tmpdir):
-        full_state = load_blosc(os.path.join(tmpdir, "full_state.pik.blosc"))
-        (self.archive, self.result_archive, self.evals, self.episodes, self.generations, self.scheduler, self.pending_reports) = full_state
+        raise NotImplementedError
+        # Checkpointing (to S3) just doesn't work reliably.
+        # full_state = load_blosc(os.path.join(tmpdir, "full_state.pik.blosc"))
+        # (self.archive, self.result_archive, self.evals, self.episodes, self.generations, self.scheduler, self.pending_reports) = full_state
 
 def save_blosc(obj, filename):
     data = pickle.dumps(obj)

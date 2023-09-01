@@ -23,30 +23,36 @@ def main():
             "memory_clamp": 50,
             "memory_halftime": tune.loguniform(1.5, 8.0), # plausible range: 1.5..?~100?
         },
-        "popsize": tune.lograndint(20, 70),
-        "archive_learning_rate": tune.loguniform(0.02, 0.7),
+        # "popsize": tune.lograndint(20, 70),
+        "popsize": 32,
+        # "archive_learning_rate": tune.loguniform(0.02, 0.7),
+        "archive_learning_rate": 0.05,
         # "archive_scale": tune.choice([1, 2, 3, 4]),  # checkpoints get too large (half a gigabyte...), also, lager seems slightly worse
-        "archive_scale": tune.choice([1, 2]),
+        # "archive_scale": tune.choice([1, 2]),
+        "archive_scale": 1,
         "es": "sep_cma_es",
         # "es": tune.choice([
         #     "cma_es",
         #     "sep_cma_es",
         #     # "lm_ma_es",
         # ]),
-        "num_emitters": tune.lograndint(5, 25),  # probably interacts with popsize; effect seems neutral (so far)
+        # "num_emitters": tune.lograndint(5, 25),  # probably interacts with popsize; effect seems neutral (so far)
+        "num_emitters": 16,
         # ...complicated effect... "episodes_per_eval": tune.lograndint(50, 500), # ("denoising" effect ~= popsize*episodes_per_eval (except for measure stability))
         # "episodes_per_eval": tune.lograndint(80, 180),  # lower seems better, but... it may just make the extremely lucky score more extreme
-        "episodes_per_eval": 200,
+        "episodes_per_eval": 500,
         # "seeding": "epoch",  - not implemented yet (does it still make sense, with all the measure-noise?)
     }
-    max_episodes = 50 * int(1e6)
+    max_episodes = 200 * int(1e6)
+    # max_episodes = 20 * int(1e6)
     tune_config = tune.TuneConfig(
-        num_samples=16,  # "runs" or "restarts"
+        num_samples=9,  # "runs" or "restarts"
         metric='result_norm_qd_score',
         mode='max',
         scheduler=ASHAScheduler(
             time_attr='episodes',
             grace_period=max_episodes // 50,  # training "time" allowed for every "sample" (run)
+            # grace_period=max_episodes // 2,  # training "time" allowed for every "sample" (run)
             max_t=max_episodes,      # training "time" allowed for the best run(s)
             reduction_factor=3,
             brackets=1,
@@ -55,7 +61,7 @@ def main():
     # resources_per_trial={'cpu': 1, 'gpu': 0}
     resources_per_trial=tune.PlacementGroupFactory(
         # [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
-        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64
+        [{'CPU': 0.0}] + [{'CPU': 1.0}] * 32
         #-------------   ------------------
         # train() task,      ^ evaluate() tasks spawned by train().
         # does work once       They can use more CPUs, how many depends
@@ -70,6 +76,11 @@ def main():
         # https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
         # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
         # , strategy='PACK'
+        #
+        # [{'CPU': 0.0}] + [{'CPU': 1.0}] * (32 * 8)
+        ## ^ this doesn't work. even in the simple (1 job, 1 trial) ray seems to fail starting tasks fast enough to saturate things
+        ## (Maybe it does something silly...? like setting up venvs for each task? or transfering pointless objects...?)
+        ## Or, more likely, my tasks are too short. (How long are they? Should be at least 0.1s, better 1.0s or more.)
     )
     tuner = tune.Tuner(
         tune.with_resources(
@@ -84,7 +95,7 @@ def main():
             checkpoint_config=air.CheckpointConfig(
                 checkpoint_frequency=50,
                 checkpoint_at_end=True,
-                num_to_keep=1,
+                num_to_keep=2,
             ),
             failure_config=air.FailureConfig(max_failures=3),
         ),
