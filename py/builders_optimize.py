@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Optional
 import os
-import shutil
+import time
 import glob
 import cma
 import cmaes
@@ -14,7 +16,7 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-version_check = 11
+version_check = 13
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently. (I think the @ray.remote object fails to serialize.)
@@ -31,26 +33,27 @@ def get_params(x, config):
     }
     return Params(x, **hyperparams)
 
-@ray.remote
+@ray.remote(scheduling_strategy='DEFAULT')  # break out of the trial's placement group
 def evaluate(x, config, episodes, stats=False, seed=None):
     Builders = progenitor.mod.Builders
     assert progenitor.mod.version_check == version_check, f'wrong module version: {Builders.__file__}'
     params = get_params(x, config)
 
+    # t0 = time.time()
     score = 0
     for i in range(episodes):
         if seed is not None:
             seed += 1
         sim = Builders(params, seed)
-        sim.steps(3000)
+        sim.steps(10_000)
         if stats and i == 0:
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
             # (Just return a metrics dict? Averaged/Stats?)
-        score += sim.hoarding_score()
+        score += sim.hoarding_score
 
     cost = - score / episodes
-
+    # print(f'evaluation took {time.time() - t0:.6f} seconds')  ~100ms
     # print(f'{cost:.6f} for p={probs} - x={x[0]:.6f}')
     return cost
 
@@ -165,17 +168,15 @@ def main_tune():
     run_name = 'builders-' + sys.argv[1]
 
     search_space = {
-        "popsize": 200,  # plausible range: 50..?200?
-        # "popsize": tune.lograndint(15, 120),  # plausible range: 50..?200?
+        "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": tune.loguniform(0.3, 0.8),  # (clear effect) plausible range: 0.2..1.3
+        "init_fac": 0.5,  # (clear effect) plausible range: 0.4..0.8
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
-        # "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..?>100?
-        "memory_clamp": 50.,  # plausible range: 1.0..?>100?
-        "memory_halftime": tune.loguniform(1.5, 8.0), # plausible range: 1.5..?~100?
-        "actions_scale": tune.loguniform(5.0, 10.),  # plausible range: 2.0..20
+        "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
+        "memory_halftime": tune.loguniform(2.0, 16.0), # plausible range: 2..10
+        "actions_scale": tune.loguniform(1.0, 30.),  # plausible range: 2.0..20
         # "optimizer": tune.choice(["cmaes-1", "cmaes-2"] + 3*["sep-cmaes"]),
         "optimizer": 'sep-cmaes',
         # "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
@@ -183,8 +184,8 @@ def main_tune():
     }
     max_t = 30_000_000
     tune_config = tune.TuneConfig(
-        # num_samples=-1,
-        num_samples=16,  # "runs" or "restarts"
+        max_concurrent_trials=16,  # needed because we don't reserve any resources per-trial
+        num_samples=81,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
@@ -195,25 +196,20 @@ def main_tune():
             brackets=1,
         )
     )
-    # resources_per_trial={'cpu': 1, 'gpu': 0}
-    resources_per_trial=tune.PlacementGroupFactory(
-        # [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
-        [{'CPU': 1.0}] + [{'CPU': 1.0}] * 63
-        #-------------   ------------------
-        # train() task,      ^ evaluate() tasks spawned by train().
-        # does work once       They can use more CPUs, how many depends
-        # per generation.      on the population_size (a hyperparam).
-        # (short burst)        But those we reserve (but one) will idle during
-        #                      each generation-evaluation. If we reserve
-        #                      just one, utilization will be nearly 100% at the
-        #                      beginning but the last few runs remaining will
-        #                      use a single CPU each, when they could parallelize.
-        #                      ...any good solution for that? (Fractional CPUs?)
-        #
-        # https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
-        # https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
-        , strategy='PACK'
-    )
+    resources_per_trial={'cpu': 0.01, 'gpu': 0}
+    # resources_per_trial=tune.PlacementGroupFactory(
+    #   [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
+    #   [{'CPU': 0.0}] + []  # not allowed
+    #  -------------   ------------------
+    #   train() task,      ^ evaluate() tasks spawned by train().
+    #   does work once       They can use more CPUs, how many depends
+    #   per generation.      on the population_size (a hyperparam).
+    #   (short burst)        (-> Run those outside of the placement group instead.)
+    #
+    #   https://docs.ray.io/en/latest/tune/faq.html#how-do-i-set-resources
+    #   https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
+    #   https://discuss.ray.io/t/unable-to-saturate-cluster-with-asha-trials-cpu-bound/11941
+    # )
     tuner = tune.Tuner(
         tune.with_resources(
             train,
@@ -251,5 +247,5 @@ def main_simple():
     }, tuning=False)
 
 if __name__ == '__main__':
-    main_simple()
-    # main_tune()
+    # main_simple()
+    main_tune()

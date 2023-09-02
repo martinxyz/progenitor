@@ -31,11 +31,11 @@ git checkout-index -a -f --prefix="${jobdir}/"
 # keep it small
 rm -rf "${jobdir}/webapp"
 
-if $local; then
-    extra_args=''
-else
-    extra_args='--air_storage_dir=s3://maxy-ray-experiments/'
-fi
+# if $local; then
+#     extra_args=''
+# else
+#     extra_args='--air_storage_dir=s3://maxy-ray-experiments/'
+# fi
 
 cat << EOF > "${jobdir}/start-job.sh"
 #!/bin/bash
@@ -50,7 +50,8 @@ ray job submit \
   --no-wait --working-dir="." \
   --runtime-env-json='{"py_modules": ["crates/python/progenitor"]}' \
   -- \
-  python py/ribs_search_hparams.py ${name} ${extra_args}
+  python py/builders_optimize.py ${name} ${extra_args}
+# python py/ribs_search_hparams.py ${name} ${extra_args}
 
 EOF
     chmod +x "${jobdir}/start-job.sh"
