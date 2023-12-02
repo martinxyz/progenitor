@@ -32,3 +32,15 @@ num-derive = "0.4"
 rayon = "1.5"
 num_cpus = "1.13"
 utils = { path = "../utils" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+# those are a bit pedantic (some of them even hurt readability, IMO)
+new_without_default = "allow"
+match_like_matches_macro = "allow"
+manual_range_patterns = "allow"
+collapsible_if = "allow"
+let_and_return = "allow"
+identity_op = "allow"  # I'll multiply by one whenever I like!

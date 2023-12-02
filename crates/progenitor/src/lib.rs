@@ -1,13 +1,3 @@
-// those are a bit too pedantic IMO (in some cases, fixing them would hurt readability)
-#![allow(
-    clippy::new_without_default,
-    clippy::match_like_matches_macro,
-    clippy::manual_range_patterns,
-    clippy::collapsible_if,
-    clippy::let_and_return,
-    clippy::identity_op  // I'll multiply by one whenever I like!
-)]
-
 #[macro_use]
 extern crate num_derive;
 
