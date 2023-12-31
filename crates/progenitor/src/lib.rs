@@ -27,6 +27,7 @@ pub mod sunburn;
 pub mod tumblers;
 pub mod turing;
 pub mod world1;
+pub mod pairs;
 
 pub type SimRng = rand_pcg::Lcg64Xsh32;
 // Xoshiro256PlusPlus is worth trying (some day). While less simple, it's faster
