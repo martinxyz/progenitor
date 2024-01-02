@@ -94,8 +94,8 @@ impl ca::TransactionalCaRule for Rule {
     ) -> Option<ca::TransactionResult<Cell>> {
         if target.kind == Air {
             if source.kind == Blob {
-                if source.energy > 20 {
-                    let transfer = source.energy / 2;
+                if source.energy > 40 {
+                    let transfer = source.energy / 4 * 3;
                     return Some(ca::TransactionResult {
                         source: Cell {
                             energy: source.energy - transfer,
@@ -156,12 +156,16 @@ impl ca::TransactionalCaRule for Rule {
 
         let mut kind = kind;
         let mut energy = energy;
+        let mut photons = photons;
         if kind == Blob {
-          if energy > 0 {
-              energy -= 1;
-          } else {
-              kind = Air;
-          }
+            energy = (energy as u16 + photons.count() as u16 * 2).clamp(0, 200) as u8;
+            photons = DirectionSet::none();
+            if energy > 0 {
+                // energy -= 1;
+                energy -= rng.gen_range(0..=1);
+            } else {
+                kind = Air;
+            }
         }
 
         Cell { kind, energy, photons }
@@ -190,7 +194,7 @@ impl SunburnWorld {
             Cell {
                 kind,
                 energy: match kind {
-                    Blob => rng.gen_range(20..=120),
+                    Blob => rng.gen_range(200..=250),
                     _ => 0
                 },
                 photons: DirectionSet::none(),
@@ -223,13 +227,13 @@ impl HexgridView for SunburnWorld {
             cell_type: match cell.kind {
                 Air => 2,
                 Sun => 5,
-                Blob => 0,
+                Blob => 1,
                 Border => return None,
                 Stone => 4,
             },
             direction: None,
             energy: Some(match cell.kind {
-                Air => cell.photons.count(),
+                Air => cell.photons.count() * 4,
                 _ => cell.energy,
             }),
             ..Default::default()
