@@ -151,10 +151,10 @@ impl<CellT: Copy> AxialTile<CellT> {
     /// Cellular automaton step
     pub fn ca_step<Cell2: Copy>(
         &self,
-        fill: Cell2,
+        border: Cell2,
         mut rule: impl FnMut(Neighbourhood<CellT>) -> Cell2,
     ) -> AxialTile<Cell2> {
-        let mut result = AxialTile::new(self.width, self.height, fill);
+        let mut result = AxialTile::new(self.width, self.height, border);
         for r in 1..self.height - 1 {
             for q in 1..self.width - 1 {
                 let index = r * self.width + q;

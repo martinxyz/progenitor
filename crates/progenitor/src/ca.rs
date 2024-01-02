@@ -132,16 +132,16 @@ pub fn step_torus<Rule: TransactionalCaRule>(
 
 pub fn step_axial<Rule: TransactionalCaRule>(
     tile: &AxialTile<Rule::Cell>,
-    fill: Rule::Cell,
+    border: Rule::Cell,
     rule: &Rule,
     rng: &mut SimRng,
 ) -> AxialTile<Rule::Cell> {
     let step1: AxialTile<(Rule::Cell, Decision)> = tile
-        .ca_step((fill, Decision::NoTransaction), |nh| {
+        .ca_step((border, Decision::NoTransaction), |nh| {
             (nh.center, step1(rule, nh, rng))
         });
 
-    let step2: AxialTile<Rule::Cell> = step1.ca_step(fill, |nh| {
+    let step2: AxialTile<Rule::Cell> = step1.ca_step(border, |nh| {
         step2(
             rule,
             Neighbourhood {
@@ -156,5 +156,5 @@ pub fn step_axial<Rule: TransactionalCaRule>(
     });
 
     // Step 3: normal CA rules
-    step2.ca_step(fill, |nh| rule.step(nh, rng))
+    step2.ca_step(border, |nh| rule.step(nh, rng))
 }
