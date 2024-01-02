@@ -7,7 +7,7 @@ use crate::{AxialTile, Neighbourhood, SimRng, TorusTile};
 
 /// A cellular automaton with transactions
 ///
-/// This trait implements an CA that can move or swap cells. This is implemented
+/// This trait implements a CA that can move or swap cells. This is implemented
 /// via exclusive transactions between two neighbours. Each cell may request a
 /// transaction towards each of its neighbours. A cell will participate at most
 /// in one transaction (choosen at random).

@@ -24,8 +24,7 @@ enum CellType {
     Sun,
     Stone,
     Air,
-    Dust,
-    // Stone0(Direction),
+    Blob,
 }
 
 impl CellType {
@@ -40,11 +39,13 @@ impl CellType {
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 struct Cell {
     kind: CellType,
+    energy: u8,
     photons: DirectionSet,
 }
 
 const BORDER: Cell = Cell {
     kind: CellType::Border,
+    energy: 0,
     photons: DirectionSet::none(),
 };
 
@@ -89,19 +90,22 @@ impl ca::TransactionalCaRule for Rule {
         target: Cell,
         _direction: Direction,
     ) -> Option<ca::TransactionResult<Cell>> {
-        let swap = Some(ca::TransactionResult {
-            source: Cell {
-                kind: target.kind,
-                photons: source.photons,
-            },
-            target: Cell {
-                kind: source.kind,
-                photons: target.photons,
-            },
-        });
         if target.kind == CellType::Air {
-            if source.kind == CellType::Dust {
-                return swap;
+            if source.kind == CellType::Blob {
+                if source.energy > 20 {
+                    let transfer = source.energy / 2;
+                    return Some(ca::TransactionResult {
+                        source: Cell {
+                            energy: source.energy - transfer,
+                            ..source
+                        },
+                        target: Cell {
+                            kind: source.kind,
+                            energy: transfer,
+                            photons: target.photons,
+                        }
+                    })
+                }
             }
         }
         None
@@ -109,6 +113,7 @@ impl ca::TransactionalCaRule for Rule {
 
     fn step(&self, nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
         let kind = nh.center.kind;
+        let energy = nh.center.energy;
         let photons = {
             let incoming = DirectionSet::matching(|dir| {
                 nh[dir].photons.contains(-dir)
@@ -146,7 +151,18 @@ impl ca::TransactionalCaRule for Rule {
                 },
             }
         };
-        Cell { kind, photons }
+
+        let mut kind = kind;
+        let mut energy = energy;
+        if kind == CellType::Blob {
+          if energy > 0 {
+              energy -= 1;
+          } else {
+              kind = CellType::Air;
+          }
+        }
+
+        Cell { kind, energy, photons }
     }
 }
 
@@ -155,7 +171,6 @@ impl SunburnWorld {
         let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
 
         let cells = hexmap::new(RADIUS, BORDER, |location| {
-            // let random_heading = Direction::try_from(rng.gen::<u8>() as i32 % 8).ok();
             let kind = if location.dist_from_top() == 0 {
                 CellType::Sun
             } else if location.dist_from_border() == 0 {
@@ -164,15 +179,18 @@ impl SunburnWorld {
                 CellType::Air
             } else {
                 match location.dist_from_center() {
-                    0..=1 => CellType::Dust,
+                    0..=1 => CellType::Blob,
                     2 => CellType::Air,
-                    // _ if rng.gen_bool(0.08) => Cell::Stone(random_heading),
                     _ if rng.gen_bool(0.18) => CellType::Stone,
                     _ => CellType::Air,
                 }
             };
             Cell {
                 kind,
+                energy: match kind {
+                    CellType::Blob => rng.gen_range(20..=120),
+                    _ => 0
+                },
                 photons: DirectionSet::none(),
             }
         });
@@ -203,12 +221,15 @@ impl HexgridView for SunburnWorld {
             cell_type: match cell.kind {
                 CellType::Air => 2,
                 CellType::Sun => 5,
-                CellType::Dust => 0,
+                CellType::Blob => 0,
                 CellType::Border => return None,
                 CellType::Stone => 4,
             },
             direction: None,
-            energy: Some(cell.photons.count()),
+            energy: Some(match cell.kind {
+                CellType::Air => cell.photons.count(),
+                _ => cell.energy,
+            }),
             ..Default::default()
         })
     }
