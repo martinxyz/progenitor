@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use crate::ca;
 use crate::coords;
 use crate::coords::Direction;
+use crate::coords::Direction::*;
 use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
@@ -26,11 +27,12 @@ enum CellType {
     Air,
     Blob,
 }
+use CellType::*;
 
 impl CellType {
     fn transparent(self) -> bool {
         match self {
-            CellType::Sun | CellType::Air => true,
+            Sun | Air => true,
             _ => false,
         }
     }
@@ -44,7 +46,7 @@ struct Cell {
 }
 
 const BORDER: Cell = Cell {
-    kind: CellType::Border,
+    kind: Border,
     energy: 0,
     photons: DirectionSet::none(),
 };
@@ -61,22 +63,22 @@ struct Rule;
 impl DirectionSet {
     fn pairwise_swap_1(self) -> DirectionSet {
         self.transmuted(|dir| match dir {
-            Direction::NorthWest => Direction::NorthEast,
-            Direction::NorthEast => Direction::NorthWest,
-            Direction::East => Direction::SouthEast,
-            Direction::SouthEast => Direction::East,
-            Direction::SouthWest => Direction::West,
-            Direction::West => Direction::SouthWest,
+            NorthWest => NorthEast,
+            NorthEast => NorthWest,
+            East => SouthEast,
+            SouthEast => East,
+            SouthWest => West,
+            West => SouthWest,
         })
     }
     fn pairwise_swap_2(self) -> DirectionSet {
         self.transmuted(|dir| match dir {
-            Direction::NorthWest => Direction::West,
-            Direction::NorthEast => Direction::East,
-            Direction::East => Direction::NorthEast,
-            Direction::SouthEast => Direction::SouthWest,
-            Direction::SouthWest => Direction::SouthEast,
-            Direction::West => Direction::NorthWest,
+            NorthWest => West,
+            NorthEast => East,
+            East => NorthEast,
+            SouthEast => SouthWest,
+            SouthWest => SouthEast,
+            West => NorthWest,
         })
     }
 }
@@ -90,8 +92,8 @@ impl ca::TransactionalCaRule for Rule {
         target: Cell,
         _direction: Direction,
     ) -> Option<ca::TransactionResult<Cell>> {
-        if target.kind == CellType::Air {
-            if source.kind == CellType::Blob {
+        if target.kind == Air {
+            if source.kind == Blob {
                 if source.energy > 20 {
                     let transfer = source.energy / 2;
                     return Some(ca::TransactionResult {
@@ -142,8 +144,8 @@ impl ca::TransactionalCaRule for Rule {
             let emit = DirectionSet::all();
 
             match kind {
-                CellType::Sun => emit,
-                CellType::Air => transmit,
+                Sun => emit,
+                Air => transmit,
                 _ => match rng.gen::<u8>() % 8 {
                     0 | 1 | 2 => diffuse1,
                     3 | 4 | 5 => diffuse2,
@@ -154,11 +156,11 @@ impl ca::TransactionalCaRule for Rule {
 
         let mut kind = kind;
         let mut energy = energy;
-        if kind == CellType::Blob {
+        if kind == Blob {
           if energy > 0 {
               energy -= 1;
           } else {
-              kind = CellType::Air;
+              kind = Air;
           }
         }
 
@@ -172,23 +174,23 @@ impl SunburnWorld {
 
         let cells = hexmap::new(RADIUS, BORDER, |location| {
             let kind = if location.dist_from_top() == 0 {
-                CellType::Sun
+                Sun
             } else if location.dist_from_border() == 0 {
-                CellType::Stone
+                Stone
             } else if location.dist_from_top() < RADIUS / 4 {
-                CellType::Air
+                Air
             } else {
                 match location.dist_from_center() {
-                    0..=1 => CellType::Blob,
-                    2 => CellType::Air,
-                    _ if rng.gen_bool(0.18) => CellType::Stone,
-                    _ => CellType::Air,
+                    0..=1 => Blob,
+                    2 => Air,
+                    _ if rng.gen_bool(0.18) => Stone,
+                    _ => Air,
                 }
             };
             Cell {
                 kind,
                 energy: match kind {
-                    CellType::Blob => rng.gen_range(20..=120),
+                    Blob => rng.gen_range(20..=120),
                     _ => 0
                 },
                 photons: DirectionSet::none(),
@@ -219,15 +221,15 @@ impl HexgridView for SunburnWorld {
         let cell = self.cells.cell(pos)?;
         Some(CellView {
             cell_type: match cell.kind {
-                CellType::Air => 2,
-                CellType::Sun => 5,
-                CellType::Blob => 0,
-                CellType::Border => return None,
-                CellType::Stone => 4,
+                Air => 2,
+                Sun => 5,
+                Blob => 0,
+                Border => return None,
+                Stone => 4,
             },
             direction: None,
             energy: Some(match cell.kind {
-                CellType::Air => cell.photons.count(),
+                Air => cell.photons.count(),
                 _ => cell.energy,
             }),
             ..Default::default()
