@@ -16,6 +16,7 @@ use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
+use crate::potts;
 
 const RADIUS: i32 = 15;
 
@@ -90,11 +91,16 @@ impl ca::TransactionalCaRule for Rule {
         &self,
         source: Cell,
         target: Cell,
-        _direction: Direction,
+        direction: Direction,
     ) -> Option<ca::TransactionResult<Cell>> {
         if target.kind == Air {
             if source.kind == Blob {
-                if source.energy > 40 {
+                let threshold = match direction {
+                    NorthWest | NorthEast => 70,
+                    East | West => 40,
+                    SouthEast | SouthWest => 30,
+                };
+                if source.energy > threshold {
                     let transfer = source.energy / 4 * 3;
                     return Some(ca::TransactionResult {
                         source: Cell {
@@ -114,6 +120,9 @@ impl ca::TransactionalCaRule for Rule {
     }
 
     fn step(&self, nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
+        if nh.center == BORDER {
+            return BORDER;
+        }
         let kind = nh.center.kind;
         let energy = nh.center.energy;
         let photons = {
@@ -204,10 +213,25 @@ impl SunburnWorld {
     }
 }
 
+struct Rule2 {}
+impl potts::PottsRule for Rule2 {
+    type Cell = Cell;
+
+    fn energy(&self, nh: Neighbourhood<Self::Cell>) -> f32 {
+        let stones = nh.count_neighbours(|neigh| neigh.kind == Stone) as f32
+            + (nh.center.kind == Stone) as u8 as f32;
+        f32::abs(stones - 3.)
+    }
+}
+
 impl Simulation for SunburnWorld {
     fn step(&mut self) {
         let rule = Rule {};
         self.cells = ca::step_axial(&self.cells, BORDER, &rule, &mut self.rng);
+
+        // Potts step
+        let potts_rule = Rule2 {};
+        self.cells = potts::step_axial(&self.cells, BORDER, &potts_rule, &mut self.rng)
     }
 
     fn save_state(&self) -> Vec<u8> {
@@ -227,15 +251,15 @@ impl HexgridView for SunburnWorld {
             cell_type: match cell.kind {
                 Air => 2,
                 Sun => 5,
-                Blob => 1,
+                Blob => 3,
                 Border => return None,
                 Stone => 4,
             },
             direction: None,
-            energy: Some(match cell.kind {
-                Air => cell.photons.count() * 4,
-                _ => cell.energy,
-            }),
+            energy: match cell.kind {
+                Blob => None,
+                _ => Some(cell.photons.count() * 4),
+            },
             ..Default::default()
         })
     }

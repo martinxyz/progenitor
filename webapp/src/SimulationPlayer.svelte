@@ -183,7 +183,7 @@
             if (ct == 0) color = '#efe'
             if (ct == 1) color = '#b57'
             if (ct == 2) color = '#997'
-            if (ct == 3) color = '#6b3'
+            if (ct == 3) color = '#380'
             if (ct == 4) color = '#651'
             if (ct == 5) color = '#87c'
 

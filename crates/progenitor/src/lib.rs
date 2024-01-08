@@ -18,6 +18,7 @@ pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWP
 
 // shared simulation behaviour
 mod ca;
+mod potts;
 
 // simulations
 pub mod builders;

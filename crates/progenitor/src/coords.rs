@@ -335,6 +335,10 @@ impl<T: Copy> Neighbourhood<T> {
         Direction::all().into_iter().zip(self.neighbours)
     }
 
+    pub fn neighbour(&self, dir: Direction) -> T {
+        self.neighbours[dir as usize]
+    }
+
     pub fn count_neighbours(&self, condition: impl Fn(T) -> bool) -> i32 {
         self.neighbours
             .into_iter()
