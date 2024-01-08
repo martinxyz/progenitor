@@ -16,7 +16,7 @@ use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
-use crate::potts;
+use crate::independent_pairs;
 
 const RADIUS: i32 = 15;
 
@@ -89,33 +89,10 @@ impl ca::TransactionalCaRule for Rule {
 
     fn transaction(
         &self,
-        source: Cell,
-        target: Cell,
-        direction: Direction,
+        _source: Cell,
+        _target: Cell,
+        _direction: Direction,
     ) -> Option<ca::TransactionResult<Cell>> {
-        if target.kind == Air {
-            if source.kind == Blob {
-                let threshold = match direction {
-                    NorthWest | NorthEast => 70,
-                    East | West => 40,
-                    SouthEast | SouthWest => 30,
-                };
-                if source.energy > threshold {
-                    let transfer = source.energy / 4 * 3;
-                    return Some(ca::TransactionResult {
-                        source: Cell {
-                            energy: source.energy - transfer,
-                            ..source
-                        },
-                        target: Cell {
-                            kind: source.kind,
-                            energy: transfer,
-                            photons: target.photons,
-                        }
-                    })
-                }
-            }
-        }
         None
     }
 
@@ -214,13 +191,42 @@ impl SunburnWorld {
 }
 
 struct Rule2 {}
-impl potts::PottsRule for Rule2 {
+impl independent_pairs::PairRule for Rule2 {
     type Cell = Cell;
 
-    fn energy(&self, nh: Neighbourhood<Self::Cell>) -> f32 {
-        let stones = nh.count_neighbours(|neigh| neigh.kind == Stone) as f32
-            + (nh.center.kind == Stone) as u8 as f32;
-        f32::abs(stones - 3.)
+    fn pair_rule(&self,
+                 source: Neighbourhood<Self::Cell>,
+                 target: Neighbourhood<Self::Cell>,
+                 direction: Direction,
+                 ) -> (Self::Cell, Self::Cell) {
+        let noop = (source.center, target.center);
+        let swap = (target.center, source.center);
+
+        match (source.center.kind, target.center.kind) {
+            (Air, Blob) => swap,
+            (Blob, Air) => {
+                let threshold = match direction {
+                    NorthWest | NorthEast => 70,
+                    East | West => 40,
+                    SouthEast | SouthWest => 30,
+                };
+                if source.center.energy > threshold {
+                    let transfer = source.center.energy / 4 * 3;
+                    (Cell {
+                        energy: source.center.energy - transfer,
+                        ..source.center
+                    },
+                     Cell {
+                         kind: source.center.kind,
+                         energy: transfer,
+                         photons: target.center.photons,
+                     })
+                } else {
+                    noop
+                }
+            },
+            _ => noop
+        }
     }
 }
 
@@ -229,9 +235,8 @@ impl Simulation for SunburnWorld {
         let rule = Rule {};
         self.cells = ca::step_axial(&self.cells, BORDER, &rule, &mut self.rng);
 
-        // Potts step
-        let potts_rule = Rule2 {};
-        self.cells = potts::step_axial(&self.cells, BORDER, &potts_rule, &mut self.rng)
+        let pair_rule = Rule2 {};
+        self.cells = independent_pairs::step_axial(&self.cells, BORDER, &pair_rule, &mut self.rng)
     }
 
     fn save_state(&self) -> Vec<u8> {
