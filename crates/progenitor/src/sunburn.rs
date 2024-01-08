@@ -4,7 +4,6 @@ use rand::SeedableRng;
 use rand_pcg::Pcg32;
 use serde::{Deserialize, Serialize};
 
-use crate::ca;
 use crate::coords;
 use crate::coords::Direction;
 use crate::coords::Direction::*;
@@ -59,8 +58,6 @@ pub struct SunburnWorld {
     // visited: AxialTile<Option<bool>>,
 }
 
-struct Rule;
-
 impl DirectionSet {
     fn pairwise_swap_1(self) -> DirectionSet {
         self.transmuted(|dir| match dir {
@@ -81,80 +78,6 @@ impl DirectionSet {
             SouthWest => SouthEast,
             West => NorthWest,
         })
-    }
-}
-
-impl ca::TransactionalCaRule for Rule {
-    type Cell = Cell;
-
-    fn transaction(
-        &self,
-        _source: Cell,
-        _target: Cell,
-        _direction: Direction,
-    ) -> Option<ca::TransactionResult<Cell>> {
-        None
-    }
-
-    fn step(&self, nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
-        if nh.center == BORDER {
-            return BORDER;
-        }
-        let kind = nh.center.kind;
-        let energy = nh.center.energy;
-        let photons = {
-            let incoming = DirectionSet::matching(|dir| {
-                nh[dir].photons.contains(-dir)
-                // delete photons that cross two walls
-                // nh[dir].photons.contains(-dir) && (kind.transparent() || nh[dir].kind.transparent())
-            });
-            // absorption
-            let incoming = {
-                let tmp: u8 = if kind.transparent() {
-                    rng.gen::<u8>()
-                } else {
-                    rng.gen::<u8>() % 8
-                };
-                if let Ok(dir) = Direction::try_from(tmp as i32) {
-                    incoming.with(dir, false)
-                } else {
-                    incoming
-                }
-            };
-            let reflect = incoming;
-            let transmit = reflect.mirrored();
-            let diffuse1 = reflect.pairwise_swap_1();
-            let diffuse2 = reflect.pairwise_swap_2();
-            // let bend1 = transmit.pairwise_swap_2();
-            // let bend2 = transmit.pairwise_swap_2();
-            let emit = DirectionSet::all();
-
-            match kind {
-                Sun => emit,
-                Air => transmit,
-                _ => match rng.gen::<u8>() % 8 {
-                    0 | 1 | 2 => diffuse1,
-                    3 | 4 | 5 => diffuse2,
-                    _ => reflect,
-                },
-            }
-        };
-
-        let mut kind = kind;
-        let mut energy = energy;
-        let mut photons = photons;
-        if kind == Blob {
-            energy = (energy as u16 + photons.count() as u16 * 2).clamp(0, 200) as u8;
-            photons = DirectionSet::none();
-            if energy > 0 {
-                // energy -= 1;
-                energy -= rng.gen_range(0..=1);
-            } else {
-                kind = Air;
-            }
-        }
-
-        Cell { kind, energy, photons }
     }
 }
 
@@ -187,6 +110,23 @@ impl SunburnWorld {
             }
         });
         SunburnWorld { cells, rng }
+    }
+}
+
+impl Simulation for SunburnWorld {
+    fn step(&mut self) {
+        let pair_rule = Rule2 {};
+        let cells_tmp = independent_pairs::step_axial(&self.cells, BORDER, &pair_rule, &mut self.rng);
+        self.cells = cells_tmp.ca_step(BORDER, |nh| step2(nh, &mut self.rng));
+    }
+
+    fn save_state(&self) -> Vec<u8> {
+        // can we have a default-implementation for Simulation: Serialize + Deserialize
+        bincode::serialize(&self).unwrap()
+    }
+
+    fn load_state(&mut self, data: &[u8]) {
+        *self = bincode::deserialize_from(data).unwrap();
     }
 }
 
@@ -230,23 +170,65 @@ impl independent_pairs::PairRule for Rule2 {
     }
 }
 
-impl Simulation for SunburnWorld {
-    fn step(&mut self) {
-        let rule = Rule {};
-        self.cells = ca::step_axial(&self.cells, BORDER, &rule, &mut self.rng);
+fn step2(nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
+    if nh.center == BORDER {
+        return BORDER;
+    }
+    let kind = nh.center.kind;
+    let energy = nh.center.energy;
+    let photons = {
+        let incoming = DirectionSet::matching(|dir| {
+            nh[dir].photons.contains(-dir)
+            // delete photons that cross two walls
+            // nh[dir].photons.contains(-dir) && (kind.transparent() || nh[dir].kind.transparent())
+        });
+        // absorption
+        let incoming = {
+            let tmp: u8 = if kind.transparent() {
+                rng.gen::<u8>()
+            } else {
+                rng.gen::<u8>() % 8
+            };
+            if let Ok(dir) = Direction::try_from(tmp as i32) {
+                incoming.with(dir, false)
+            } else {
+                incoming
+            }
+        };
+        let reflect = incoming;
+        let transmit = reflect.mirrored();
+        let diffuse1 = reflect.pairwise_swap_1();
+        let diffuse2 = reflect.pairwise_swap_2();
+        // let bend1 = transmit.pairwise_swap_2();
+        // let bend2 = transmit.pairwise_swap_2();
+        let emit = DirectionSet::all();
 
-        let pair_rule = Rule2 {};
-        self.cells = independent_pairs::step_axial(&self.cells, BORDER, &pair_rule, &mut self.rng)
+        match kind {
+            Sun => emit,
+            Air => transmit,
+            _ => match rng.gen::<u8>() % 8 {
+                0 | 1 | 2 => diffuse1,
+                3 | 4 | 5 => diffuse2,
+                _ => reflect,
+            },
+        }
+    };
+
+    let mut kind = kind;
+    let mut energy = energy;
+    let mut photons = photons;
+    if kind == Blob {
+        energy = (energy as u16 + photons.count() as u16 * 2).clamp(0, 200) as u8;
+        photons = DirectionSet::none();
+        if energy > 0 {
+            // energy -= 1;
+            energy -= rng.gen_range(0..=1);
+        } else {
+            kind = Air;
+        }
     }
 
-    fn save_state(&self) -> Vec<u8> {
-        // can we have a default-implementation for Simulation: Serialize + Deserialize
-        bincode::serialize(&self).unwrap()
-    }
-
-    fn load_state(&mut self, data: &[u8]) {
-        *self = bincode::deserialize_from(data).unwrap();
-    }
+    Cell { kind, energy, photons }
 }
 
 impl HexgridView for SunburnWorld {
