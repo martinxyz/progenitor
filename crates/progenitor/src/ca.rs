@@ -130,6 +130,7 @@ pub fn step_torus<Rule: TransactionalCaRule>(
     step2.iter_radius_1().map(|nh| rule.step(nh, rng)).collect()
 }
 
+#[allow(dead_code)]
 pub fn step_axial<Rule: TransactionalCaRule>(
     tile: &AxialTile<Rule::Cell>,
     border: Rule::Cell,

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 // later, maybe: (and especially in case the NNs get larger: enable blas)
 // use ndarray::prelude::*;
 use nalgebra::{SMatrix, SVector};

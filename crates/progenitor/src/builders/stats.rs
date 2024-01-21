@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use nalgebra::SVector;
 use std::fmt::Debug;
 
