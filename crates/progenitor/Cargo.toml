@@ -32,6 +32,7 @@ num-derive = "0.4"
 rayon = "1.5"
 num_cpus = "1.13"
 utils = { path = "../utils" }
+indicatif = { version = "0.17.7", features = ["rayon"] }
 
 [lints.rust]
 unsafe_code = "forbid"

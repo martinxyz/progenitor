@@ -50,7 +50,7 @@ fn forward(
     update_statistics: impl FnOnce(ForwardTrace),
 ) -> SVector<f32, N_OUTPUTS> {
     let mut inputs: SVector<f32, N_INPUTS> = inputs.into();
-    normalize_inputs(&mut inputs);  // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
+    normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
     // // first layer
     let a1 = params.l1_w * inputs + params.l1_b;

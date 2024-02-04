@@ -5,11 +5,12 @@ use crate::{AxialTile, Neighbourhood, SimRng};
 
 pub trait PairRule {
     type Cell: Copy + Eq;
-    fn pair_rule(&self,
-                 source: Neighbourhood<Self::Cell>,
-                 target: Neighbourhood<Self::Cell>,
-                 direction: Direction,
-                 ) -> (Self::Cell, Self::Cell);
+    fn pair_rule(
+        &self,
+        source: Neighbourhood<Self::Cell>,
+        target: Neighbourhood<Self::Cell>,
+        direction: Direction,
+    ) -> (Self::Cell, Self::Cell);
 }
 
 pub fn step_axial<Rule: PairRule>(
@@ -26,7 +27,10 @@ pub fn step_axial<Rule: PairRule>(
         let source_pos = tile.random_pos(rng);
         let direction = *Direction::all().choose(rng).unwrap();
         let target_pos = source_pos + direction;
-        let (Some(source), Some(target)) = (tile.neighbourhood(source_pos), tile.neighbourhood(target_pos)) else {
+        let (Some(source), Some(target)) = (
+            tile.neighbourhood(source_pos),
+            tile.neighbourhood(target_pos),
+        ) else {
             continue;
         };
         if source.center == border || target.center == border {

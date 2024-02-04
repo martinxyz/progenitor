@@ -53,10 +53,10 @@ export const rules: Rule[] = [{
 }, {
     label: 'sunburn',
     create: () => progenitor.demo_sunburn(),
-    default: true,
 }, {
     label: 'pairs',
     create: () => progenitor.demo_pairs(),
+    default: true,
 }]
 
 const steps_between_snapshots = 500
