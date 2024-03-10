@@ -1,8 +1,9 @@
+use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{builders, falling_sand, sunburn, tumblers, turing, pairs};
+use progenitor::{builders, falling_sand, pairs, sunburn, tumblers, turing};
 
 #[wasm_bindgen]
 pub fn demo_falling_sand() -> JsSimulation {
@@ -42,6 +43,14 @@ pub fn demo_sunburn() -> JsSimulation {
 
 #[wasm_bindgen]
 pub fn demo_pairs() -> JsSimulation {
-    let sim = pairs::World::new();
+    let sim = pairs::World::new(pairs::random_params(&mut thread_rng()));
+    // let sim = pairs::World::new(pairs::Params {
+    //     p0: 211,
+    //     p1: 102,
+    //     p2: 203,
+    //     count0: 2,
+    //     count1: 1,
+    // });
+
     sim.into()
 }

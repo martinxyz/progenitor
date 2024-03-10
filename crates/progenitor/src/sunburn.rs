@@ -8,6 +8,7 @@ use crate::coords;
 use crate::coords::Direction;
 use crate::coords::Direction::*;
 use crate::hexmap;
+use crate::independent_pairs;
 use crate::AxialTile;
 use crate::CellView;
 use crate::DirectionSet;
@@ -15,7 +16,6 @@ use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
-use crate::independent_pairs;
 
 const RADIUS: i32 = 15;
 
@@ -25,7 +25,7 @@ enum CellType {
     Sun,
     Stone,
     Air,
-    Blob,
+    Blob(DirectionSet),
 }
 use CellType::*;
 
@@ -94,8 +94,8 @@ impl SunburnWorld {
                 Air
             } else {
                 match location.dist_from_center() {
-                    0..=1 => Blob,
-                    2 => Air,
+                    // 0..=5 => Air,
+                    2 => Blob(DirectionSet::none()),
                     _ if rng.gen_bool(0.18) => Stone,
                     _ => Air,
                 }
@@ -103,8 +103,8 @@ impl SunburnWorld {
             Cell {
                 kind,
                 energy: match kind {
-                    Blob => rng.gen_range(200..=250),
-                    _ => 0
+                    Blob(..) => 1, // rng.gen_range(3..=5),
+                    _ => 0,
                 },
                 photons: DirectionSet::none(),
             }
@@ -134,38 +134,46 @@ struct Rule2 {}
 impl independent_pairs::PairRule for Rule2 {
     type Cell = Cell;
 
-    fn pair_rule(&self,
-                 source: Neighbourhood<Self::Cell>,
-                 target: Neighbourhood<Self::Cell>,
-                 direction: Direction,
-                 ) -> (Self::Cell, Self::Cell) {
+    fn pair_rule(
+        &self,
+        source: Neighbourhood<Self::Cell>,
+        target: Neighbourhood<Self::Cell>,
+        _direction: Direction,
+    ) -> (Self::Cell, Self::Cell) {
         let noop = (source.center, target.center);
-        let swap = (target.center, source.center);
-
-        match (source.center.kind, target.center.kind) {
-            (Air, Blob) => swap,
-            (Blob, Air) => {
-                let threshold = match direction {
-                    NorthWest | NorthEast => 70,
-                    East | West => 40,
-                    SouthEast | SouthWest => 30,
-                };
-                if source.center.energy > threshold {
-                    let transfer = source.center.energy / 4 * 3;
-                    (Cell {
-                        energy: source.center.energy - transfer,
+        // let swap = (target.center, source.center);
+        let transfer = |amount| {
+            let mut source = source.center;
+            let mut target = target.center;
+            let amount = std::cmp::min(amount, source.energy);
+            let amount = std::cmp::min(amount, 255 - target.energy);
+            source.energy -= amount;
+            target.energy += amount;
+            (source, target)
+        };
+        let grow = |cost, transfer| {
+            if source.center.energy < cost + transfer {
+                noop
+            } else {
+                (
+                    Cell {
+                        energy: source.center.energy - cost - transfer,
                         ..source.center
                     },
-                     Cell {
-                         kind: source.center.kind,
-                         energy: transfer,
-                         photons: target.center.photons,
-                     })
-                } else {
-                    noop
-                }
-            },
-            _ => noop
+                    Cell {
+                        kind: source.center.kind,
+                        energy: transfer,
+                        photons: target.center.photons,
+                    },
+                )
+            }
+        };
+
+        match (source.center.kind, target.center.kind) {
+            (Air, Blob(..)) if target.center.energy == 0 => grow(0, 0),
+            (Blob(..), Air) => grow(0, source.center.energy / 2 + 1),
+            (Blob(..), Blob(..)) => transfer(1),
+            _ => noop,
         }
     }
 }
@@ -214,21 +222,11 @@ fn step2(nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
         }
     };
 
-    let mut kind = kind;
-    let mut energy = energy;
-    let mut photons = photons;
-    if kind == Blob {
-        energy = (energy as u16 + photons.count() as u16 * 2).clamp(0, 200) as u8;
-        photons = DirectionSet::none();
-        if energy > 0 {
-            // energy -= 1;
-            energy -= rng.gen_range(0..=1);
-        } else {
-            kind = Air;
-        }
+    Cell {
+        kind,
+        energy,
+        photons,
     }
-
-    Cell { kind, energy, photons }
 }
 
 impl HexgridView for SunburnWorld {
@@ -238,13 +236,13 @@ impl HexgridView for SunburnWorld {
             cell_type: match cell.kind {
                 Air => 2,
                 Sun => 5,
-                Blob => 3,
+                Blob(..) => 3,
                 Border => return None,
                 Stone => 4,
             },
             direction: None,
             energy: match cell.kind {
-                Blob => None,
+                Blob(connections) => Some(connections.count()),
                 _ => Some(cell.photons.count() * 4),
             },
             ..Default::default()

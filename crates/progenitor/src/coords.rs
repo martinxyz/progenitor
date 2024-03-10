@@ -347,6 +347,18 @@ impl<T: Copy> Neighbourhood<T> {
             .try_into()
             .unwrap()
     }
+
+    // actually, there is slice .rotate_left ...
+    // pub fn neighbours_rotated_right(&self) -> [T; 6] {
+
+    // pub fn tripods(&self) -> impl Iterator<Item = Tripod<T>> {
+    //     let n = self.neighbours;
+    //     (0..6).map(move |i| Tripod {
+    //         left: n[(i + 5) % 6],
+    //         forward: n[i],
+    //         right: n[(i + 1) % 6],
+    //     })
+    // }
 }
 
 impl<T: Copy> Index<Direction> for Neighbourhood<T> {

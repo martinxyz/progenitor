@@ -7,13 +7,23 @@ lto = true  # ~30% .step() speedup (most likely: inlining hex2d::Coordinate impl
             # ("fat" or "thin" both had the same effect)
 codegen-units = 1  # ~40% .step() speedup
 panic = "abort"  # ~7% .step() speedup
-debug = 1  # no slowdown (certainly less than 2%)
+# debug = 1  # no run-time slowdown (certainly less than 2%)
 # debug = true  # ~1% slower than debug=1 (seems to be statistically significant)
+debug = 0  # faster compilation
+strip = "debuginfo" # https://davidlattimore.github.io/working-on-rust-iteration-time.html
+
 # opt-level = 3  # no significant effect (less than 2%)
 # also: 9% speedup from 'export RUSTFLAGS="-C target-cpu=native"'
 # overall 2x faster than "cargo release" without the stuff above
 
 # overflow-checks = true # 9% slowdown
+
+# TODO: try this? (~5x faster linking, they say)
+# [target.x86_64-unknown-linux-gnu]
+# linker = "/usr/bin/clang-15"
+# rustflags = ["-C", "link-arg=--ld-path=/usr/local/bin/mold"]
+# (maybe also try non-PIE linking)
+
 
 [profile.bench]
 debug = true  # for better profiling

@@ -278,9 +278,7 @@ impl Builders {
             assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 
-            let outputs: SVector<f32, { nn::N_OUTPUTS }> = self
-                .nn
-                .forward(inputs.try_into().expect("input count should match"));
+            let outputs: SVector<f32, { nn::N_OUTPUTS }> = self.nn.forward(inputs);
             let mut action_logits = outputs.fixed_rows::<N_ACTIONS>(0).clone_owned();
             let memory_update = outputs.fixed_rows::<N_MEMORY>(N_ACTIONS).clone_owned();
             t.memory *= self.memory_decay;
