@@ -1,11 +1,9 @@
 use hex2d::Angle;
-use hex2d::Coordinate;
 use nalgebra::SVector;
 use num_traits::FromPrimitive;
 use rand::distributions;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
-use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
@@ -31,23 +29,21 @@ struct Builder {
     pos: coords::Cube,
     heading: Direction,
     exhausted: u8,
+    last_action: Action,
     memory: SVector<f32, N_MEMORY>,
 }
 
-const N_ACTIONS: usize = 9;
+const N_ACTIONS: usize = 6;
 const N_MEMORY: usize = 4;
 
-#[derive(PartialEq, FromPrimitive)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, Serialize, Deserialize)]
 enum Action {
     Forward,
     ForwardLeft,
     ForwardRight,
-    CircleLeft,
-    CircleRight,
     PullBack,
-    PullBackLeft,
-    PullBackRight,
-    Mark,
+    ForwardSwap,
+    Wait,
 }
 
 impl Action {
@@ -56,12 +52,9 @@ impl Action {
             Action::Forward => 0,
             Action::ForwardLeft => 0,
             Action::ForwardRight => 0,
-            Action::CircleLeft => 1,
-            Action::CircleRight => 1,
             Action::PullBack => 2,
-            Action::PullBackLeft => 3,
-            Action::PullBackRight => 3,
-            Action::Mark => 1,
+            Action::ForwardSwap => 5,
+            Action::Wait => 0,
         }
     }
 }
@@ -92,7 +85,6 @@ impl Cell {
 struct State {
     cells: AxialTile<Cell>,
     visited: AxialTile<bool>,
-    markers: AxialTile<u8>,
     builders: Vec<Builder>,
     rng: SimRng,
 }
@@ -122,14 +114,6 @@ pub struct Builders {
 
 impl Simulation for Builders {
     fn step(&mut self) {
-        for builder in &self.state.builders {
-            disturb_marker(
-                &mut self.state.markers,
-                &self.state.cells,
-                builder.pos,
-                &mut self.state.rng,
-            );
-        }
         self.move_builders();
     }
 
@@ -184,7 +168,6 @@ impl Builders {
             state: State {
                 visited: hexmap::new(RING_RADIUS, false, |_| false),
                 cells,
-                markers: hexmap::new(RING_RADIUS, 2, |_| 2),
                 builders: Vec::new(),
                 rng,
             },
@@ -216,6 +199,7 @@ impl Builders {
             heading: *Direction::all().choose(rng).unwrap(),
             exhausted: 0,
             memory,
+            last_action: Action::Wait,
         });
     }
 
@@ -232,11 +216,12 @@ impl Builders {
                     0.0
                 }
             };
-            let look_marker = |angle: Angle| {
-                self.state
-                    .markers
-                    .cell_unchecked(t.pos + (t.heading + angle)) as f32
-                    * (1. / 8.)
+            let last_action_was = |action: Action| {
+                if t.last_action == action {
+                    1.0
+                } else {
+                    0.0
+                }
             };
             let builders_nearby: i32 = self
                 .state
@@ -245,8 +230,6 @@ impl Builders {
                 .map(|(_, cell)| (cell == Cell::Agent) as i32)
                 .iter()
                 .sum();
-
-            let marker_here = self.state.markers.cell_unchecked(t.pos) as f32 * (1. / 8.);
 
             let inputs = [
                 look(Cell::Air, Angle::Forward),
@@ -261,15 +244,14 @@ impl Builders {
                 look(Cell::Food, Angle::LeftBack),
                 look(Cell::Food, Angle::RightBack),
                 look(Cell::Food, Angle::Back),
-                look_marker(Angle::Forward),
-                look_marker(Angle::Left),
-                look_marker(Angle::Right),
-                look_marker(Angle::LeftBack),
-                look_marker(Angle::RightBack),
-                look_marker(Angle::Back),
                 look(Cell::Agent, Angle::Forward),
-                marker_here,
                 builders_nearby as f32 * 10.,
+                last_action_was(Action::Forward),
+                last_action_was(Action::ForwardLeft),
+                last_action_was(Action::ForwardRight),
+                last_action_was(Action::PullBack),
+                last_action_was(Action::ForwardSwap),
+                last_action_was(Action::Wait),
                 t.memory[0],
                 t.memory[1],
                 t.memory[2],
@@ -293,41 +275,25 @@ impl Builders {
             let action = Action::from_usize(nn::softmax_choice(action_logits, &mut self.state.rng))
                 .expect("logits should match action count");
             t.exhausted += action.cost();
+            t.last_action = action;
 
             let (step, turn) = match action {
                 Action::Forward => (Angle::Forward, Angle::Forward),
                 Action::ForwardLeft => (Angle::Left, Angle::Left),
                 Action::ForwardRight => (Angle::Right, Angle::Right),
-                Action::CircleLeft => (Angle::Left, Angle::Right),
-                Action::CircleRight => (Angle::Right, Angle::Left),
                 Action::PullBack => (Angle::Back, Angle::Forward),
-                Action::PullBackLeft => (Angle::LeftBack, Angle::Right),
-                Action::PullBackRight => (Angle::RightBack, Angle::Left),
-                Action::Mark => (Angle::Forward, Angle::Forward),
+                Action::ForwardSwap => (Angle::Forward, Angle::Forward),
+                Action::Wait => (Angle::Forward, Angle::Forward),
             };
 
             let pos_forward = t.pos + t.heading;
             let pos_step = t.pos + (t.heading + step);
             t.heading = t.heading + turn;
 
-            if action == Action::Mark {
-                let marker_forward = self.state.markers.cell_unchecked(pos_forward);
-                if marker_forward < 16 {
-                    self.state.markers.set_cell(pos_forward, 16);
-                }
-                let marker_here = self.state.markers.cell_unchecked(t.pos);
-                if marker_here < 32 {
-                    self.state.markers.set_cell(t.pos, marker_here + 4);
-                }
-            }
-
-            if self.state.cells.cell_unchecked(pos_step) == Cell::Air {
+            if action != Action::Wait && self.state.cells.cell_unchecked(pos_step) == Cell::Air {
                 self.state.cells.set_cell(t.pos, Cell::Air);
                 self.state.cells.set_cell(pos_step, Cell::Agent);
-                if matches!(
-                    action,
-                    Action::PullBack | Action::PullBackLeft | Action::PullBackRight
-                ) {
+                if action == Action::PullBack {
                     let cell_forward = self.state.cells.cell_unchecked(pos_forward);
                     if cell_forward.can_move() {
                         t.exhausted += cell_forward.move_cost();
@@ -336,6 +302,14 @@ impl Builders {
                     }
                 }
                 t.pos = pos_step;
+            } else if action == Action::ForwardSwap {
+                let cell_forward = self.state.cells.cell_unchecked(pos_forward);
+                if cell_forward.can_move() {
+                    t.exhausted += cell_forward.move_cost();
+                    self.state.cells.set_cell(pos_forward, Cell::Agent);
+                    self.state.cells.set_cell(t.pos, cell_forward);
+                    t.pos = pos_step;
+                }
             }
 
             self.state.visited.set_cell(t.pos, true);
@@ -375,25 +349,6 @@ impl Builders {
     }
 }
 
-fn disturb_marker(
-    markers: &mut AxialTile<u8>,
-    cells: &AxialTile<Cell>,
-    pos: Coordinate,
-    rng: &mut impl Rng,
-) {
-    let dir = *Direction::all().choose(rng).unwrap();
-    if let (Some(Cell::Agent), Some(Cell::Air)) = (cells.cell(pos), cells.cell(pos + dir)) {
-        if let (Some(src), Some(dst)) = (markers.cell(pos), markers.cell(pos + dir)) {
-            if src > 0 {
-                markers.set_cell(pos, src - 1);
-                if rng.gen_bool(0.8) {
-                    markers.set_cell(pos + dir, dst.saturating_add(1));
-                }
-            }
-        }
-    }
-}
-
 impl HexgridView for Builders {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         // xxx inefficient when this gets called for all cells...
@@ -414,10 +369,8 @@ impl HexgridView for Builders {
             Cell::Agent => 0,
             Cell::Food => 1,
         };
-        let energy: u8 = self.state.markers.cell(pos)?;
         Some(CellView {
             cell_type,
-            energy: Some(energy),
             ..Default::default()
         })
     }

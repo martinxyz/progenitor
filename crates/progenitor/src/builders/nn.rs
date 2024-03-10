@@ -7,13 +7,12 @@ use rand::distributions::{Distribution, WeightedIndex};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
-use super::normalization::normalize_inputs;
 use super::stats::RangeTracker;
 
-pub const N_INPUTS: usize = 3 * 6 /* eye */ + 3 /* special */ + 4 /* memory */;
+pub const N_INPUTS: usize = 2 * 6 /* eye */ + 2 /* special */ + 6 /* last action */ + 4 /* memory */;
 const N_HIDDEN: usize = 20;
 const N_HIDDEN2: usize = 20;
-pub const N_OUTPUTS: usize = 9 /* actions */ + 4 /* memory */;
+pub const N_OUTPUTS: usize = 6 /* actions */ + 4 /* memory */;
 
 pub struct Network {
     weights: Weights,
@@ -49,8 +48,8 @@ fn forward(
     inputs: [f32; N_INPUTS],
     update_statistics: impl FnOnce(ForwardTrace),
 ) -> SVector<f32, N_OUTPUTS> {
-    let mut inputs: SVector<f32, N_INPUTS> = inputs.into();
-    normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
+    let inputs: SVector<f32, N_INPUTS> = inputs.into();
+    // normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
     // // first layer
     let a1 = params.l1_w * inputs + params.l1_b;

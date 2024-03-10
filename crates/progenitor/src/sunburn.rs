@@ -116,7 +116,8 @@ impl SunburnWorld {
 impl Simulation for SunburnWorld {
     fn step(&mut self) {
         let pair_rule = Rule2 {};
-        let cells_tmp = independent_pairs::step_axial(&self.cells, BORDER, &pair_rule, &mut self.rng);
+        let cells_tmp =
+            independent_pairs::step_axial(&self.cells, BORDER, &pair_rule, &mut self.rng);
         self.cells = cells_tmp.ca_step(BORDER, |nh| step2(nh, &mut self.rng));
     }
 

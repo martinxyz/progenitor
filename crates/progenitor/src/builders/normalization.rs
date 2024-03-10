@@ -1,3 +1,4 @@
+/*
 use nalgebra::SVector;
 
 use super::nn::N_INPUTS;
@@ -68,3 +69,4 @@ pub fn normalize_inputs(inputs: &mut SVector<f32, N_INPUTS>) {
     // let std2 = std1.apply_into(|&mut v| v = 1. / (0.1 + v));
     // inputs.component_mul_assign(&std2);
 }
+*/
