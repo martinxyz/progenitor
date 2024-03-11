@@ -16,7 +16,7 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-version_check = 13
+version_check = 15
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently. (I think the @ray.remote object fails to serialize.)
@@ -45,7 +45,7 @@ def evaluate(x, config, episodes, stats=False, seed=None):
         if seed is not None:
             seed += 1
         sim = Builders(params, seed)
-        sim.steps(10_000)
+        sim.steps(3_000)
         if stats and i == 0:
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
@@ -132,6 +132,7 @@ def train(config, tuning=True):
         while episodes > next_report_at:
             print()
             print(f'report at {episodes}: (past {next_report_at})')
+            # next_report_at += 100_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
             next_report_at += 100_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
 
             if pending_report:
@@ -172,8 +173,8 @@ def main_tune():
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "init_fac": 0.5,  # (clear effect) plausible range: 0.4..0.8
-        "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine.)
+        "init_fac": tune.loguniform(0.2, 1.2),  # (clear effect) plausible range: 0.4..0.8
+        "bias_fac": tune.loguniform(0.01, 0.9), # plausible range: 0.01..0.9 (0.1 is fine.)
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
         "memory_halftime": tune.loguniform(2.0, 16.0), # plausible range: 2..10
         "actions_scale": tune.loguniform(1.0, 30.),  # plausible range: 2.0..20

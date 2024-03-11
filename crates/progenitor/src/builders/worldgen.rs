@@ -10,9 +10,13 @@ pub const RING_RADIUS: i32 = 23;
 pub fn create_world(rng: &mut impl Rng) -> AxialTile<Cell> {
     let mut cells = hexmap::new(RING_RADIUS, Cell::Border, |loc| {
         let c = loc.dist_from_center();
-        let wall_prob: f32 = match c % 4 {
-            0 => 0.3,
-            _ => 0.1,
+        let wall_prob: f32 = if c < 8 {
+            0.0
+        } else {
+            match c % 4 {
+                0 => 0.9,
+                _ => 0.5,
+            }
         };
         if rng.gen_bool(wall_prob as f64) {
             return Cell::Wall;
@@ -60,7 +64,7 @@ pub fn find_agent_starting_place(rng: &mut impl Rng, cells: &AxialTile<Cell>) ->
     // find a random place that does not look too much like a cage
     let center = hexmap::center(RING_RADIUS);
     let mut reject_prob = 1.0; // approx. ratio of walls nearby
-    let reject_prob_decay = 0.999; // lower values mean closer to center
+    let reject_prob_decay = 0.9; // lower values mean closer to center
     let mut pos = center;
     let mut heading;
     loop {

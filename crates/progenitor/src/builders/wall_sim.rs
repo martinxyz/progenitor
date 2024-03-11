@@ -33,7 +33,7 @@ struct Builder {
     memory: SVector<f32, N_MEMORY>,
 }
 
-const N_ACTIONS: usize = 6;
+const N_ACTIONS: usize = 5;
 const N_MEMORY: usize = 4;
 
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Serialize, Deserialize)]
@@ -42,21 +42,7 @@ enum Action {
     ForwardLeft,
     ForwardRight,
     PullBack,
-    ForwardSwap,
     Wait,
-}
-
-impl Action {
-    fn cost(&self) -> u8 {
-        match self {
-            Action::Forward => 0,
-            Action::ForwardLeft => 0,
-            Action::ForwardRight => 0,
-            Action::PullBack => 2,
-            Action::ForwardSwap => 5,
-            Action::Wait => 0,
-        }
-    }
 }
 
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
@@ -67,17 +53,24 @@ pub enum Cell {
     Agent,
     Food,
 }
+use Cell::*;
 
 impl Cell {
-    fn move_cost(self) -> u8 {
-        match self {
-            Cell::Wall => 3,
-            Cell::Food => 1,
-            _ => 255,
-        }
+    fn can_pull(self) -> bool {
+        matches!(self, Wall | Food | Air)
     }
-    fn can_move(self) -> bool {
-        self.move_cost() < 255
+    fn can_walk(self) -> bool {
+        matches!(self, Food | Air)
+    }
+}
+
+fn cost(moved: Cell) -> u8 {
+    match moved {
+        Air => 0,
+        Food => 0,
+        Wall => 2,
+        Agent => unreachable!(),
+        Border => unreachable!(),
     }
 }
 
@@ -232,25 +225,31 @@ impl Builders {
                 .sum();
 
             let inputs = [
-                look(Cell::Air, Angle::Forward),
-                look(Cell::Air, Angle::Left),
-                look(Cell::Air, Angle::Right),
-                look(Cell::Air, Angle::LeftBack),
-                look(Cell::Air, Angle::RightBack),
-                look(Cell::Air, Angle::Back),
-                look(Cell::Food, Angle::Forward),
-                look(Cell::Food, Angle::Left),
-                look(Cell::Food, Angle::Right),
-                look(Cell::Food, Angle::LeftBack),
-                look(Cell::Food, Angle::RightBack),
-                look(Cell::Food, Angle::Back),
-                look(Cell::Agent, Angle::Forward),
+                look(Air, Angle::Forward),
+                look(Air, Angle::Left),
+                look(Air, Angle::Right),
+                look(Air, Angle::LeftBack),
+                look(Air, Angle::RightBack),
+                look(Air, Angle::Back),
+                look(Food, Angle::Forward),
+                look(Food, Angle::Left),
+                look(Food, Angle::Right),
+                look(Food, Angle::LeftBack),
+                look(Food, Angle::RightBack),
+                look(Food, Angle::Back),
+                look(Wall, Angle::Forward),
+                look(Wall, Angle::Left),
+                look(Wall, Angle::Right),
+                look(Wall, Angle::LeftBack),
+                look(Wall, Angle::RightBack),
+                look(Wall, Angle::Back),
+                look(Agent, Angle::Forward),
                 builders_nearby as f32 * 10.,
+                // ... maybe give them a "dist from center" sensor? (aka gradient back to hive)
                 last_action_was(Action::Forward),
                 last_action_was(Action::ForwardLeft),
                 last_action_was(Action::ForwardRight),
                 last_action_was(Action::PullBack),
-                last_action_was(Action::ForwardSwap),
                 last_action_was(Action::Wait),
                 t.memory[0],
                 t.memory[1],
@@ -274,50 +273,62 @@ impl Builders {
             action_logits.apply(|v| *v *= self.actions_scale);
             let action = Action::from_usize(nn::softmax_choice(action_logits, &mut self.state.rng))
                 .expect("logits should match action count");
-            t.exhausted += action.cost();
             t.last_action = action;
 
-            let (step, turn) = match action {
-                Action::Forward => (Angle::Forward, Angle::Forward),
-                Action::ForwardLeft => (Angle::Left, Angle::Left),
-                Action::ForwardRight => (Angle::Right, Angle::Right),
-                Action::PullBack => (Angle::Back, Angle::Forward),
-                Action::ForwardSwap => (Angle::Forward, Angle::Forward),
-                Action::Wait => (Angle::Forward, Angle::Forward),
-            };
+            let mut moved = Air;
 
-            let pos_forward = t.pos + t.heading;
-            let pos_step = t.pos + (t.heading + step);
-            t.heading = t.heading + turn;
+            if action != Action::Wait {
+                let (step, turn) = match action {
+                    Action::Forward => (Angle::Forward, Angle::Forward),
+                    Action::ForwardLeft => (Angle::Left, Angle::Left),
+                    Action::ForwardRight => (Angle::Right, Angle::Right),
+                    Action::PullBack => (Angle::Back, Angle::Forward),
+                    Action::Wait => unreachable!(),
+                };
 
-            if action != Action::Wait && self.state.cells.cell_unchecked(pos_step) == Cell::Air {
-                self.state.cells.set_cell(t.pos, Cell::Air);
-                self.state.cells.set_cell(pos_step, Cell::Agent);
-                if action == Action::PullBack {
-                    let cell_forward = self.state.cells.cell_unchecked(pos_forward);
-                    if cell_forward.can_move() {
-                        t.exhausted += cell_forward.move_cost();
-                        self.state.cells.set_cell(pos_forward, Cell::Air);
-                        self.state.cells.set_cell(t.pos, cell_forward);
-                    }
-                }
-                t.pos = pos_step;
-            } else if action == Action::ForwardSwap {
+                let pos_old = t.pos;
+                let pos_forward = pos_old + t.heading;
+                let pos_step = pos_old + (t.heading + step);
+                t.heading = t.heading + turn;
+
                 let cell_forward = self.state.cells.cell_unchecked(pos_forward);
-                if cell_forward.can_move() {
-                    t.exhausted += cell_forward.move_cost();
-                    self.state.cells.set_cell(pos_forward, Cell::Agent);
-                    self.state.cells.set_cell(t.pos, cell_forward);
-                    t.pos = pos_step;
+                let cell_step = self.state.cells.cell_unchecked(pos_step);
+                match action {
+                    Action::Forward | Action::ForwardLeft | Action::ForwardRight => {
+                        if cell_step.can_walk() {
+                            moved = cell_step;
+                            self.state.cells.set_cell(pos_old, cell_step);
+                            self.state.cells.set_cell(pos_step, Agent);
+                            t.pos = pos_step;
+                        }
+                    }
+                    Action::PullBack => {
+                        if cell_step == Air && cell_forward.can_pull() {
+                            moved = cell_forward;
+                            self.state.cells.set_cell(pos_forward, Air);
+                            self.state.cells.set_cell(pos_old, cell_forward);
+                            self.state.cells.set_cell(pos_step, Agent);
+                            t.pos = pos_step;
+                        } else if cell_step.can_walk() {
+                            moved = cell_step;
+                            self.state.cells.set_cell(pos_old, cell_step);
+                            self.state.cells.set_cell(pos_step, Agent);
+                            t.pos = pos_step;
+                        }
+                    }
+                    Action::Wait => unreachable!(),
                 }
+            }
+
+            if moved != Air {
+                t.exhausted += cost(moved);
             }
 
             self.state.visited.set_cell(t.pos, true);
             let center: coords::Cube = hexmap::center(RING_RADIUS);
 
             if let Some(nh) = self.state.cells.neighbourhood(t.pos) {
-                self.walls_nearby +=
-                    nh.count_neighbours(|n| matches!(n, Cell::Wall | Cell::Border));
+                self.walls_nearby += nh.count_neighbours(|n| matches!(n, Wall | Border));
             }
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
         }
@@ -331,14 +342,14 @@ impl Builders {
 
     pub fn relative_wall_edges(&self) -> f32 {
         let cells = &self.state.cells;
-        cells.count_edges(|cell| matches!(cell, Cell::Wall)) as f32 / cells.area() as f32
+        cells.count_edges(|cell| matches!(cell, Wall)) as f32 / cells.area() as f32
     }
 
     pub fn hoarding_score(&self) -> i32 {
         let mut count = 0;
         for nh in self.state.cells.iter_valid_neighbourhoods() {
-            if nh.center == Cell::Food {
-                count += nh.count_neighbours(|c| c == Cell::Food).pow(2)
+            if nh.center == Food {
+                count += nh.count_neighbours(|c| c == Food).pow(2)
             }
         }
         count
@@ -363,11 +374,11 @@ impl HexgridView for Builders {
         }
 
         let cell_type = match self.state.cells.cell(pos)? {
-            Cell::Border => return None,
-            Cell::Air => 2,
-            Cell::Wall => 4,
-            Cell::Agent => 0,
-            Cell::Food => 1,
+            Border => return None,
+            Air => 2,
+            Wall => 4,
+            Agent => 0,
+            Food => 1,
         };
         Some(CellView {
             cell_type,

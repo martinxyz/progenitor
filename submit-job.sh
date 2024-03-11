@@ -11,7 +11,7 @@ set -e
 clusterdir="/home/martin/aws-ray-cluster"
 name="$1"
 jobdir="${clusterdir}/jobs/${name}"
-local=false
+local=true
 
 # if test -d "${jobdir}"; then
 #     echo "${jobdir} already exists!"
