@@ -255,7 +255,8 @@ impl Builders {
                 t.memory[1],
                 t.memory[2],
                 t.memory[3],
-            ];
+            ]
+            .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
             assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 

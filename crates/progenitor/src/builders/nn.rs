@@ -11,7 +11,7 @@ use super::stats::RangeTracker;
 
 pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 5 /* last action */ + 4 /* memory */;
 const N_HIDDEN: usize = 20;
-const N_HIDDEN2: usize = 20;
+const N_HIDDEN2: usize = 12;
 pub const N_OUTPUTS: usize = 5 /* actions */ + 4 /* memory */;
 
 pub struct Network {

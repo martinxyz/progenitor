@@ -16,7 +16,7 @@ import random
 # from ray.air.checkpoint import Checkpoint
 
 import progenitor
-version_check = 15
+version_check = 16
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,
 # apparently. (I think the @ray.remote object fails to serialize.)
@@ -169,12 +169,13 @@ def main_tune():
     run_name = 'builders-' + sys.argv[1]
 
     search_space = {
-        "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
+        # "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
+        "popsize": tune.lograndint(50, 200),  # plausible range: 85..250(?)
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
         "init_fac": tune.loguniform(0.2, 1.2),  # (clear effect) plausible range: 0.4..0.8
-        "bias_fac": tune.loguniform(0.01, 0.9), # plausible range: 0.01..0.9 (0.1 is fine.)
+        "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine, across many variants)
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
         "memory_halftime": tune.loguniform(2.0, 16.0), # plausible range: 2..10
         "actions_scale": tune.loguniform(1.0, 30.),  # plausible range: 2.0..20
