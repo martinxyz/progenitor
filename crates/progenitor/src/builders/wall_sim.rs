@@ -1,5 +1,5 @@
 use hex2d::Angle;
-use nalgebra::SVector;
+use nalgebra::{DVector, SVector};
 use num_traits::FromPrimitive;
 use rand::distributions;
 use rand::prelude::SliceRandom;
@@ -8,7 +8,6 @@ use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
 use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
 
 use crate::coords;
 use crate::coords::Direction;
@@ -33,7 +32,7 @@ struct Builder {
     memory: SVector<f32, N_MEMORY>,
 }
 
-const N_ACTIONS: usize = 5;
+const N_ACTIONS: usize = 10;
 const N_MEMORY: usize = 4;
 
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Serialize, Deserialize)]
@@ -41,7 +40,12 @@ enum Action {
     Forward,
     ForwardLeft,
     ForwardRight,
+    Back,
+    BackLeft,
+    BackRight,
     PullBack,
+    PullBackLeft,
+    PullBackRight,
     Wait,
 }
 
@@ -64,14 +68,22 @@ impl Cell {
     }
 }
 
-fn cost(moved: Cell) -> u8 {
-    match moved {
+fn cost(action: Action, moved: Cell) -> u8 {
+    let move_cost = match moved {
         Air => 0,
         Food => 0,
         Wall => 2,
         Agent => unreachable!(),
         Border => unreachable!(),
-    }
+    };
+    use Action::*;
+    let action_cost = match action {
+        Forward | ForwardLeft | ForwardRight => 0,
+        Back | BackLeft | BackRight => 1,
+        PullBack | PullBackLeft | PullBackRight => 1,
+        Wait => 0,
+    };
+    move_cost + action_cost
 }
 
 #[derive(Serialize, Deserialize)]
@@ -84,9 +96,8 @@ struct State {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Params {
-    #[serde(with = "BigArray")]
-    pub builder_weights: [f32; nn::PARAM_COUNT],
     pub builder_hyperparams: nn::Hyperparams,
+    pub builder_weights: DVector<f32>,
     pub memory_clamp: f32,
     pub memory_halftime: f32,
     pub actions_scale: f32,
@@ -132,9 +143,9 @@ impl Builders {
     pub fn new_with_random_params() -> Builders {
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
-        let weights: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
+        let weights: DVector<f32> = DVector::from_distribution(Self::PARAM_COUNT, &dist, rng);
         Self::new_with_params(Params {
-            builder_weights: weights.into(),
+            builder_weights: weights,
             builder_hyperparams: nn::Hyperparams {
                 init_fac: 1.0,
                 bias_fac: 0.1,
@@ -249,7 +260,12 @@ impl Builders {
                 last_action_was(Action::Forward),
                 last_action_was(Action::ForwardLeft),
                 last_action_was(Action::ForwardRight),
+                last_action_was(Action::Back),
+                last_action_was(Action::BackLeft),
+                last_action_was(Action::BackRight),
                 last_action_was(Action::PullBack),
+                last_action_was(Action::PullBackLeft),
+                last_action_was(Action::PullBackRight),
                 last_action_was(Action::Wait),
                 t.memory[0],
                 t.memory[1],
@@ -257,11 +273,13 @@ impl Builders {
                 t.memory[3],
             ]
             .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
+            let inputs: DVector<f32> = DVector::from_column_slice(&inputs);
             assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 
-            let outputs: SVector<f32, { nn::N_OUTPUTS }> = self.nn.forward(inputs);
-            let mut action_logits = outputs.fixed_rows::<N_ACTIONS>(0).clone_owned();
+            let outputs: DVector<f32> = self.nn.forward(inputs);
+            assert_eq!(nn::N_OUTPUTS, outputs.len());
+            let mut action_logits = outputs.rows(0, N_ACTIONS).clone_owned();
             let memory_update = outputs.fixed_rows::<N_MEMORY>(N_ACTIONS).clone_owned();
             t.memory *= self.memory_decay;
             t.memory += (1. - self.memory_decay) * memory_update;
@@ -278,13 +296,16 @@ impl Builders {
 
             let mut moved = Air;
 
+            use Action::*;
             if action != Action::Wait {
                 let (step, turn) = match action {
-                    Action::Forward => (Angle::Forward, Angle::Forward),
-                    Action::ForwardLeft => (Angle::Left, Angle::Left),
-                    Action::ForwardRight => (Angle::Right, Angle::Right),
-                    Action::PullBack => (Angle::Back, Angle::Forward),
-                    Action::Wait => unreachable!(),
+                    Forward => (Angle::Forward, Angle::Forward),
+                    ForwardLeft => (Angle::Left, Angle::Left),
+                    ForwardRight => (Angle::Right, Angle::Right),
+                    Back | PullBack => (Angle::Back, Angle::Forward),
+                    BackLeft | PullBackLeft => (Angle::LeftBack, Angle::Right),
+                    BackRight | PullBackRight => (Angle::RightBack, Angle::Left),
+                    Wait => unreachable!(),
                 };
 
                 let pos_old = t.pos;
@@ -295,7 +316,7 @@ impl Builders {
                 let cell_forward = self.state.cells.cell_unchecked(pos_forward);
                 let cell_step = self.state.cells.cell_unchecked(pos_step);
                 match action {
-                    Action::Forward | Action::ForwardLeft | Action::ForwardRight => {
+                    Forward | ForwardLeft | ForwardRight | Back | BackLeft | BackRight => {
                         if cell_step.can_walk() {
                             moved = cell_step;
                             self.state.cells.set_cell(pos_old, cell_step);
@@ -303,7 +324,7 @@ impl Builders {
                             t.pos = pos_step;
                         }
                     }
-                    Action::PullBack => {
+                    PullBack | PullBackRight | PullBackLeft => {
                         if cell_step == Air && cell_forward.can_pull() {
                             moved = cell_forward;
                             self.state.cells.set_cell(pos_forward, Air);
@@ -317,13 +338,11 @@ impl Builders {
                             t.pos = pos_step;
                         }
                     }
-                    Action::Wait => unreachable!(),
+                    Wait => unreachable!(),
                 }
             }
 
-            if moved != Air {
-                t.exhausted += cost(moved);
-            }
+            t.exhausted += cost(action, moved);
 
             self.state.visited.set_cell(t.pos, true);
             let center: coords::Cube = hexmap::center(RING_RADIUS);

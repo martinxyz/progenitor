@@ -2,29 +2,29 @@
 
 // later, maybe: (and especially in case the NNs get larger: enable blas)
 // use ndarray::prelude::*;
-use nalgebra::{SMatrix, SVector};
+use nalgebra::{DMatrix, DVector};
 use rand::distributions::{Distribution, WeightedIndex};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
-pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 5 /* last action */ + 4 /* memory */;
+pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 10 /* last action */ + 4 /* memory */;
 const N_HIDDEN: usize = 20;
-const N_HIDDEN2: usize = 12;
-pub const N_OUTPUTS: usize = 5 /* actions */ + 4 /* memory */;
+const N_HIDDEN2: usize = 20;
+pub const N_OUTPUTS: usize = 10 /* actions */ + 4 /* memory */;
 
 pub struct Network {
     weights: Weights,
 }
 
 struct Weights {
-    l1_w: SMatrix<f32, N_HIDDEN, N_INPUTS>,
-    l1_b: SVector<f32, N_HIDDEN>,
-    l2_w: SMatrix<f32, N_HIDDEN2, N_HIDDEN>,
-    l2_b: SVector<f32, N_HIDDEN2>,
-    o_w: SMatrix<f32, N_OUTPUTS, N_HIDDEN2>,
-    o_b: SVector<f32, N_OUTPUTS>,
+    l1_w: DMatrix<f32>,
+    l1_b: DVector<f32>,
+    l2_w: DMatrix<f32>,
+    l2_b: DVector<f32>,
+    o_w: DMatrix<f32>,
+    o_b: DVector<f32>,
 }
 
 #[rustfmt::skip]
@@ -45,19 +45,19 @@ fn relu(value: f32) -> f32 {
 // defines "large" as "not compile-time sized".
 fn forward(
     params: &Weights,
-    inputs: [f32; N_INPUTS],
+    inputs: DVector<f32>,
     update_statistics: impl FnOnce(ForwardTrace),
-) -> SVector<f32, N_OUTPUTS> {
-    let inputs: SVector<f32, N_INPUTS> = inputs.into();
+) -> DVector<f32> {
     // normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
-    // // first layer
-    let a1 = params.l1_w * inputs + params.l1_b;
+    // FIXME: surely I don't really need to clone the weights...?!
+    // first layer
+    let a1 = params.l1_w.clone() * inputs.clone() + params.l1_b.clone();
     let a1 = a1.map(relu);
-    let a2 = params.l2_w * a1 + params.l2_b;
+    let a2 = params.l2_w.clone() * a1 + params.l2_b.clone();
     let a2 = a2.map(relu);
     // output layer
-    let outputs = params.o_w * a2 + params.o_b;
+    let outputs = params.o_w.clone() * a2 + params.o_b.clone();
     update_statistics(ForwardTrace {
         inputs,
         // a1,
@@ -67,7 +67,7 @@ fn forward(
 }
 
 struct ForwardTrace {
-    inputs: SVector<f32, N_INPUTS>,
+    inputs: DVector<f32>,
     // a1: SVector<f32, N_HIDDEN>,
     // outputs: SVector<f32, N_OUTPUTS>,
 }
@@ -96,14 +96,14 @@ pub struct Hyperparams {
 }
 
 impl Network {
-    pub fn new(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Self {
+    pub fn new(params: &DVector<f32>, hp: Hyperparams) -> Self {
         Network {
             weights: init_weights(params, hp),
             // stats: Default::default(),
         }
     }
 
-    pub fn forward(&mut self, inputs: [f32; N_INPUTS]) -> SVector<f32, N_OUTPUTS> {
+    pub fn forward(&mut self, inputs: DVector<f32>) -> DVector<f32> {
         forward(&self.weights, inputs, |_| {})
         // forward(&self.weights, inputs, |trace| {
         // self.stats.inputs.track(&trace.inputs);
@@ -129,30 +129,35 @@ impl Network {
 // - For large N: https://proceedings.neurips.cc/paper_files/paper/2017/file/4e2a6330465c8ffcaa696a5a16639176-Paper.pdf
 // - Or maybe don't worry. It may become irrelevant as the simulation gets more fancy.
 // - Or maybe don't optimize softmax, try something else and see how it trains.
-#[allow(clippy::useless_conversion)]
-pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl Rng) -> usize {
+// (need to re-eval after converting go DVector)
+pub fn softmax_choice(outputs: DVector<f32>, rng: &mut impl Rng) -> usize {
     for v in outputs.iter() {
         assert!(v.is_finite(), "output[_] = {}", v);
     }
     let mut x = outputs;
     let max = x.max();
     x.apply(|v| *v = (*v - max).exp());
-    WeightedIndex::new(x.into_iter()).unwrap().sample(rng)
+    WeightedIndex::new(&x).unwrap().sample(rng)
 }
 
-fn init_weights(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Weights {
+fn init_weights(params: &DVector<f32>, hp: Hyperparams) -> Weights {
+    assert_eq!(
+        PARAM_COUNT,
+        params.len(),
+        "PARAM_COUNT should match params length"
+    );
     let mut it = params.iter();
     let mut next_param = || it.next().expect("PARAM_COUNT should match params length");
 
     // something like Xavier and He initialization: https://stats.stackexchange.com/a/393012/52418
     #[rustfmt::skip]
     let weights = Weights {
-        l1_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 2.0 / N_INPUTS as f32).sqrt()),
-        l1_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
-        l2_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN + N_HIDDEN2) as f32).sqrt()),
-        l2_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
-        o_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN2 + N_OUTPUTS) as f32).sqrt()),
-        o_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
+        l1_w: DMatrix::from_fn(N_HIDDEN, N_INPUTS, |_, _| next_param() * (hp.init_fac * 2.0 / N_INPUTS as f32).sqrt()),
+        l1_b: DVector::from_fn(N_HIDDEN, |_, _| next_param() * hp.init_fac * hp.bias_fac),
+        l2_w: DMatrix::from_fn(N_HIDDEN2, N_HIDDEN, |_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN + N_HIDDEN2) as f32).sqrt()),
+        l2_b: DVector::from_fn(N_HIDDEN2, |_, _| next_param() * hp.init_fac * hp.bias_fac),
+        o_w: DMatrix::from_fn(N_OUTPUTS, N_HIDDEN2, |_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN2 + N_OUTPUTS) as f32).sqrt()),
+        o_b: DVector::from_fn(N_OUTPUTS, |_, _| next_param() * hp.init_fac * hp.bias_fac),
     };
     // (Bias: in contrast to what I'm doing above, pytorch defaults to
     // initialize biases the same as weights; maybe worth trying. Hyperparameter
