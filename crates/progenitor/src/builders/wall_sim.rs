@@ -6,9 +6,9 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use rand::RngCore;
 use rand::SeedableRng;
+use rand_distr::Distribution;
 use rand_distr::Normal;
 use serde::{Deserialize, Serialize};
-use serde_big_array::BigArray;
 
 use crate::coords;
 use crate::coords::Direction;
@@ -97,9 +97,8 @@ struct State {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Params {
-    #[serde(with = "BigArray")]
-    pub builder_weights: [f32; nn::PARAM_COUNT],
     pub builder_hyperparams: nn::Hyperparams,
+    pub builder_weights: Box<[f32]>,
     pub memory_clamp: f32,
     pub memory_halftime: f32,
     pub actions_scale: f32,
@@ -140,18 +139,20 @@ impl Builders {
         }
     }
 
-    pub const PARAM_COUNT: usize = nn::PARAM_COUNT;
-
     pub fn new_with_random_params() -> Builders {
+        let hp = nn::Hyperparams {
+            n_hidden: 10,
+            n_hidden2: 10,
+            init_fac: 1.0,
+            bias_fac: 0.1,
+        };
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
-        let weights: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
+        let weights = dist.sample_iter(rng).take(hp.count_params()).collect();
+
         Self::new_with_params(Params {
-            builder_weights: weights.into(),
-            builder_hyperparams: nn::Hyperparams {
-                init_fac: 1.0,
-                bias_fac: 0.1,
-            },
+            builder_hyperparams: hp,
+            builder_weights: weights,
             memory_halftime: 20.0,
             memory_clamp: 5.0,
             actions_scale: 3.0,

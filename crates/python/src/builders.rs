@@ -1,8 +1,6 @@
-use std::convert::TryInto;
-
 use bincode::{DefaultOptions, Options};
 use progenitor::{
-    builders::{Builders as BuildersImpl, Hyperparams, Params as ParamsImpl},
+    builders::{Builders as BuildersImpl, Hyperparams as HyperparamsImpl, Params as ParamsImpl},
     Simulation,
 };
 use pyo3::{prelude::*, types::PyBytes};
@@ -60,13 +58,32 @@ impl Builders {
         self.inner.hoarding_score()
     }
 
-    #[classattr]
-    fn param_count() -> usize {
-        BuildersImpl::PARAM_COUNT
-    }
-
     fn print_stats(&self) {
         self.inner.print_stats()
+    }
+}
+
+#[pyclass]
+pub(crate) struct Hyperparams {
+    inner: HyperparamsImpl,
+}
+
+#[pymethods]
+impl Hyperparams {
+    #[new]
+    fn new(n_hidden: usize, n_hidden2: usize, init_fac: f32, bias_fac: f32) -> Hyperparams {
+        Self {
+            inner: HyperparamsImpl {
+                n_hidden,
+                n_hidden2,
+                init_fac,
+                bias_fac,
+            },
+        }
+    }
+
+    fn count_params(&self) -> usize {
+        self.inner.count_params()
     }
 }
 
@@ -79,18 +96,17 @@ pub(crate) struct Params {
 impl Params {
     #[new]
     fn new(
+        hyperparams: &Hyperparams,
         weights: Vec<f32>,
-        init_fac: f32,
-        bias_fac: f32,
         memory_clamp: f32,
         memory_halftime: f32,
         actions_scale: f32,
     ) -> Params {
-        assert_eq!(BuildersImpl::PARAM_COUNT, weights.len());
+        assert_eq!(hyperparams.inner.count_params(), weights.len());
         Self {
             inner: progenitor::builders::Params {
-                builder_weights: weights.try_into().expect("param_count should match"),
-                builder_hyperparams: Hyperparams { init_fac, bias_fac },
+                builder_weights: weights.into(),
+                builder_hyperparams: hyperparams.inner.clone(),
                 memory_clamp,
                 memory_halftime,
                 actions_scale,

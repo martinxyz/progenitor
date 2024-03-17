@@ -28,7 +28,7 @@ struct Weights {
 }
 
 #[rustfmt::skip]
-pub const PARAM_COUNT: usize =
+const PARAM_COUNT: usize =
     N_HIDDEN * N_INPUTS + N_HIDDEN +
     N_HIDDEN2 * N_HIDDEN + N_HIDDEN2 +
     N_OUTPUTS * N_HIDDEN2 + N_OUTPUTS;
@@ -93,10 +93,40 @@ pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
 pub struct Hyperparams {
     pub init_fac: f32,
     pub bias_fac: f32,
+    pub n_hidden: usize,
+    pub n_hidden2: usize,
+}
+
+impl Hyperparams {
+    pub fn count_params(&self) -> usize {
+        self.validate().expect("hyperparams should be valid");
+        self.n_hidden * N_INPUTS
+            + self.n_hidden
+            + self.n_hidden2 * self.n_hidden
+            + self.n_hidden2
+            + N_OUTPUTS * self.n_hidden2
+            + N_OUTPUTS
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.n_hidden > N_HIDDEN {
+            Err(format!(
+                "n_hidden {} too large, nn was compiled for at most {}",
+                self.n_hidden, N_HIDDEN
+            ))
+        } else if self.n_hidden2 > N_HIDDEN2 {
+            Err(format!(
+                "n_hidden2 {} too large, nn was compiled for at most {}",
+                self.n_hidden2, N_HIDDEN2
+            ))
+        } else {
+            Ok(())
+        }
+    }
 }
 
 impl Network {
-    pub fn new(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Self {
+    pub fn new(params: &[f32], hp: Hyperparams) -> Self {
         Network {
             weights: init_weights(params, hp),
             // stats: Default::default(),
@@ -140,24 +170,48 @@ pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl R
     WeightedIndex::new(x.into_iter()).unwrap().sample(rng)
 }
 
-fn init_weights(params: &[f32; PARAM_COUNT], hp: Hyperparams) -> Weights {
+fn init_weights(params: &[f32], hp: Hyperparams) -> Weights {
+    hp.validate().expect("hyperparams should be valid");
+    assert_eq!(
+        params.len(),
+        hp.count_params(),
+        "param count does not match hyperparams"
+    );
     let mut it = params.iter();
-    let mut next_param = || it.next().expect("PARAM_COUNT should match params length");
+    let mut next_param = || it.next().unwrap();
+
+    // For tuning the hidden layer size, we just set unused weights to zero.
+    // (This leaves some performance on the table. However making the weights
+    // dynamically sized did lead to a 3x slowdown due to missed vectorization.
+    // So we'll just update the constants to match the plausible range found by
+    // hyperparam search.)
 
     // something like Xavier and He initialization: https://stats.stackexchange.com/a/393012/52418
     #[rustfmt::skip]
     let weights = Weights {
-        l1_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 2.0 / N_INPUTS as f32).sqrt()),
-        l1_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
-        l2_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN + N_HIDDEN2) as f32).sqrt()),
-        l2_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
-        o_w: SMatrix::from_fn(|_, _| next_param() * (hp.init_fac * 1.0 / (N_HIDDEN2 + N_OUTPUTS) as f32).sqrt()),
-        o_b: SVector::from_fn(|_, _| next_param() * hp.init_fac * hp.bias_fac),
+        l1_w: SMatrix::from_fn(|i_hidden, _i_input| if i_hidden < hp.n_hidden {
+            next_param() * (hp.init_fac * 2.0 / N_INPUTS as f32).sqrt()
+        } else { 0.0 }),
+        l1_b: SVector::from_fn(|i_hidden, _| if i_hidden < hp.n_hidden {
+            next_param() * hp.init_fac * hp.bias_fac
+        } else { 0.0 }),
+        l2_w: SMatrix::from_fn(|i_hidden2, i_hidden| if i_hidden2 < hp.n_hidden2 && i_hidden < hp.n_hidden {
+            next_param() * (hp.init_fac * 1.0 / (hp.n_hidden + hp.n_hidden2) as f32).sqrt()
+        } else { 0.0 }),
+        l2_b: SVector::from_fn(|i_hidden2, _| if i_hidden2 < hp.n_hidden2 {
+            next_param() * hp.init_fac * hp.bias_fac
+        } else { 0.0 }),
+        o_w: SMatrix::from_fn(|_i_output, i_hidden2| if i_hidden2 < hp.n_hidden2 {
+            next_param() * (hp.init_fac * 1.0 / (hp.n_hidden + N_OUTPUTS) as f32).sqrt()
+        } else { 0.0 }),
+        o_b: SVector::from_fn(|_i_output, _| {
+            next_param() * hp.init_fac * hp.bias_fac
+        }),
     };
     // (Bias: in contrast to what I'm doing above, pytorch defaults to
     // initialize biases the same as weights; maybe worth trying. Hyperparameter
     // search so far shows that bias is not too important, 0.1 is fine.)
 
-    assert_eq!(it.count(), 0, "PARAM_COUNT should match params length");
+    assert_eq!(it.count(), 0);
     weights
 }

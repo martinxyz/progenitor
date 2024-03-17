@@ -24,14 +24,21 @@ assert progenitor.mod.version_check == version_check, progenitor.__file__
 
 def get_params(x, config):
     Params = progenitor.mod.Params
+    Hyperparams = progenitor.mod.Hyperparams
     hyperparams = {
+        "n_hidden": config["n_hidden"],
+        "n_hidden2": config["n_hidden2"],
         "init_fac": config["init_fac"],
         "bias_fac": config["bias_fac"],
+    }
+    hp = Hyperparams(**hyperparams)
+    if x is None: return hp
+    params = {
         "memory_clamp": config["memory_clamp"],
         "memory_halftime": config["memory_halftime"],
         "actions_scale": config["actions_scale"],
     }
-    return Params(x, **hyperparams)
+    return Params(hp, x, **params)
 
 @ray.remote(scheduling_strategy='DEFAULT')  # break out of the trial's placement group
 def evaluate(x, config, episodes, stats=False, seed=None):
@@ -62,7 +69,7 @@ def save_array(filename, data):
         np.savetxt(f, data)
 
 def train(config, tuning=True):
-    N = progenitor.mod.Builders.param_count
+    N = get_params(None, config).count_params()
     print('param_count:', N)
 
     x0 = N * [0]
@@ -170,10 +177,12 @@ def main_tune():
 
     search_space = {
         # "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
-        "popsize": tune.lograndint(50, 200),  # plausible range: 85..250(?)
+        "popsize": tune.lograndint(40, 200),  # plausible range: 85..250(?)
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
+        "n_hidden": tune.lograndint(4, 20),
+        "n_hidden2": tune.lograndint(4, 20),
         "init_fac": tune.loguniform(0.2, 1.2),  # (clear effect) plausible range: 0.4..0.8
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine, across many variants)
         "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
@@ -240,6 +249,8 @@ def main_simple():
         "actions_scale": 6.828237606450091,
         "bias_fac": 0.1,
         "episodes_per_eval": 60,
+        "n_hidden": 10,
+        "n_hidden2": 7,
         "init_fac": 0.6638224750359086,
         "memory_clamp": 50,
         "memory_halftime": 2.696255937359819,
