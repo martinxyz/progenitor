@@ -50,14 +50,23 @@ fn forward(
 ) -> DVector<f32> {
     // normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
-    // FIXME: surely I don't really need to clone the weights...?!
+    // FIXME: this does not run any faster han the simpler (no-gemv) version I
+    // had before (still 3x slower than the compile-time sized version). On the
+    // plus side, it now spends all its time inside gemv, so maybe we can use a
+    // properly optimized blas library?
+
     // first layer
-    let a1 = params.l1_w.clone() * inputs.clone() + params.l1_b.clone();
-    let a1 = a1.map(relu);
-    let a2 = params.l2_w.clone() * a1 + params.l2_b.clone();
-    let a2 = a2.map(relu);
+    let mut a1 = params.l1_b.clone_owned();
+    a1.gemv(1.0, &params.l1_w, &inputs, 1.0);
+    a1.apply(|v| *v = relu(*v));
+
+    let mut a2 = params.l2_b.clone_owned();
+    a2.gemv(1.0, &params.l2_w, &a1, 1.0);
+
     // output layer
-    let outputs = params.o_w.clone() * a2 + params.o_b.clone();
+    let mut outputs = params.o_b.clone_owned();
+    outputs.gemv(1.0, &params.o_w, &a2, 1.0);
+
     update_statistics(ForwardTrace {
         inputs,
         // a1,

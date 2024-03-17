@@ -8,9 +8,9 @@ lto = true  # ~30% .step() speedup (most likely: inlining hex2d::Coordinate impl
 codegen-units = 1  # ~40% .step() speedup
 panic = "abort"  # ~7% .step() speedup
 # debug = 1  # no run-time slowdown (certainly less than 2%)
-# debug = true  # ~1% slower than debug=1 (seems to be statistically significant)
-debug = 0  # faster compilation
-strip = "debuginfo" # https://davidlattimore.github.io/working-on-rust-iteration-time.html
+debug = true  # ~1% slower than debug=1 (seems to be statistically significant)
+# debug = 0  # faster compilation
+# strip = "debuginfo" # https://davidlattimore.github.io/working-on-rust-iteration-time.html
 
 # opt-level = 3  # no significant effect (less than 2%)
 # also: 9% speedup from 'export RUSTFLAGS="-C target-cpu=native"'
