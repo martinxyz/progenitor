@@ -16,6 +16,7 @@ pub const N_OUTPUTS: usize = 10 /* actions */ + 4 /* memory */;
 
 pub struct Network {
     weights: Weights,
+    allocations: Allocations,
 }
 
 struct Weights {
@@ -25,6 +26,12 @@ struct Weights {
     l2_b: DVector<f32>,
     o_w: DMatrix<f32>,
     o_b: DVector<f32>,
+}
+
+struct Allocations {
+    l1: DVector<f32>,
+    l2: DVector<f32>,
+    outputs: DVector<f32>,
 }
 
 #[rustfmt::skip]
@@ -43,28 +50,34 @@ fn relu(value: f32) -> f32 {
 // only when doing multiple parallel evals with the same weights.
 // Note: nalgebra will use matrixmultiply() only if the matrix is "large", and
 // defines "large" as "not compile-time sized".
-fn forward(
+fn forward<'t>(
     params: &Weights,
     inputs: DVector<f32>,
+    allocations: &'t mut Allocations,
     update_statistics: impl FnOnce(ForwardTrace),
-) -> DVector<f32> {
+) -> &'t mut DVector<f32> {
     // normalize_inputs(&mut inputs); // FIXME: normalization helps. But besides being an ugly quick hack-implementation, it also doesn't need to be here where it costs ~5% of overall performance
 
-    // FIXME: this does not run any faster han the simpler (no-gemv) version I
-    // had before (still 3x slower than the compile-time sized version). On the
+    // FIXME: this does not run any faster than the simpler (no-gemv) version I
+    // had before. (Still 3x slower than the compile-time sized version.) On the
     // plus side, it now spends all its time inside gemv, so maybe we can use a
-    // properly optimized blas library?
+    // properly optimized blas library? (Apparently not?)
+
+    let a1 = &mut allocations.l1;
+    let a2 = &mut allocations.l2;
+    let outputs = &mut allocations.outputs;
 
     // first layer
-    let mut a1 = params.l1_b.clone_owned();
+    a1.copy_from(&params.l1_b);
     a1.gemv(1.0, &params.l1_w, &inputs, 1.0);
     a1.apply(|v| *v = relu(*v));
 
-    let mut a2 = params.l2_b.clone_owned();
+    // hidden layer
+    a2.copy_from(&params.l2_b);
     a2.gemv(1.0, &params.l2_w, &a1, 1.0);
 
     // output layer
-    let mut outputs = params.o_b.clone_owned();
+    outputs.copy_from(&params.o_b);
     outputs.gemv(1.0, &params.o_w, &a2, 1.0);
 
     update_statistics(ForwardTrace {
@@ -108,12 +121,16 @@ impl Network {
     pub fn new(params: &DVector<f32>, hp: Hyperparams) -> Self {
         Network {
             weights: init_weights(params, hp),
-            // stats: Default::default(),
+            allocations: Allocations {
+                l1: DVector::zeros(N_HIDDEN),
+                l2: DVector::zeros(N_HIDDEN2),
+                outputs: DVector::zeros(N_OUTPUTS),
+            }, // stats: Default::default(),
         }
     }
 
-    pub fn forward(&mut self, inputs: DVector<f32>) -> DVector<f32> {
-        forward(&self.weights, inputs, |_| {})
+    pub fn forward(&mut self, inputs: DVector<f32>) -> &mut DVector<f32> {
+        forward(&self.weights, inputs, &mut self.allocations, |_| {})
         // forward(&self.weights, inputs, |trace| {
         // self.stats.inputs.track(&trace.inputs);
         // self.stats.a1.track(&trace.a1);

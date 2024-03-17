@@ -277,7 +277,7 @@ impl Builders {
             assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 
-            let outputs: DVector<f32> = self.nn.forward(inputs);
+            let outputs = self.nn.forward(inputs);
             assert_eq!(nn::N_OUTPUTS, outputs.len());
             let mut action_logits = outputs.rows(0, N_ACTIONS).clone_owned();
             let memory_update = outputs.fixed_rows::<N_MEMORY>(N_ACTIONS).clone_owned();
