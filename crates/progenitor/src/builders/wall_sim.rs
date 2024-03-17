@@ -1,5 +1,5 @@
 use hex2d::Angle;
-use nalgebra::{DVector, SVector};
+use nalgebra::SVector;
 use num_traits::FromPrimitive;
 use rand::distributions;
 use rand::prelude::SliceRandom;
@@ -8,6 +8,7 @@ use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Normal;
 use serde::{Deserialize, Serialize};
+use serde_big_array::BigArray;
 
 use crate::coords;
 use crate::coords::Direction;
@@ -96,8 +97,9 @@ struct State {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Params {
+    #[serde(with = "BigArray")]
+    pub builder_weights: [f32; nn::PARAM_COUNT],
     pub builder_hyperparams: nn::Hyperparams,
-    pub builder_weights: DVector<f32>,
     pub memory_clamp: f32,
     pub memory_halftime: f32,
     pub actions_scale: f32,
@@ -143,9 +145,9 @@ impl Builders {
     pub fn new_with_random_params() -> Builders {
         let rng = &mut thread_rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
-        let weights: DVector<f32> = DVector::from_distribution(Self::PARAM_COUNT, &dist, rng);
+        let weights: SVector<f32, { Self::PARAM_COUNT }> = SVector::from_distribution(&dist, rng);
         Self::new_with_params(Params {
-            builder_weights: weights,
+            builder_weights: weights.into(),
             builder_hyperparams: nn::Hyperparams {
                 init_fac: 1.0,
                 bias_fac: 0.1,
@@ -273,13 +275,11 @@ impl Builders {
                 t.memory[3],
             ]
             .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
-            let inputs: DVector<f32> = DVector::from_column_slice(&inputs);
             assert_eq!(N_MEMORY, 4);
             self.encounters += builders_nearby;
 
-            let outputs = self.nn.forward(inputs);
-            assert_eq!(nn::N_OUTPUTS, outputs.len());
-            let mut action_logits = outputs.rows(0, N_ACTIONS).clone_owned();
+            let outputs: SVector<f32, { nn::N_OUTPUTS }> = self.nn.forward(inputs);
+            let mut action_logits = outputs.fixed_rows::<N_ACTIONS>(0).clone_owned();
             let memory_update = outputs.fixed_rows::<N_MEMORY>(N_ACTIONS).clone_owned();
             t.memory *= self.memory_decay;
             t.memory += (1. - self.memory_decay) * memory_update;
