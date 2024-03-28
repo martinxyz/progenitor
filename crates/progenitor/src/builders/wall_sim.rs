@@ -141,8 +141,8 @@ impl Builders {
 
     pub fn new_with_random_params() -> Builders {
         let hp = nn::Hyperparams {
-            n_hidden: 10,
-            n_hidden2: 10,
+            n_hidden: 20,
+            n_hidden2: 20,
             init_fac: 1.0,
             bias_fac: 0.1,
         };

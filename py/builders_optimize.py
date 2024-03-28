@@ -47,7 +47,7 @@ def evaluate(x, config, episodes, stats=False, seed=None):
     params = get_params(x, config)
 
     # t0 = time.time()
-    score = 0
+    scores = []
     for i in range(episodes):
         if seed is not None:
             seed += 1
@@ -57,16 +57,10 @@ def evaluate(x, config, episodes, stats=False, seed=None):
             sim.print_stats()
             # report those via tensorboard? calculate entropy of actions, too?
             # (Just return a metrics dict? Averaged/Stats?)
-        score += sim.hoarding_score
+        scores.append(sim.hoarding_score)
 
-    cost = - score / episodes
-    # print(f'evaluation took {time.time() - t0:.6f} seconds')  ~100ms
-    # print(f'{cost:.6f} for p={probs} - x={x[0]:.6f}')
-    return cost
-
-def save_array(filename, data):
-    with open(os.path.join('output', filename), 'w') as f:
-        np.savetxt(f, data)
+    costs = - np.array(scores, dtype='float32')
+    return costs
 
 def train(config, tuning=True):
     N = get_params(None, config).count_params()
@@ -119,7 +113,8 @@ def train(config, tuning=True):
                 x = es.ask()
                 solutions.append(x)
                 futures.append(evaluate.remote(x, config, episodes=config["episodes_per_eval"], seed=seed))
-        costs = ray.get(futures)
+        costs_per_eval = ray.get(futures)
+        costs = [per_eval.mean() for per_eval in costs_per_eval]
 
         evaluation += len(solutions)
         iteration += 1
@@ -130,7 +125,8 @@ def train(config, tuning=True):
         else:
             es.tell(list(zip(solutions, costs)))
 
-        def emit_report(r_episodes, r_mean_cost):
+        def emit_report(r_episodes, r_mean_cost_per_eval):
+            r_mean_cost = np.mean(r_mean_cost_per_eval)
             if tuning:
                 session.report(metrics={'score': -r_mean_cost, 'total_episodes': r_episodes})
             else:
@@ -139,7 +135,6 @@ def train(config, tuning=True):
         while episodes > next_report_at:
             print()
             print(f'report at {episodes}: (past {next_report_at})')
-            # next_report_at += 100_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
             next_report_at += 100_000  # makes the tensorboard x-axis ("steps") more useful, independent of hyperparams
 
             if pending_report:
@@ -168,8 +163,7 @@ def train(config, tuning=True):
             with open(f'{fn_prefix}xfavorite-{episodes}.params.bin', 'wb') as f:
                 f.write(params_favourite.serialize())
 
-            # save_array(f'xfavorite-eval%07d.dat' % evaluation, es.result.xfavorite)
-            # save_array(f'stds-eval%07d.dat' % evaluation, es.result.stds)
+            np.save(f'{fn_prefix}costs_per_eval-{episodes}.npy', costs_per_eval)
 
 
 def main_tune():
@@ -177,26 +171,27 @@ def main_tune():
 
     search_space = {
         # "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
-        "popsize": tune.lograndint(40, 200),  # plausible range: 85..250(?)
+        "popsize": tune.lograndint(30, 300),  # plausible range: 85..250(?)
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
         "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
-        "n_hidden": tune.lograndint(4, 20),
-        "n_hidden2": tune.lograndint(4, 20),
+        "n_hidden": tune.randint(4, 20),
+        "n_hidden2": tune.randint(4, 20),
         "init_fac": tune.loguniform(0.2, 1.2),  # (clear effect) plausible range: 0.4..0.8
         "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine, across many variants)
-        "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
+        # "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
+        "memory_clamp": 5.0,
         "memory_halftime": tune.loguniform(2.0, 16.0), # plausible range: 2..10
-        "actions_scale": tune.loguniform(1.0, 30.),  # plausible range: 2.0..20
-        # "optimizer": tune.choice(["cmaes-1", "cmaes-2"] + 3*["sep-cmaes"]),
+        "actions_scale": tune.loguniform(2.0, 20.),  # plausible range: 2.0..20
+        # "optimizer": tune.choice(["cmaes-1", "sep-cmaes"]),  # sep-cmaes does well for large popsize
         "optimizer": 'sep-cmaes',
         # "seeding": tune.choice(["random", "epoch"]),  # epoch-seeding seems the better idea; some weak evidence that it helps
         "seeding": "epoch",
     }
-    max_t = 30_000_000
+    max_t = 50_000_000
     tune_config = tune.TuneConfig(
         max_concurrent_trials=16,  # needed because we don't reserve any resources per-trial
-        num_samples=81,  # "runs" or "restarts"
+        num_samples=243,  # "runs" or "restarts"
         metric='score',
         mode='max',
         scheduler=ASHAScheduler(
@@ -248,17 +243,20 @@ def main_simple():
     train(config = {
         "actions_scale": 6.828237606450091,
         "bias_fac": 0.1,
-        "episodes_per_eval": 60,
-        "n_hidden": 10,
-        "n_hidden2": 7,
+        # "episodes_per_eval": 60,
+        "episodes_per_eval": 240,
+        # "n_hidden": 10,
+        # "n_hidden2": 7,
+        "n_hidden": 20,
+        "n_hidden2": 20,
         "init_fac": 0.6638224750359086,
         "memory_clamp": 50,
         "memory_halftime": 2.696255937359819,
         "optimizer": "sep-cmaes",
-        "popsize": 400,
+        "popsize": 200,
         "seeding": "epoch"
     }, tuning=False)
 
 if __name__ == '__main__':
-    # main_simple()
-    main_tune()
+    main_simple()
+    # main_tune()
