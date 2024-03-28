@@ -115,6 +115,7 @@ impl Snapshots {
     pub fn new(data: &[u8]) -> Self {
         Self(
             DefaultOptions::new()
+                .with_fixint_encoding() // this is the default when encoding, see: https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
                 .reject_trailing_bytes()
                 .deserialize(data)
                 .unwrap_or_default(),

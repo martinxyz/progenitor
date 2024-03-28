@@ -3,7 +3,7 @@ use progenitor::{
     builders::{Builders as BuildersImpl, Hyperparams as HyperparamsImpl, Params as ParamsImpl},
     Simulation,
 };
-use pyo3::{prelude::*, types::PyBytes};
+use pyo3::{exceptions::PyValueError, prelude::*, types::PyBytes};
 
 #[pyclass]
 pub(crate) struct Builders {
@@ -119,12 +119,14 @@ impl Params {
     }
 
     #[staticmethod]
-    fn deserialize(bytes: &PyBytes) -> Self {
-        Self {
-            inner: DefaultOptions::new()
-                .reject_trailing_bytes()
-                .deserialize(bytes.as_bytes())
-                .expect("bytes should deserialize to valid Params"),
-        }
+    fn deserialize(bytes: &PyBytes) -> PyResult<Self> {
+        let params: progenitor::builders::Params = DefaultOptions::new()
+            .with_fixint_encoding() // this is the default when encoding, see: https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
+            .reject_trailing_bytes()
+            .deserialize(bytes.as_bytes())
+            .map_err(|e| {
+                PyValueError::new_err(format!("bytes should deserialize to valid Params: {}", e))
+            })?;
+        Ok(Self { inner: params })
     }
 }
