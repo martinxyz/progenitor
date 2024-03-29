@@ -6,7 +6,7 @@ description = "progenitor native python extension"
 dependencies = ["numpy>=1.22"]
 
 [build-system]
-requires = ["maturin>=0.13"]
+requires = ["maturin>=1.5,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]

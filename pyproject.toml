@@ -4,16 +4,18 @@ version = "0.0.0"
 description = "Experiment of the day, using the compiled progenitor rust module"
 authors = ["Martin Renold <martin@log2.ch>"]
 license = "MIT"
+package-mode = false
 
 [tool.poetry.dependencies]
 # python = ">=3.11,<3.13"
 # ray 2.6 doesn't support python 3.11 yet (it only fails when using the jobs API)
+# ray 3.10 docu still says python 3.11 support is experimental
 python = ">=3.10,<3.11"
-maturin = "^1.1.0"
+maturin = "^1.5"
 # progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
 ribs = {extras = ["visualize"], version = "^0.5.2"}
-cma = "^3.2.2"
-ray = {extras = ["default", "tune"], version = "^2.6.1"}
+cma = "^3"
+ray = {extras = ["default", "tune"], version = "^2.10"}
 llvmlite = "^0.40.1"
 numba = "^0.57.1"
 numpy = "1.24.4"
@@ -21,13 +23,13 @@ matplotlib = "^3.7.2"
 scipy = "^1.11.1"
 cmaes = "^0.10.0"
 tqdm = "^4.65.0"
-fsspec = "^2023.6.0"
 blosc = "^1.11.1"
-s3fs = "^2023.6.0"
 
 [tool.poetry.group.dev.dependencies]
-tensorboard = "^2.13.0"
-ipython = "^8.13.2"
+seaborn = "^0.13.2"
+s3fs = "^2024.3.1"
+ipython = "^8.23.0"
+tensorboard = "^2.16.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
