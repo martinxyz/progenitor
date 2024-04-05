@@ -11,19 +11,11 @@ from ribs.archives import GridArchive
 from ribs.emitters import GaussianEmitter, EvolutionStrategyEmitter
 from ribs.schedulers import Scheduler
 
+
 import progenitor
-version_check = 12
-assert progenitor.mod.version_check == version_check, progenitor.__file__
+from builders_common import get_params, save_pik_blosc, load_pik_blosc
 
 os.makedirs('output', exist_ok=True)
-
-def get_params(x, config):
-    Params = progenitor.mod.Params
-    hyperparams = {
-        "init_fac": config["init_fac"],
-        "bias_fac": config["bias_fac"]
-    }
-    return Params(x, **hyperparams)
 
 @ray.remote
 def evaluate(x):

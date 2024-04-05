@@ -11,7 +11,7 @@ set -e
 clusterdir="/home/martin/aws-ray-cluster"
 name="$1"
 jobdir="${clusterdir}/jobs/${name}"
-local=true
+local=false
 
 # if test -d "${jobdir}"; then
 #     echo "${jobdir} already exists!"
@@ -31,11 +31,11 @@ git checkout-index -a -f --prefix="${jobdir}/"
 # keep it small
 rm -rf "${jobdir}/webapp"
 
-# if $local; then
-#     extra_args=''
-# else
-#     extra_args='--air_storage_dir=s3://maxy-ray-experiments/'
-# fi
+if $local; then
+    extra_args=''
+else
+    extra_args='--storage=s3://maxy-ray-experiments/'
+fi
 
 cat << EOF > "${jobdir}/start-job.sh"
 #!/bin/bash
@@ -47,21 +47,21 @@ cargo clean
 
 ray job submit \
   --submission-id="${name}" \
-  --no-wait --working-dir="." \
-  --runtime-env-json='{"py_modules": ["crates/python/progenitor"]}' \
+  --no-wait \
+  --runtime-env-json='{"working_dir": "py/", "py_modules": ["crates/python/progenitor"]}' \
   -- \
-  python py/builders_optimize.py ${name} ${extra_args}
-# python py/ribs_search_hparams.py ${name} ${extra_args}
+  python builders_optimize.py ${name} ${extra_args}
+# python ribs_search_hparams.py ${name} ${extra_args}
 
 EOF
-    chmod +x "${jobdir}/start-job.sh"
+chmod +x "${jobdir}/start-job.sh"
 
-    echo "Job directory created: ${jobdir}"
-    echo
+echo "Job directory created: ${jobdir}"
+echo
 
-    cd "${clusterdir}"
+cd "${clusterdir}"
 
-    if $local; then
+if $local; then
     . /home/martin/.cache/pypoetry/virtualenvs/progenitor-experiments-GANURkbN-py3.10/bin/activate
     # ray start --head
     export RAY_ADDRESS='http://127.0.0.1:8265'

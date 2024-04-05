@@ -2,11 +2,8 @@ import dataclasses
 import numpy as np
 import os
 import time
-import pickle
-import blosc
 import ray
 import ray.tune
-import ray.air
 
 from ribs.archives import GridArchive
 from ribs.emitters import GaussianEmitter, EvolutionStrategyEmitter
@@ -18,6 +15,8 @@ import matplotlib.pyplot as plt
 from ribs.visualize import grid_archive_heatmap
 
 import ribs_task
+
+from builders_common import get_params, save_pik_blosc, load_pik_blosc
 
 @ray.remote
 def evaluate(x, hyperparams, episodes):
@@ -134,8 +133,8 @@ class RibsTrainable(ray.tune.Trainable):
     def save_checkpoint(self, tmpdir):
         # compressed archive is e.g. ~33MB for 1k params (can be further compressed to 18MB)
         # (that's roughly the expected size)
-        save_blosc(self.archive, os.path.join(tmpdir, "archive.pik.blosc"))
-        save_blosc(self.result_archive, os.path.join(tmpdir, "result_archive.pik.blosc"))
+        save_pik_blosc(os.path.join(tmpdir, "archive.pik.blosc"), self.archive)
+        save_pik_blosc(os.path.join(tmpdir, "result_archive.pik.blosc"), self.result_archive)
 
         # full state is 0.5GB compressed; seems excessive given my expectation
         # that it holds just a few sep_cma_es emitter states plus the two archives
@@ -151,18 +150,6 @@ class RibsTrainable(ray.tune.Trainable):
         # Checkpointing (to S3) just doesn't work reliably.
         # full_state = load_blosc(os.path.join(tmpdir, "full_state.pik.blosc"))
         # (self.archive, self.result_archive, self.evals, self.episodes, self.generations, self.scheduler, self.pending_reports) = full_state
-
-def save_blosc(obj, filename):
-    data = pickle.dumps(obj)
-    data = blosc.compress(data)
-    with open(filename, 'wb') as f:
-        f.write(data)
-
-def load_blosc(filename):
-    with open(filename, 'rb') as f:
-        data = f.read()
-    data = blosc.decompress(data)
-    return pickle.loads(data)
 
 def plot_archive(archive, filename):
     plt.clf()

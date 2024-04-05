@@ -66,12 +66,23 @@ impl Builders {
 #[pyclass]
 pub(crate) struct Hyperparams {
     inner: HyperparamsImpl,
+    memory_clamp: f32,
+    memory_halftime: f32,
+    actions_scale: f32,
 }
 
 #[pymethods]
 impl Hyperparams {
     #[new]
-    fn new(n_hidden: usize, n_hidden2: usize, init_fac: f32, bias_fac: f32) -> Hyperparams {
+    fn new(
+        n_hidden: usize,
+        n_hidden2: usize,
+        init_fac: f32,
+        bias_fac: f32,
+        memory_clamp: f32,
+        memory_halftime: f32,
+        actions_scale: f32,
+    ) -> Hyperparams {
         Self {
             inner: HyperparamsImpl {
                 n_hidden,
@@ -79,6 +90,9 @@ impl Hyperparams {
                 init_fac,
                 bias_fac,
             },
+            memory_clamp,
+            memory_halftime,
+            actions_scale,
         }
     }
 
@@ -95,21 +109,15 @@ pub(crate) struct Params {
 #[pymethods]
 impl Params {
     #[new]
-    fn new(
-        hyperparams: &Hyperparams,
-        weights: Vec<f32>,
-        memory_clamp: f32,
-        memory_halftime: f32,
-        actions_scale: f32,
-    ) -> Params {
+    fn new(hyperparams: &Hyperparams, weights: Vec<f32>) -> Params {
         assert_eq!(hyperparams.inner.count_params(), weights.len());
         Self {
             inner: progenitor::builders::Params {
                 builder_weights: weights.into(),
                 builder_hyperparams: hyperparams.inner.clone(),
-                memory_clamp,
-                memory_halftime,
-                actions_scale,
+                memory_clamp: hyperparams.memory_clamp,
+                memory_halftime: hyperparams.memory_halftime,
+                actions_scale: hyperparams.actions_scale,
             },
         }
     }

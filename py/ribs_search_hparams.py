@@ -3,14 +3,14 @@ import numpy as np
 import sys
 import argparse
 import os
-from ray import tune, air
+from ray import tune, train
 from ray.tune.schedulers import ASHAScheduler
 import ribs_trainable
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('run_name')
-    parser.add_argument('--air_storage_dir')
+    parser.add_argument('--train_storage_dir')  # must be accessible to all (synced via nfs, or cloud storage)
     args = parser.parse_args()
 
     run_name = 'ribs-' + args.run_name
@@ -88,16 +88,16 @@ def main():
             resources=resources_per_trial
             # resources=lambda config: {"GPU": 1} if config["use_gpu"] else {"GPU": 0},
         ),
-        run_config=air.RunConfig(
+        run_config=train.RunConfig(
             name=run_name,
-            storage_path=args.air_storage_dir,
+            storage_path=args.train_storage_dir,
             log_to_file='log.txt',
-            checkpoint_config=air.CheckpointConfig(
+            checkpoint_config=train.CheckpointConfig(
                 checkpoint_frequency=50,
                 checkpoint_at_end=True,
                 num_to_keep=2,
             ),
-            failure_config=air.FailureConfig(max_failures=3),
+            failure_config=train.FailureConfig(max_failures=3),
         ),
         param_space=search_space,
         tune_config=tune_config
