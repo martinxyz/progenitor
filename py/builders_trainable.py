@@ -1,5 +1,3 @@
-import gzip
-
 import numpy as np
 import cmaes
 import ray
@@ -11,9 +9,8 @@ import progenitor
 # apparently. (I think the @ray.remote object fails to serialize.)
 # (Is this still true when starting with the submit-job.sh script?)
 
-# @ray.remote(scheduling_strategy='DEFAULT')  # break out of the trial's placement group
 @ray.remote
-def evaluate(x, config, seeds: np.ndarray, stats=False):
+def evaluate_real(x, config, seeds: np.ndarray, stats=False):
     Builders = progenitor.mod.Builders
     params = get_params(x, config)
 
@@ -32,13 +29,10 @@ def evaluate(x, config, seeds: np.ndarray, stats=False):
     return costs
 
 
-CPUS_PER_TRAINABLE=11
-
 class BuildersTrainable(ray.tune.Trainable):
     @classmethod
     def default_resource_request(cls, config):
-        # resources_per_trial={'cpu': 0.01, 'gpu': 0}
-        resources_per_trial = [{'CPU': 0.0}] + [{'CPU': 1.0}] * CPUS_PER_TRAINABLE
+        resources_per_trial = [{'CPU': 0.01}] + [{'CPU': 1.0}] * config["cpus"]
         # resources_per_trial = tune.PlacementGroupFactory(
         #   [{'CPU': 0.0}] + [{'CPU': 1.0}] * 64  # for a single run with popsize=64*16
         #   [{'CPU': 0.0}] + []  # not allowed
@@ -52,8 +46,6 @@ class BuildersTrainable(ray.tune.Trainable):
         #   https://docs.ray.io/en/latest/ray-core/scheduling/placement-group.html
         #   https://discuss.ray.io/t/unable-to-saturate-cluster-with-asha-trials-cpu-bound/11941
         # )
-        resources=resources_per_trial,
-            # resources=lambda config: {"GPU": 1.0} if config["use_gpu"] else {"GPU": 0.0},
         return ray.tune.PlacementGroupFactory(resources_per_trial)
 
     def setup(self, config):
@@ -83,26 +75,29 @@ class BuildersTrainable(ray.tune.Trainable):
         cost_population = np.mean(costs)
         cost_population_std = np.std(costs)
 
-        print()
-        print(f'reporting at {self.episodes} episodes (iteration {self.iteration}):')
+        # print()
+        # print(f'reporting at {self.episodes} episodes (iter {self.iteration}):')
         result = self.validate_performance()
         result.update({
             'score_population': -cost_population,
             'score_population_std': cost_population_std,
             'total_episodes': self.episodes
         })
-        print(f'  average population cost: {result["score_population"]:.6f}')
-        print(f'  average validation cost: {result["score"]:.6f}')
+        # print(f'  average population cost: {result["score_population"]:.6f}')
+        # print(f'  average validation cost: {result["score"]:.6f}')
         return result
 
     def train_one_iteration(self):
         config = self.config
-        assert config['seeding'] == 'epoch', "only epoch seeding is implemented"
         n_evals = config["episodes_per_eval"]
 
         seeds = self.rng.integers(1_000_000_000, size=n_evals)
-        if config['seeding'] == 'epoch':
-            seeds[:] = seeds[0]
+
+        if config["cpus"] == 0:
+            # break out of the training actor's placement group
+            evaluate = evaluate_real.options(scheduling_strategy='DEFAULT')
+        else:
+            evaluate = evaluate_real
 
         solutions = []
         futures = []
@@ -123,10 +118,18 @@ class BuildersTrainable(ray.tune.Trainable):
     def validate_performance(self) -> dict:
         validation_episodes = 512
 
-        seeds = np.arange(validation_episodes)  # fixed seeds to reduce noise
+        seeds = np.arange(validation_episodes)  # hardcoded seeds to reduce noise
         x = self.optimizer._mean
+
+        if self.config["cpus"] == 0:
+            # break out of the training actor's placement group
+            evaluate = evaluate_real.options(scheduling_strategy='DEFAULT')
+        else:
+            evaluate = evaluate_real
+
         futures = []
-        seed_chunks = np.array_split(seeds, CPUS_PER_TRAINABLE)
+        # seed_chunks = np.array_split(seeds, config["cpus"])  # bad: config["cpus"] may be zero
+        seed_chunks = np.array_split(seeds, validation_episodes // 16)
         for s in seed_chunks:
             futures.append(evaluate.remote(x, self.config, s))
         costs_per_eval = ray.get(futures)
@@ -150,7 +153,6 @@ class BuildersTrainable(ray.tune.Trainable):
             "optimizer": self.optimizer,
             "episodes": self.episodes,
         }
-        print(state)
         save_pik_blosc(f'{tmpdir}/state.pik.blosc', state)
 
         # Useful as an easy backup maybe, with fewer dependencies?
@@ -159,6 +161,6 @@ class BuildersTrainable(ray.tune.Trainable):
 
     def load_checkpoint(self, tmpdir):
         state = load_pik_blosc(f'{tmpdir}/state.pik.blosc')
-        print(state)
         self.optimizer = state["optimizer"]
         self.episodes = state["episodes"]
+        print('restored checkpoint from episodes=', self.episodes)
