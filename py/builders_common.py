@@ -1,4 +1,5 @@
 import blosc
+import gzip
 import pickle
 import progenitor
 version_check = 16
@@ -33,5 +34,11 @@ def load_pik_blosc(filename: str):
 
 
 def save_gz(filename: str, data: bytes):
-    with open(filename, 'wb') as f:
+    with gzip.open(filename, 'wb') as f:
         f.write(data)
+
+def load_maybe_gz(filename: str) -> bytes:
+    try:
+        return gzip.open(filename, 'rb').read()
+    except:
+        return open(filename, 'rb').read()

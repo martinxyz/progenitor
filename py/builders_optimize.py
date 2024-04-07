@@ -41,7 +41,7 @@ def main_tune(args):
         },
     }
 
-    if False:  # PBT
+    if True:  # PBT
         config["cpus"] = 11
         tune_config = tune.TuneConfig(
             # max_concurrent_trials is needed if we don't reserve any resources per-trial.
@@ -52,7 +52,7 @@ def main_tune(args):
             mode='max',
             scheduler=PopulationBasedTraining(
                 time_attr="total_episodes",
-                perturbation_interval=5_000_000,
+                perturbation_interval=5_000_000,  # reduce to 2M maybe...? (5M gets to score 50 before first perturbation)
                 hyperparam_mutations={
                     # distribution for resampling  (?? is it redundant ??)
                     "episodes_per_eval": tune.lograndint(50, 500),
@@ -68,7 +68,9 @@ def main_tune(args):
                 checkpoint_config=CheckpointConfig(
                     # checkpoint_score_attribute="score", # deletes according to score (instead of oldest)
                     num_to_keep=3,
-                    checkpoint_frequency=50,  # ??? (Does probably affect which models PBT can choose...? Not sure.)
+                    # ??? (Does probably affect which models PBT can choose...? Not sure.)
+                    # maybe see: https://docs.ray.io/en/latest/tune/examples/pbt_visualization/pbt_visualization.html#create-the-tuner
+                    checkpoint_frequency=50,
                     checkpoint_at_end=True,
                 ),
                 failure_config=FailureConfig(max_failures=5),
@@ -78,7 +80,7 @@ def main_tune(args):
             tune_config=tune_config
         )
 
-    if True:  # ASHA
+    if False:  # ASHA
         max_t = 50_000_000
         tune_config = tune.TuneConfig(
             max_concurrent_trials=16,  # needed because we don't reserve any resources per-trial

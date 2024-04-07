@@ -135,11 +135,11 @@ class BuildersTrainable(ray.tune.Trainable):
         costs_per_eval = ray.get(futures)
         costs = [per_eval.mean() for per_eval in costs_per_eval]
 
-        # TODO: do we need them all? Also, those are artifacts not present in the checkpoint. Better way?
+        # When running distributed, those files end up on the worker and get deleted with it.
+        # (Okay for debugging or local runs.)
         # np.save(f'costs_per_eval-{episodes}.npy', costs_per_eval)
-        save_pik_blosc(f'xfavorite-{self.episodes}.pik.blosc', x)
-        params_favourite = get_params(x, self.config)
-        save_gz(f'xfavorite-{self.episodes}.params.gz', params_favourite.serialize())
+        # params_favourite = get_params(x, self.config)
+        # save_gz(f'xfavorite-{self.episodes}.params.gz', params_favourite.serialize())
 
         score = -np.array(costs)
 
@@ -152,11 +152,20 @@ class BuildersTrainable(ray.tune.Trainable):
         state = {
             "optimizer": self.optimizer,
             "episodes": self.episodes,
+            # not restored, just for archival:
+            "config": self.config,
         }
-        save_pik_blosc(f'{tmpdir}/state.pik.blosc', state)
+        save_pik_blosc(f'{tmpdir}/state.pik.blosc', state)  # ~48kB currently
 
-        # Useful as an easy backup maybe, with fewer dependencies?
-        save_pik_blosc(f'{tmpdir}/xfavorite.pik.blosc', self.optimizer._mean)
+        # not restored, but convenient for later use of the result:
+
+        x = self.optimizer._mean
+        # Useful as an easy backup maybe, with fewer dependencies? (currently unused)
+        save_pik_blosc(f'{tmpdir}/xfavorite.pik.blosc', x)  # ~12kB currently
+
+        # used for convenient re-evaluation (web-viewer or Python)
+        params_favourite = get_params(x, self.config)
+        save_gz(f'xfavorite-{self.episodes}.params.bin.gz', params_favourite.serialize())
 
 
     def load_checkpoint(self, tmpdir):
