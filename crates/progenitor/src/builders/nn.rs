@@ -9,10 +9,10 @@ use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
-pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 10 /* last action */ + 4 /* memory */;
+pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 8 /* memory */;
 const N_HIDDEN: usize = 20;
-const N_HIDDEN2: usize = 20;
-pub const N_OUTPUTS: usize = 10 /* actions */ + 4 /* memory */;
+const N_HIDDEN2: usize = 10;
+pub const N_OUTPUTS: usize = 10 /* actions */ + 8 /* memory */;
 
 pub struct Network {
     weights: Weights,

@@ -29,12 +29,11 @@ struct Builder {
     pos: coords::Cube,
     heading: Direction,
     exhausted: u8,
-    last_action: Action,
     memory: SVector<f32, N_MEMORY>,
 }
 
 const N_ACTIONS: usize = 10;
-const N_MEMORY: usize = 4;
+const N_MEMORY: usize = 8;
 
 #[derive(Clone, Copy, PartialEq, FromPrimitive, Serialize, Deserialize)]
 enum Action {
@@ -206,7 +205,6 @@ impl Builders {
             heading: *Direction::all().choose(rng).unwrap(),
             exhausted: 0,
             memory,
-            last_action: Action::Wait,
         });
     }
 
@@ -218,13 +216,6 @@ impl Builders {
             }
             let look = |item: Cell, angle: Angle| {
                 if self.state.cells.cell_unchecked(t.pos + (t.heading + angle)) == item {
-                    1.0
-                } else {
-                    0.0
-                }
-            };
-            let last_action_was = |action: Action| {
-                if t.last_action == action {
                     1.0
                 } else {
                     0.0
@@ -260,23 +251,17 @@ impl Builders {
                 look(Agent, Angle::Forward),
                 builders_nearby as f32 * 10.,
                 // ... maybe give them a "dist from center" sensor? (aka gradient back to hive)
-                last_action_was(Action::Forward),
-                last_action_was(Action::ForwardLeft),
-                last_action_was(Action::ForwardRight),
-                last_action_was(Action::Back),
-                last_action_was(Action::BackLeft),
-                last_action_was(Action::BackRight),
-                last_action_was(Action::PullBack),
-                last_action_was(Action::PullBackLeft),
-                last_action_was(Action::PullBackRight),
-                last_action_was(Action::Wait),
                 t.memory[0],
                 t.memory[1],
                 t.memory[2],
                 t.memory[3],
+                t.memory[4],
+                t.memory[5],
+                t.memory[6],
+                t.memory[7],
             ]
             .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
-            assert_eq!(N_MEMORY, 4);
+            assert_eq!(N_MEMORY, 8);
             self.encounters += builders_nearby;
 
             let outputs: SVector<f32, { nn::N_OUTPUTS }> = self.nn.forward(inputs);
@@ -293,7 +278,6 @@ impl Builders {
             action_logits.apply(|v| *v *= self.actions_scale);
             let action = Action::from_usize(nn::softmax_choice(action_logits, &mut self.state.rng))
                 .expect("logits should match action count");
-            t.last_action = action;
 
             let mut moved = Air;
 

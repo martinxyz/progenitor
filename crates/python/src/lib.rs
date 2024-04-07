@@ -14,6 +14,6 @@ fn progenitor(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<builders::Builders>()?;
     m.add_class::<builders::Hyperparams>()?;
     m.add_class::<builders::Params>()?;
-    m.add("version_check", 16)?;
+    m.add("version_check", 17)?;
     Ok(())
 }

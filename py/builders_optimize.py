@@ -16,32 +16,31 @@ def main_tune(args):
 
     config = {
         # "episodes_per_eval": tune.lograndint(25, 750),
-        "episodes_per_eval": tune.lograndint(50, 500),
-        # "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
+        # "episodes_per_eval": tune.lograndint(50, 500),
+        "episodes_per_eval": 60, # ("denoising" effect ~= popsize*episodes_per_eval)
         # high popsize: lowers the chance to get a good result, but the few good ones get better
         #               (maybe they fail only because we stop them early...?)
-        # "popsize": tune.lograndint(90, 300),  # plausible range: 85..250(?)
-        "popsize": 120,
-        # "popsize": tune.lograndint(40, 200),  # plausible range: 85..250(?)
+        "popsize": tune.lograndint(45, 250),  # plausible range: 85..250(?)
+        # "popsize": 120,
         "rust": {
-            "actions_scale": 6.8,
-            "bias_fac": 0.1,
-            "init_fac": 0.65,
-            "n_hidden": 20,
-            "n_hidden2": 20,
-            "memory_clamp": 50,
-            "memory_halftime": 2.7,
-            # "actions_scale": tune.loguniform(1.0, 30.),  # plausible range: 2.0..20
-            # "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine, across many variants)
-            # "init_fac": tune.loguniform(0.2, 1.2),  # (clear effect) plausible range: 0.4..0.8
-            # "n_hidden": tune.lograndint(4, 20),
-            # "n_hidden2": tune.lograndint(4, 20),
-            # "memory_clamp": tune.loguniform(0.8, 200.0),  # plausible range: 1.0..50
-            # "memory_halftime": tune.loguniform(2.0, 16.0), # plausible range: 2..10
+            # "actions_scale": 6.8,
+            # "bias_fac": 0.1,
+            # "init_fac": 0.65,
+            # "n_hidden": 20,
+            # "n_hidden2": 20,
+            # "memory_clamp": 50,
+            # "memory_halftime": 2.7,
+            "actions_scale": tune.loguniform(2.0, 20.),  # plausible range: 2.0..20
+            "bias_fac": 0.1, # plausible range: 0.01..0.9 (0.1 is fine, across many variants)
+            "init_fac": tune.loguniform(0.3, 1.1),  # (clear effect) plausible range: 0.4..0.8
+            "n_hidden": tune.lograndint(16, 20),
+            "n_hidden2": tune.lograndint(6, 10),
+            "memory_clamp": tune.loguniform(0.8, 60.0),  # plausible range: 1.0..50
+            "memory_halftime": tune.loguniform(1.5, 16.0), # plausible range: 2..10
         },
     }
 
-    if True:  # PBT
+    if False:  # PBT
         config["cpus"] = 11
         tune_config = tune.TuneConfig(
             # max_concurrent_trials is needed if we don't reserve any resources per-trial.
@@ -80,11 +79,11 @@ def main_tune(args):
             tune_config=tune_config
         )
 
-    if False:  # ASHA
-        max_t = 50_000_000
+    if True:  # ASHA
+        max_t = 20_000_000
         tune_config = tune.TuneConfig(
             max_concurrent_trials=16,  # needed because we don't reserve any resources per-trial
-            num_samples=243,  # "runs" or "restarts"
+            num_samples=81,  # "runs" or "restarts"
             metric='score',
             mode='max',
             scheduler=ASHAScheduler(
