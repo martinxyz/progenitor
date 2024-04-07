@@ -114,6 +114,7 @@ pub struct Builders {
     pub max_depth_reached: i32,
     pub encounters: i32,
     pub walls_nearby: i32,
+    pub walls_nearby_n: i32,
 }
 
 impl Simulation for Builders {
@@ -180,6 +181,7 @@ impl Builders {
             max_depth_reached: 0,
             encounters: 0,
             walls_nearby: 0,
+            walls_nearby_n: 0,
             memory_decay: f32::ln(2.) / params.memory_halftime.max(0.001),
             memory_clamp: params.memory_clamp.max(0.001),
             actions_scale: params.actions_scale,
@@ -334,6 +336,7 @@ impl Builders {
 
             if let Some(nh) = self.state.cells.neighbourhood(t.pos) {
                 self.walls_nearby += nh.count_neighbours(|n| matches!(n, Wall | Border));
+                self.walls_nearby_n += 1;
             }
             self.max_depth_reached = self.max_depth_reached.max(center.distance(t.pos));
         }
@@ -343,6 +346,10 @@ impl Builders {
         let total = self.state.visited.area();
         let visited: i32 = self.state.visited.iter_cells().map(|&v| i32::from(v)).sum();
         visited as f32 / total as f32
+    }
+
+    pub fn avg_walls_nearby(&self) -> f32 {
+        self.walls_nearby as f32 / self.walls_nearby_n as f32
     }
 
     pub fn relative_wall_edges(&self) -> f32 {

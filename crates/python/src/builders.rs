@@ -43,6 +43,10 @@ impl Builders {
         self.inner.relative_wall_edges()
     }
 
+    fn avg_walls_nearby(&self) -> f32 {
+        self.inner.avg_walls_nearby()
+    }
+
     #[getter]
     fn max_depth_reached(&self) -> i32 {
         self.inner.max_depth_reached
