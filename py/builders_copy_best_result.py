@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
 import os.path
+import sys
 import json
 from glob import glob
 import time
@@ -11,7 +12,8 @@ import progenitor
 
 # directories = sorted(glob('/home/martin/ray_results/builders-*'), key=os.path.getmtime)
 # experiment = directories[-1]
-experiment = '/home/martin/ray_results/s3sync/builders-gen2-pbt-1'
+# experiment = '/home/martin/ray_results/s3sync/builders-gen2-pbt-1'
+experiment = sys.argv[1]
 print('experiment:', experiment)
 
 # for run in sorted(glob(os.path.join('/home/martin/ray_results/', experiment, '*'))):
@@ -23,6 +25,10 @@ for result in sorted(glob(os.path.join(experiment, '*', 'result.json'))):
         print('skipping invalid:', result)
         continue
     scores.append((data['score'], result))
+
+if not scores:
+    print("no results in", experiment, "!")
+    sys.exit(1)
 
 scores.sort()
 scores.reverse()
@@ -39,6 +45,9 @@ for i, (score, result) in enumerate(scores):
         # temporary, for runs that didn't save the above
         files = glob(os.path.join(data_dir, f'**/xfavorite.pik.blosc'))
     files = list(sorted(files, key=os.path.getmtime))
+    if not files:
+        print("no binary found in", experiment, "!")
+        sys.exit(1)
     latest_bin = files[-1]
     print(latest_bin)
 
