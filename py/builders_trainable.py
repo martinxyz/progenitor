@@ -165,7 +165,7 @@ class BuildersTrainable(ray.tune.Trainable):
 
         # used for convenient re-evaluation (web-viewer or Python)
         params_favourite = get_params(x, self.config)
-        save_gz(f'xfavorite-{self.episodes}.params.bin.gz', params_favourite.serialize())
+        save_gz(f'{tmpdir}/xfavorite-{self.episodes}.params.bin.gz', params_favourite.serialize())
 
 
     def load_checkpoint(self, tmpdir):
