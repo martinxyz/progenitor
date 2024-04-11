@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;
 
-pub const N_INPUTS: usize = 3 * 6 /* eye */ + 2 /* special */ + 8 /* memory */;
+pub const N_INPUTS: usize = 4 * 6 /* eye */ + 3 /* special */ + 8 /* memory */;
 const N_HIDDEN: usize = 20;
 const N_HIDDEN2: usize = 10;
 pub const N_OUTPUTS: usize = 10 /* actions */ + 8 /* memory */;
@@ -92,6 +92,7 @@ pub fn softmax_probs<const N: usize>(x: SVector<f32, N>) -> SVector<f32, N> {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Hyperparams {
     pub init_fac: f32,
+    pub init_fac2: f32,
     pub bias_fac: f32,
     pub n_hidden: usize,
     pub n_hidden2: usize,
@@ -196,10 +197,10 @@ fn init_weights(params: &[f32], hp: Hyperparams) -> Weights {
             next_param() * hp.init_fac * hp.bias_fac
         } else { 0.0 }),
         l2_w: SMatrix::from_fn(|i_hidden2, i_hidden| if i_hidden2 < hp.n_hidden2 && i_hidden < hp.n_hidden {
-            next_param() * (hp.init_fac * 1.0 / (hp.n_hidden + hp.n_hidden2) as f32).sqrt()
+            next_param() * (hp.init_fac2 * hp.init_fac * 1.0 / (hp.n_hidden + hp.n_hidden2) as f32).sqrt()
         } else { 0.0 }),
         l2_b: SVector::from_fn(|i_hidden2, _| if i_hidden2 < hp.n_hidden2 {
-            next_param() * hp.init_fac * hp.bias_fac
+            next_param() * hp.init_fac2 * hp.init_fac * hp.bias_fac
         } else { 0.0 }),
         o_w: SMatrix::from_fn(|_i_output, i_hidden2| if i_hidden2 < hp.n_hidden2 {
             next_param() * (hp.init_fac * 1.0 / (hp.n_hidden + N_OUTPUTS) as f32).sqrt()

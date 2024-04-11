@@ -5,12 +5,12 @@ use hex2d::Coordinate;
 use rand::seq::SliceRandom;
 use rand::Rng;
 
-pub const RING_RADIUS: i32 = 23;
+pub const RING_RADIUS: i32 = 33;
 
 pub fn create_world(rng: &mut impl Rng) -> AxialTile<Cell> {
     let mut cells = hexmap::new(RING_RADIUS, Cell::Border, |loc| {
         let c = loc.dist_from_center();
-        let wall_prob: f32 = if c < 8 {
+        let wall_prob: f32 = if c < 10 {
             0.0
         } else {
             match c % 4 {
@@ -21,7 +21,7 @@ pub fn create_world(rng: &mut impl Rng) -> AxialTile<Cell> {
         if rng.gen_bool(wall_prob as f64) {
             return Cell::Wall;
         }
-        if rng.gen_bool(0.05) && loc.dist_from_top() > RING_RADIUS {
+        if c > 5 && rng.gen_bool(0.05) {
             Cell::Food
         } else {
             Cell::Air

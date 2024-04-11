@@ -4,6 +4,7 @@ use num_traits::FromPrimitive;
 use rand::distributions;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use rand::Rng;
 use rand::RngCore;
 use rand::SeedableRng;
 use rand_distr::Distribution;
@@ -46,7 +47,7 @@ enum Action {
     PullBack,
     PullBackLeft,
     PullBackRight,
-    Wait,
+    Turn,
 }
 
 #[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
@@ -72,7 +73,7 @@ fn cost(action: Action, moved: Cell) -> u8 {
     let move_cost = match moved {
         Air => 0,
         Food => 0,
-        Wall => 2,
+        Wall => 1,
         Agent => unreachable!(),
         Border => unreachable!(),
     };
@@ -81,7 +82,7 @@ fn cost(action: Action, moved: Cell) -> u8 {
         Forward | ForwardLeft | ForwardRight => 0,
         Back | BackLeft | BackRight => 1,
         PullBack | PullBackLeft | PullBackRight => 1,
-        Wait => 0,
+        Turn => 0,
     };
     move_cost + action_cost
 }
@@ -144,6 +145,7 @@ impl Builders {
             n_hidden: 10,
             n_hidden2: 10,
             init_fac: 1.0,
+            init_fac2: 1.0,
             bias_fac: 0.1,
         };
         let rng = &mut thread_rng();
@@ -251,7 +253,11 @@ impl Builders {
                 look(Wall, Angle::RightBack),
                 look(Wall, Angle::Back),
                 look(Agent, Angle::Forward),
-                builders_nearby as f32 * 10.,
+                look(Agent, Angle::Left),
+                look(Agent, Angle::Right),
+                look(Agent, Angle::LeftBack),
+                look(Agent, Angle::RightBack),
+                look(Agent, Angle::Back),
                 // ... maybe give them a "dist from center" sensor? (aka gradient back to hive)
                 t.memory[0],
                 t.memory[1],
@@ -261,6 +267,10 @@ impl Builders {
                 t.memory[5],
                 t.memory[6],
                 t.memory[7],
+                // allow use of randomness (in addition to action probabilities)
+                self.state.rng.gen(),
+                self.state.rng.gen(),
+                self.state.rng.gen(),
             ]
             .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
             assert_eq!(N_MEMORY, 8);
@@ -284,7 +294,9 @@ impl Builders {
             let mut moved = Air;
 
             use Action::*;
-            if action != Action::Wait {
+            if action == Turn {
+                t.heading = -t.heading;
+            } else {
                 let (step, turn) = match action {
                     Forward => (Angle::Forward, Angle::Forward),
                     ForwardLeft => (Angle::Left, Angle::Left),
@@ -292,7 +304,7 @@ impl Builders {
                     Back | PullBack => (Angle::Back, Angle::Forward),
                     BackLeft | PullBackLeft => (Angle::LeftBack, Angle::Right),
                     BackRight | PullBackRight => (Angle::RightBack, Angle::Left),
-                    Wait => unreachable!(),
+                    Turn => unreachable!(),
                 };
 
                 let pos_old = t.pos;
@@ -325,7 +337,7 @@ impl Builders {
                             t.pos = pos_step;
                         }
                     }
-                    Wait => unreachable!(),
+                    Turn => unreachable!(),
                 }
             }
 
@@ -361,7 +373,13 @@ impl Builders {
         let mut count = 0;
         for nh in self.state.cells.iter_valid_neighbourhoods() {
             if nh.center == Food {
-                count += nh.count_neighbours(|c| c == Food).pow(2)
+                let goodness = nh.count_neighbours(|c| c == Food).pow(2);
+                count += match nh.count_neighbours(|c| matches!(c, Wall | Border)) {
+                    0 => goodness.clamp(0, 1),
+                    1 => goodness.clamp(0, 3),
+                    2 => goodness.clamp(0, 7),
+                    _ => goodness,
+                };
             }
         }
         count

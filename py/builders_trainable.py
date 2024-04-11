@@ -17,7 +17,7 @@ def evaluate_real(x, config, seeds: np.ndarray, stats=False):
     scores = []
     for seed in seeds:
         sim = Builders(params, seed)
-        sim.steps(3_000)
+        sim.steps(10_000)
         scores.append(sim.hoarding_score)
         if stats:
             stats = False
