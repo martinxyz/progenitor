@@ -50,7 +50,7 @@ enum Action {
     Turn,
 }
 
-#[derive(PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[derive(PartialEq, Clone, Copy, Serialize, Deserialize, Debug)]
 pub enum Cell {
     Border,
     Air,
@@ -414,6 +414,19 @@ impl HexgridView for Builders {
             cell_type,
             ..Default::default()
         })
+    }
+
+    fn cell_text(&self, pos: coords::Cube) -> Option<String> {
+        let mut lines: Vec<String> = Vec::new();
+        lines.push(format!("{:?}", self.state.cells.cell(pos)?));
+
+        for t in self.state.builders.iter() {
+            if pos == t.pos {
+                lines.push(format!("  direction: {:?}", t.heading));
+                lines.push(format!("  exhausted: {}", t.exhausted));
+            }
+        }
+        Some(lines.join("\n"))
     }
 
     fn viewport_hint(&self) -> coords::Rectangle {

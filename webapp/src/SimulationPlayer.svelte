@@ -62,7 +62,7 @@
 
     let step = -1
     let intervalId = null
-    let playSpeed = 1
+    let playSpeed = 3
 
     $: playing = (intervalId != null)
 
