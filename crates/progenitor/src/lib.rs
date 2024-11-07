@@ -23,6 +23,7 @@ mod independent_pairs;
 // simulations
 pub mod builders;
 pub mod falling_sand;
+pub mod growth;
 pub mod pairs;
 pub mod sim1;
 pub mod sunburn;

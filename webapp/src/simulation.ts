@@ -50,13 +50,16 @@ export const rules: Rule[] = [{
 }, {
     label: 'builders (optimized nn)',
     create: () => progenitor.demo_builders_optimized(),
-    default: true,
 }, {
     label: 'sunburn',
     create: () => progenitor.demo_sunburn(),
 }, {
     label: 'pairs',
     create: () => progenitor.demo_pairs(),
+}, {
+    label: 'growth',
+    create: () => progenitor.demo_growth(),
+    default: true,
 }]
 
 const steps_between_snapshots = 500

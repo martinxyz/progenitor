@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{builders, falling_sand, pairs, sunburn, tumblers, turing};
+use progenitor::{builders, falling_sand, pairs, sunburn, tumblers, turing, growth};
 
 #[wasm_bindgen]
 pub fn demo_falling_sand() -> JsSimulation {
@@ -53,4 +53,9 @@ pub fn demo_pairs() -> JsSimulation {
     // });
 
     sim.into()
+}
+
+#[wasm_bindgen]
+pub fn demo_growth() -> JsSimulation {
+    growth::GrowthSim::new().into()
 }
