@@ -14,6 +14,11 @@ use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
 
+const RADIUS: i32 = 17;
+const MAX_CELL_TYPES: u8 = 6;
+const GROWTH_REQURIEMENT: u16 = 12;
+const INITIAL_ENERGY: u16 = 2000;
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct Cell {
     rule: u8,
@@ -23,8 +28,6 @@ struct Cell {
 impl Cell {
     const EMPTY: Cell = Cell { rule: 0, energy: 0 };
 }
-
-const MAX_CELL_TYPES: u8 = 4;
 
 #[derive(Serialize, Deserialize)]
 pub struct GrowthSim {
@@ -54,13 +57,10 @@ impl CellType {
     }
 }
 
-const RADIUS: i32 = 12;
-
 impl GrowthSim {
     pub fn new() -> Self {
         let seed = thread_rng().next_u64();
         Self::new_with_seed(seed)
-        // Self::new_with_seed(33)
     }
 
     pub fn new_with_seed(seed: u64) -> Self {
@@ -70,7 +70,7 @@ impl GrowthSim {
                 if location.dist_from_center() == 0 {
                     Cell {
                         rule: 1,
-                        energy: 1000,
+                        energy: INITIAL_ENERGY,
                     }
                 } else {
                     Cell::EMPTY
@@ -90,18 +90,65 @@ impl GrowthSim {
 
 impl Simulation for GrowthSim {
     fn step(&mut self) {
-        // // let tumble_dist = Bernoulli::new(self.tumble_prob).unwrap();
-        // self.state = self.state.ca_step(Cell::BORDER, |neighbourhood| {
-        //     match neighbourhood.center.kind {
-        //         CellType::Air => self.air_rule.step(neighbourhood, &mut self.rng),
-        //         CellType::Blob => self.blob_rule.step(neighbourhood, &mut self.rng),
-        //         _ => neighbourhood.center,
-        //     }
-        // });
+        self.state = self.state.ca_step(None, |neighbourhood| {
+            let Some(neighbourhood) = neighbourhood.valid_only() else {
+                return neighbourhood.center;
+            };
+            if neighbourhood.center.rule == 0 {
+                // no energy flow, but a neighbour may grow a cell here
+                let grow_into = neighbourhood
+                    .iter_dirs()
+                    .map(|(dir, neigh)| {
+                        if neigh.energy >= GROWTH_REQURIEMENT {
+                            self.rules[neigh.rule as usize].growth[(-dir) as usize]
+                        } else {
+                            0
+                        }
+                    })
+                    .max()
+                    .unwrap();
+                Some(Cell {
+                    rule: grow_into,
+                    energy: 0,
+                })
+            } else {
+                // only energy flow, no transformations
+                //
+                // Energy transfer happens between two cells. It is based only
+                // on information that both cells can see. To keep things
+                // simple, we allow a cell to transfer energy away only if it
+                // could transfer the same amount to all 6 neighbours, otherwise
+                // it could transfer more than it has.
+                //
+                let mut energy_transfer: i32 = 0;
+                for (dir, neigh) in neighbourhood.iter_dirs() {
+                    let flow1 = self.rules[neighbourhood.center.rule as usize].flow[dir as usize];
+                    let flow2 = self.rules[neigh.rule as usize].flow[-dir as usize];
+                    let flow = u8::min(flow1, flow2);
 
-        // for (cell, visited) in self.state.iter_cells().zip(self.visited.iter_cells_mut()) {
-        //     *visited = visited.map(|visited| visited || cell.kind == CellType::Blob);
-        // }
+                    let energy1 = neighbourhood.center.energy;
+                    let energy2 = neigh.energy;
+
+                    if energy1 > energy2 {
+                        if energy1 >= flow as u16 * 6 {
+                            energy_transfer -= flow as i32;
+                        }
+                    } else if energy2 > energy1 {
+                        if energy2 >= flow as u16 * 6 {
+                            energy_transfer += flow as i32;
+                        }
+                    }
+                }
+                let mut energy: i32 = neighbourhood.center.energy.into();
+                energy += energy_transfer;
+                assert!(energy >= 0);
+                let energy = energy.clamp(0, 0xFFFF) as u16;
+                Some(Cell {
+                    rule: neighbourhood.center.rule,
+                    energy,
+                })
+            }
+        });
     }
 
     fn save_state(&self) -> Vec<u8> {

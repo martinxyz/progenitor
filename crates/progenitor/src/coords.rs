@@ -361,6 +361,22 @@ impl<T: Copy> Neighbourhood<T> {
     // }
 }
 
+impl<T: Copy> Neighbourhood<Option<T>> {
+    pub fn valid_only(&self) -> Option<Neighbourhood<T>> {
+        Some(Neighbourhood {
+            center: self.center?,
+            neighbours: [
+                self.neighbours[0]?,
+                self.neighbours[1]?,
+                self.neighbours[2]?,
+                self.neighbours[3]?,
+                self.neighbours[4]?,
+                self.neighbours[5]?,
+            ],
+        })
+    }
+}
+
 impl<T: Copy> Index<Direction> for Neighbourhood<T> {
     type Output = T;
 
