@@ -1,5 +1,6 @@
 use std::array;
 
+use hex2d::Angle;
 use rand::thread_rng;
 use rand::Rng;
 use rand::RngCore;
@@ -10,23 +11,30 @@ use crate::coords;
 use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
+use crate::Direction;
+use crate::DirectionSet;
 use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
 
-const RADIUS: i32 = 17;
-const MAX_CELL_TYPES: u8 = 6;
+const RADIUS: i32 = 21;
+const MAX_CELL_TYPES: u8 = 4;
 const GROWTH_REQURIEMENT: u16 = 12;
-const INITIAL_ENERGY: u16 = 2000;
+const INITIAL_ENERGY: u16 = 8000;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct Cell {
     rule: u8,
+    connections: DirectionSet,
     energy: u16,
 }
 
 impl Cell {
-    const EMPTY: Cell = Cell { rule: 0, energy: 0 };
+    const EMPTY: Cell = Cell {
+        rule: 0,
+        energy: 0,
+        connections: DirectionSet::none(),
+    };
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,15 +46,15 @@ pub struct GrowthSim {
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CellType {
-    flow: [u8; 6], // 0 = full stop flow to/from this direction
-    growth: [u8; 6],
+    flow: [u8; 8],
+    growth: [u8; 8],
 }
 
 impl CellType {
     fn new_inert() -> Self {
         Self {
-            flow: [0; 6],
-            growth: [0; 6],
+            flow: [0; 8],
+            growth: [0; 8],
         }
     }
     fn new_random(rng: &mut impl Rng) -> Self {
@@ -54,6 +62,25 @@ impl CellType {
             flow: array::from_fn(|_| rng.gen_range(0..=4)),
             growth: array::from_fn(|_| rng.gen_range(0..MAX_CELL_TYPES)),
         }
+    }
+    fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
+        let c1: usize = connections.contains(growth_dir + Angle::RightBack).into();
+        let c2: usize = connections.contains(growth_dir + Angle::Back).into();
+        let c3: usize = connections.contains(growth_dir + Angle::LeftBack).into();
+        let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
+        self.growth[idx]
+    }
+
+    fn flow(&self, connections: DirectionSet, flow_dir: Direction) -> u8 {
+        let c1: usize = connections.contains(flow_dir + Angle::RightBack).into();
+        let c2: usize = connections.contains(flow_dir + Angle::Back).into();
+        let c3: usize = connections.contains(flow_dir + Angle::LeftBack).into();
+        // More fun, harder to comprehend?:
+        // let c1: usize = connections.contains(flow_dir + Angle::Left).into();
+        // let c2: usize = connections.contains(flow_dir + Angle::Forward).into();
+        // let c3: usize = connections.contains(flow_dir + Angle::Right).into();
+        let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
+        self.flow[idx]
     }
 }
 
@@ -71,6 +98,10 @@ impl GrowthSim {
                     Cell {
                         rule: 1,
                         energy: INITIAL_ENERGY,
+                        // less symmetry:
+                        connections: DirectionSet::single(Direction::West),
+                        // hex-symmetrical growth:
+                        // connections: DirectionSet::none(),
                     }
                 } else {
                     Cell::EMPTY
@@ -96,21 +127,33 @@ impl Simulation for GrowthSim {
             };
             if neighbourhood.center.rule == 0 {
                 // no energy flow, but a neighbour may grow a cell here
-                let grow_into = neighbourhood
-                    .iter_dirs()
-                    .map(|(dir, neigh)| {
-                        if neigh.energy >= GROWTH_REQURIEMENT {
-                            self.rules[neigh.rule as usize].growth[(-dir) as usize]
-                        } else {
-                            0
-                        }
+                let mut grow_into = 0;
+                let mut grow_from = DirectionSet::none();
+                let mut grow_allowed = false;
+                for (dir, neigh) in neighbourhood.iter_dirs() {
+                    let neigh_grow_into =
+                        self.rules[neigh.rule as usize].grow_type(neigh.connections, -dir);
+                    let neigh_grow_allowed = neigh.energy >= GROWTH_REQURIEMENT;
+                    if neigh_grow_into > grow_into {
+                        // switch to higher priority rule
+                        grow_into = neigh_grow_into;
+                        grow_from = DirectionSet::none();
+                        grow_allowed = false;
+                    }
+                    if neigh_grow_into == grow_into {
+                        grow_from = grow_from.with(dir, true);
+                        grow_allowed = grow_allowed || neigh_grow_allowed;
+                    }
+                }
+                if grow_allowed {
+                    Some(Cell {
+                        rule: grow_into,
+                        energy: 0,
+                        connections: grow_from,
                     })
-                    .max()
-                    .unwrap();
-                Some(Cell {
-                    rule: grow_into,
-                    energy: 0,
-                })
+                } else {
+                    Some(neighbourhood.center)
+                }
             } else {
                 // only energy flow, no transformations
                 //
@@ -121,12 +164,17 @@ impl Simulation for GrowthSim {
                 // it could transfer more than it has.
                 //
                 let mut energy_transfer: i32 = 0;
+                let center = neighbourhood.center;
+                let center_rule = &self.rules[center.rule as usize];
                 for (dir, neigh) in neighbourhood.iter_dirs() {
-                    let flow1 = self.rules[neighbourhood.center.rule as usize].flow[dir as usize];
-                    let flow2 = self.rules[neigh.rule as usize].flow[-dir as usize];
-                    let flow = u8::min(flow1, flow2);
+                    let neigh_rule = &self.rules[neigh.rule as usize];
+                    let flow = {
+                        let flow1 = center_rule.flow(center.connections, -dir);
+                        let flow2 = neigh_rule.flow(neigh.connections, dir);
+                        u8::min(flow1, flow2)
+                    };
 
-                    let energy1 = neighbourhood.center.energy;
+                    let energy1 = center.energy;
                     let energy2 = neigh.energy;
 
                     if energy1 > energy2 {
@@ -139,14 +187,11 @@ impl Simulation for GrowthSim {
                         }
                     }
                 }
-                let mut energy: i32 = neighbourhood.center.energy.into();
+                let mut energy: i32 = center.energy.into();
                 energy += energy_transfer;
                 assert!(energy >= 0);
                 let energy = energy.clamp(0, 0xFFFF) as u16;
-                Some(Cell {
-                    rule: neighbourhood.center.rule,
-                    energy,
-                })
+                Some(Cell { energy, ..center })
             }
         });
     }
