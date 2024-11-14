@@ -86,8 +86,25 @@ impl CellType {
 
 impl GrowthSim {
     pub fn new() -> Self {
-        let seed = thread_rng().next_u64();
-        Self::new_with_seed(seed)
+        let mut best_seed = 0;
+        let mut best_score = i32::MIN;
+        for _ in 0..50 {
+            let seed = thread_rng().next_u64();
+            let mut trial = Self::new_with_seed(seed);
+            let score = {
+                trial.steps(800);
+                let c1 = trial.count_cells();
+                let score1 = -(trial.count_cells() - 200).pow(2);
+                trial.steps(300);
+                let score2 = -(trial.count_cells() - c1).pow(2) * 100;
+                score1 + score2
+            };
+            if score > best_score {
+                best_score = score;
+                best_seed = seed;
+            }
+        }
+        Self::new_with_seed(best_seed)
     }
 
     pub fn new_with_seed(seed: u64) -> Self {
@@ -116,6 +133,13 @@ impl GrowthSim {
             }
         });
         Self { rng, rules, state }
+    }
+
+    fn count_cells(&self) -> i32 {
+        self.state
+            .iter_cells()
+            .filter(|c| c.map_or(false, |c| c.rule != 0))
+            .count() as i32
     }
 }
 
