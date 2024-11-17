@@ -24,6 +24,7 @@ export interface Rule {
     label: string,
     create: () => ProgenitorSimulation,
     load_map?: string,
+    multiple?: boolean,
     default?: boolean,
 }
 
@@ -59,6 +60,7 @@ export const rules: Rule[] = [{
 }, {
     label: 'growth',
     create: () => progenitor.demo_growth(),
+    multiple: true,
     default: true,
 }]
 

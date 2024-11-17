@@ -16,6 +16,7 @@
         "@fortawesome/fontawesome-free": "^5.14.0",
         "colorjs.io": "^0.4.5",
         "honeycomb-grid": "^4.0.1",
+        "pixi.js": "^8.5.2",
         "progenitor": "file:../crates/wasm/pkg"
     },
     "devDependencies": {

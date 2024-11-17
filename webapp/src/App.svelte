@@ -5,6 +5,7 @@
     import MapSelector from './MapSelector.svelte'
     import Simulation, { rules } from './simulation'
     import type { Rule } from './simulation'
+    import MultipleSimulations from './MultipleSimulations.svelte';
 
     let rule: Rule = rules.find(rule => rule.default)
 
@@ -28,6 +29,11 @@
         {#if rule.load_map}
             <Container>
                 <MapSelector selectHandler={onMapSelected} {rule} />
+            </Container>
+        {/if}
+        {#if rule.multiple}
+            <Container>
+                <MultipleSimulations {rule} />
             </Container>
         {/if}
         <Container>
