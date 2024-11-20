@@ -2,7 +2,7 @@
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Rule } from './simulation'
 import { renderSim } from './render'
-import { Application, Sprite, RenderTexture, Matrix } from 'pixi.js'
+import { Application, Sprite, RenderTexture, Matrix, Rectangle } from 'pixi.js'
 import { onMount } from 'svelte'
 
 export let rule: Rule
@@ -11,15 +11,15 @@ export let rule: Rule
 // let sim2: ProgenitorSimulation
 
 let param1 = 0.5
-let rows = 4
-let cols = 4
+let rows = 6
+let cols = 7
 let canvasContainer: HTMLElement
 
 const app = new Application()
 
 onMount(async () => {
     await app.init({
-        backgroundColor: 0x555555,
+        backgroundColor: '#223',
         resizeTo: canvasContainer,
         // maybe:
         //  autoDensity: true,
@@ -36,27 +36,69 @@ onMount(async () => {
 
 function onRestart() {
     app.stage.removeChildren()
-    for (let i = 0; i < 8 * 8; i++) {
-        let sim: ProgenitorSimulation = rule.create()
-        sim.steps(300)
+    let tileSize = Math.floor(
+        Math.min(app.screen.width / cols, app.screen.height / rows),
+    )
+    if (tileSize < 8) tileSize = 8
 
-        let renderSize = { width: 100, height: 100 }
-        let target = RenderTexture.create(renderSize)
-        let simContainer = renderSim(sim, app, 100)
-        app.renderer.render({
-            container: simContainer,
-            target,
-            transform: Matrix.IDENTITY.clone()
-                .translate(-50, -50)
-                .scale(2, 2)
-                .translate(50, 50),
-        })
-        let x = (i % 8) * 100
-        let y = Math.floor(i / 8) * 100
-        app.stage.addChild(new Sprite({ texture: target, x, y }))
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            let sim: ProgenitorSimulation = rule.create()
+            sim.steps(300) // this is what takes most time
+            const renderSize = tileSize * 2
+            let target = RenderTexture.create({
+                width: renderSize,
+                height: renderSize,
+            })
+            let simContainer = renderSim(sim, app, renderSize)
+            app.renderer.render({
+                container: simContainer,
+                target,
+                transform: Matrix.IDENTITY.clone(),
+            })
+            let x = col * tileSize + tileSize / 2
+            let y = row * tileSize + tileSize / 2
+
+            let sprite = new Sprite({ texture: target, x, y })
+            sprite.anchor = 0.5
+            sprite.eventMode = 'static'
+            sprite.cursor = 'pointer'
+            sprite.hitArea = new Rectangle(
+                -tileSize / 2,
+                -tileSize / 2,
+                tileSize,
+                tileSize,
+            )
+            sprite.on('pointerenter', () => {
+                sprite.alpha = 1.0
+                sprite.zIndex = 1
+                sprite.scale = 1.3
+            })
+            sprite.on('pointerleave', () => {
+                sprite.alpha = 1.0
+                sprite.zIndex = 0
+                sprite.scale = 1
+            })
+
+            app.stage.addChild(sprite)
+        }
     }
 }
 </script>
+
+<label class="row">
+    <span>
+        param1: {param1.toFixed(2)}
+    </span>
+    <input
+        type="range"
+        bind:value={param1}
+        name="volume"
+        min="0"
+        max="1"
+        step="0.01"
+    />
+</label>
 
 <div class="row">
     <label>
@@ -82,22 +124,8 @@ function onRestart() {
         />
     </label>
     <div class="spacer"></div>
-    <button on:click={onRestart}> Regenerate! </button>
+    <button on:click={onRestart}> Generate! </button>
 </div>
-
-<label class="row">
-    <span>
-        param1: {param1.toFixed(2)}
-    </span>
-    <input
-        type="range"
-        bind:value={param1}
-        name="volume"
-        min="0"
-        max="1"
-        step="0.01"
-    />
-</label>
 
 <div class="canvasContainer" bind:this={canvasContainer}></div>
 
@@ -106,6 +134,7 @@ function onRestart() {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    padding-bottom: 0.3em;
     input[type='range'] {
         flex-grow: 1;
     }
@@ -117,7 +146,7 @@ function onRestart() {
 .canvasContainer {
     background-color: #2e170e;
     /* height: 15rem; */
-    height: 800px;
+    height: 600px;
     /* width: 15rem; */
 }
 button {

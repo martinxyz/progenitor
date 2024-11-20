@@ -39,9 +39,18 @@ export function renderSim(
     grid.x = hexSize
     grid.y = hexSize
 
-    const detailed = hexWidth > 17
+    const detailed = hexWidth > 6
+    console.log('hexWidth:', hexWidth);
+    let hexSizeInner: number
+    if (detailed) {
+        let border = hexSize * 0.08
+        border = Math.ceil(border / (1/4)) * (1/4)
+        hexSizeInner = hexSize - border
+    } else {
+        hexSizeInner = hexSize
+    }
     let hexagonContext = new GraphicsContext()
-        .regularPoly(0, 0, detailed ? hexSize * 0.9 : hexSize, 6)
+        .regularPoly(0, 0, hexSizeInner, 6)
         .fill('white')
 
     let data_cell_type = get_data(0)
