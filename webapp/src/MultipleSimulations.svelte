@@ -34,8 +34,10 @@ onMount(async () => {
     // app.stage.addChild(new Sprite(sim1Texture));
 })
 
+let renderTextures: RenderTexture[] = []
 function onRestart() {
     app.stage.removeChildren()
+    renderTextures.forEach((rt) => rt.destroy()) // or reuse...
     let tileSize = Math.floor(
         Math.min(app.screen.width / cols, app.screen.height / rows),
     )
@@ -43,13 +45,26 @@ function onRestart() {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            let sim: ProgenitorSimulation = rule.create()
-            sim.steps(300) // this is what takes most time
+            let sim: ProgenitorSimulation
+            for (let i = 0; i < 15; i++) {
+                sim = rule.create()
+                sim.steps(400) // this is what takes most time
+
+                let viewport = sim.viewport_hint()
+                let cell_types = sim.data(viewport, 0)
+                let count = 0
+                for (let t of cell_types) {
+                    if (t != 0 && t != 255) count += 1
+                }
+                if (count > 30 && count < 160) break
+            }
+
             const renderSize = tileSize * 2
             let target = RenderTexture.create({
                 width: renderSize,
                 height: renderSize,
             })
+            renderTextures.push(target)
             let simContainer = renderSim(sim, app, renderSize)
             app.renderer.render({
                 container: simContainer,
@@ -148,6 +163,7 @@ function onRestart() {
     /* height: 15rem; */
     height: 600px;
     /* width: 15rem; */
+    width: 700px;
 }
 button {
     margin: 0 0.2em 0 0;

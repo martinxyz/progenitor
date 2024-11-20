@@ -35,10 +35,11 @@ function onMapSelected(derivedRule: Rule) {
             <Container>
                 <MultipleSimulations {rule} />
             </Container>
+        {:else}
+            <Container>
+                <SimulationPlayer {sim} />
+            </Container>
         {/if}
-        <Container>
-            <SimulationPlayer {sim} />
-        </Container>
     </div>
 </div>
 
