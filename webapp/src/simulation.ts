@@ -1,68 +1,81 @@
-import * as progenitor from "progenitor";
+import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
 
-import map_bins_url from '../assets/output/map_bins.dat?url';
-import turing_bins_url from '../assets/output/turing_bins.dat?url';
+import map_bins_url from '../assets/output/map_bins.dat?url'
+import turing_bins_url from '../assets/output/turing_bins.dat?url'
 
 // Required to see rust panic message and backtrace on JS console.
 // (Without it we only get the JS backtrace, saying "unreachable executed".)
 progenitor.set_panic_hook()
 
 if (progenitor.is_debug_build()) {
-    console.warn("the rust wasm module was built in debug mode and will run ~100x slower")
+    console.warn(
+        'the rust wasm module was built in debug mode and will run ~100x slower',
+    )
 }
 
 export interface CellInfo {
-    cell_type: number,
-    value1: number,
-    direction: number,
-    particle: boolean,
+    cell_type: number
+    value1: number
+    direction: number
+    particle: boolean
 }
 
 export interface Rule {
-    label: string,
-    create: () => ProgenitorSimulation,
-    load_map?: string,
-    multiple?: boolean,
-    default?: boolean,
+    label: string
+    create: () => ProgenitorSimulation
+    load_map?: string
+    multiple?: boolean
+    default?: boolean
 }
 
-export const rules: Rule[] = [{
-    label: 'progenitor cells',
-    create: () => progenitor.demo_progenitor(),
-}, {
-    label: 'experiment results (select from map)',
-    create: () => progenitor.demo_map(),
-    load_map: map_bins_url,
-}, {
-    label: 'falling sand (CA)',
-    create: () => progenitor.demo_falling_sand(),
-}, {
-    label: 'turing drawings (select from map)',
-    create: () => progenitor.demo_turing(),
-    load_map: turing_bins_url,
-}, {
-    label: 'tumblers',
-    create: () => progenitor.demo_tumblers(),
-}, {
-    label: 'builders (random nn)',
-    create: () => progenitor.demo_builders_random(),
-}, {
-    label: 'builders (optimized nn)',
-    create: () => progenitor.demo_builders_optimized(),
-}, {
-    label: 'sunburn',
-    create: () => progenitor.demo_sunburn(),
-}, {
-    label: 'pairs',
-    create: () => progenitor.demo_pairs(),
-}, {
-    label: 'growth',
-    create: () => progenitor.demo_growth(),
-    multiple: true,
-    default: true,
-}]
+export const rules: Rule[] = [
+    {
+        label: 'progenitor cells',
+        create: () => progenitor.demo_progenitor(),
+    },
+    {
+        label: 'experiment results (select from map)',
+        create: () => progenitor.demo_map(),
+        load_map: map_bins_url,
+    },
+    {
+        label: 'falling sand (CA)',
+        create: () => progenitor.demo_falling_sand(),
+    },
+    {
+        label: 'turing drawings (select from map)',
+        create: () => progenitor.demo_turing(),
+        load_map: turing_bins_url,
+    },
+    {
+        label: 'tumblers',
+        create: () => progenitor.demo_tumblers(),
+    },
+    {
+        label: 'builders (random nn)',
+        create: () => progenitor.demo_builders_random(),
+    },
+    {
+        label: 'builders (optimized nn)',
+        create: () => progenitor.demo_builders_optimized(),
+    },
+    {
+        label: 'sunburn',
+        create: () => progenitor.demo_sunburn(),
+    },
+    {
+        label: 'pairs',
+        create: () => progenitor.demo_pairs(),
+    },
+    {
+        label: 'growth',
+        create: () => progenitor.demo_growth(),
+        multiple: true,
+        default: true,
+    },
+]
 
 const steps_between_snapshots = 500
 
@@ -76,7 +89,7 @@ export default class Simulation {
     private snapshot2: [number, Uint8Array]
 
     restart() {
-        console.log('new simulation');
+        console.log('new simulation')
         this.sim = this.rule.create()
         this.step_no = 0
         this.snapshot1 = [0, this.sim.export_snapshot()]
@@ -87,7 +100,10 @@ export default class Simulation {
         count = Math.round(count)
         this.sim.steps(count)
         this.step_no += count
-        if (this.step_no >= this.snapshot2[0] + count * steps_between_snapshots) {
+        if (
+            this.step_no >=
+            this.snapshot2[0] + count * steps_between_snapshots
+        ) {
             this.snapshot1 = this.snapshot2
             this.snapshot2 = [this.step_no, this.sim.export_snapshot()]
         }

@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     position: relative;
     /* width: 100%; */
     /* min-height: 100vh; */
@@ -7,56 +8,77 @@ html, body {
 }
 
 body {
-    color: #2E170E;
+    color: #2e170e;
     font-family: Verdana, Geneva, sans-serif;
 }
 
 /* a few css resets, see e.g. https://www.joshwcomeau.com/css/custom-css-reset/ */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     overflow-wrap: break-word;
 }
-ul[class], ol[class] {
+ul[class],
+ol[class] {
     padding: 0;
 }
-body, h1, h2, h3, h4, p, ul[class], ol[class] {
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+ul[class],
+ol[class] {
     margin: 0;
 }
-ul[class], ol[class] {
+ul[class],
+ol[class] {
     list-style: none;
 }
-img, picture, video, canvas, svg {
+img,
+picture,
+video,
+canvas,
+svg {
     display: block;
     max-width: 100%;
 }
 
 a {
-    color: rgb(0,100,200);
+    color: rgb(0, 100, 200);
     text-decoration: none;
 }
 a:hover {
     text-decoration: underline;
 }
 a:visited {
-    color: rgb(0,80,160);
+    color: rgb(0, 80, 160);
 }
 
-input, button, select, textarea {
-    color: #2E170E;
+input,
+button,
+select,
+textarea {
+    color: #2e170e;
     font: inherit;
     padding: 0.4em;
     /* margin: 0 0 0.5em 0; */
     margin: 0;
-    border: 2px solid #2E170E80;
+    border: 2px solid #2e170e80;
     border-radius: 5px;
-    background-color: #DDD;
+    background-color: #ddd;
     outline: none;
     &:focus {
-        border-color: #2E170E;
+        border-color: #2e170e;
     }
 }
 
-input[type="checkbox"], label.checkbox, select, button {
+input[type='checkbox'],
+label.checkbox,
+select,
+button {
     cursor: pointer;
 }
 
@@ -65,8 +87,10 @@ select {
     margin: 0;
 }
 
-h1, h2, h3 {
-    color: #2E170ED5;
+h1,
+h2,
+h3 {
+    color: #2e170ed5;
 }
 
 input:disabled {

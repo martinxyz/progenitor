@@ -1,7 +1,7 @@
 <script lang="ts">
-    import { rules } from './simulation'
-    import type { Rule } from './simulation'
-    export let rule: Rule
+import { rules } from './simulation'
+import type { Rule } from './simulation'
+export let rule: Rule
 </script>
 
 <div>

@@ -1,11 +1,21 @@
-import * as progenitor from "progenitor";
+import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
 import Color from 'colorjs.io'
-import { Application, GraphicsContext, Graphics, Container, Sprite } from 'pixi.js';
-const TAU = 2 * Math.PI;
+import {
+    Application,
+    GraphicsContext,
+    Graphics,
+    Container,
+    Sprite,
+} from 'pixi.js'
+const TAU = 2 * Math.PI
 
-export function renderSim(sim: ProgenitorSimulation, app: Application, size: number) {
+export function renderSim(
+    sim: ProgenitorSimulation,
+    app: Application,
+    size: number,
+) {
     let grid = new Container()
 
     let viewport = sim.viewport_hint()
@@ -31,7 +41,7 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
 
     const detailed = hexWidth > 17
     let hexagonContext = new GraphicsContext()
-        .regularPoly(0, 0, detailed ? hexSize * .9 : hexSize, 6)
+        .regularPoly(0, 0, detailed ? hexSize * 0.9 : hexSize, 6)
         .fill('white')
 
     let data_cell_type = get_data(0)
@@ -47,7 +57,7 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
             let dir = data_direction[idx]
 
             // if (ct == 255) continue;  // map border
-            if (ct == 255 || ct == 0) continue;  // map border or air
+            if (ct == 255 || ct == 0) continue // map border or air
 
             let color = '#000'
             if (ct == 0) color = '#efe'
@@ -61,7 +71,7 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
             if (showEnergy && e !== 255) {
                 let c = new Color(color)
                 c.lab.l += (e - 12) * 1.2
-                color = c.toString({ format: "hex" })
+                color = c.toString({ format: 'hex' })
             }
 
             let hex = new Graphics(hexagonContext)
@@ -70,8 +80,8 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
             // odd-r to axial
             let q = col - (row - (row & 1)) / 2
             let r = row
-            hex.x = q * hexWidth + hexWidth / 2 * r
-            hex.y = r * hexSize * 3 / 2
+            hex.x = q * hexWidth + (hexWidth / 2) * r
+            hex.y = (r * hexSize * 3) / 2
 
             hex.tint = color
 
@@ -95,7 +105,7 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
         // for (let child of grid.children) {
         //     child.tint = { r: 80, g: 80, b: Math.round(Math.random() * 65) }
         // }
-    });
+    })
 
     // FIXME: change API such that this is not needed
     viewport.free()
