@@ -46,6 +46,9 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
             let e = data_energy[idx]
             let dir = data_direction[idx]
 
+            // if (ct == 255) continue;  // map border
+            if (ct == 255 || ct == 0) continue;  // map border or air
+
             let color = '#000'
             if (ct == 0) color = '#efe'
             if (ct == 1) color = '#b57'
@@ -57,11 +60,9 @@ export function renderSim(sim: ProgenitorSimulation, app: Application, size: num
             let showEnergy = true
             if (showEnergy && e !== 255) {
                 let c = new Color(color)
-                c.lab.l += (e - 2) * 2
+                c.lab.l += (e - 12) * 1.2
                 color = c.toString({ format: "hex" })
             }
-
-            if (ct == 255) continue;  // map border
 
             let hex = new Graphics(hexagonContext)
             grid.addChild(hex)
