@@ -11,8 +11,8 @@ export let rule: Rule
 // let sim2: ProgenitorSimulation
 
 let param1 = 0.5
-let rows = 6
-let cols = 7
+let rows = 5
+let cols = 5
 let canvasContainer: HTMLElement
 
 const app = new Application()
@@ -101,7 +101,7 @@ function onRestart() {
 }
 </script>
 
-<label class="row">
+<label class="row" style="display:none;">
     <span>
         param1: {param1.toFixed(2)}
     </span>
@@ -163,7 +163,7 @@ function onRestart() {
     /* height: 15rem; */
     height: 600px;
     /* width: 15rem; */
-    width: 700px;
+    width: 600px;
 }
 button {
     margin: 0 0.2em 0 0;

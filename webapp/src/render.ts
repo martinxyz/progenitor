@@ -40,7 +40,6 @@ export function renderSim(
     grid.y = hexSize
 
     const detailed = hexWidth > 6
-    console.log('hexWidth:', hexWidth);
     let hexSizeInner: number
     if (detailed) {
         let border = hexSize * 0.08
