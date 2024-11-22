@@ -13,7 +13,7 @@ export default defineConfig({
     ],
     base: '',
     build: {
-        minify: true,
+        minify: false,
         sourcemap: true,
     },
 })
