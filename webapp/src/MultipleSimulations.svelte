@@ -5,6 +5,14 @@ import { renderSim } from './render'
 import { Application, Sprite, RenderTexture, Matrix, Rectangle } from 'pixi.js'
 import { onMount } from 'svelte'
 
+// This import fixes the problem that interactivity doesn't work in prod builds.
+//
+// (Probably a vite bug? I debugged the pixi.js code and it looked like the code
+// correctly awaits this same import during the Application class init.
+// Minimal reproducer is on branch 'webapp-vite-prod-build-issue-minimal-reproducer'.
+// I could not reproduce it without also importing (not using) my WASM module.)
+import 'pixi.js/events'
+
 export let rule: Rule
 
 // let sim1: ProgenitorSimulation
