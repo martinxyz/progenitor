@@ -7,11 +7,12 @@ import Simulation, { rules } from './simulation'
 import type { Rule } from './simulation'
 import MultipleSimulations from './MultipleSimulations.svelte'
 
-let rule: Rule = rules.find((rule) => rule.default)
+let rule = $state<Rule>(rules.find((rule) => rule.default)!)
 
-let sim: Simulation
-
-$: sim = new Simulation(rule)
+let sim = $state<Simulation>()
+$effect(() => {
+    sim = new Simulation(rule)
+})
 
 function onMapSelected(derivedRule: Rule) {
     sim = new Simulation(derivedRule)
@@ -37,7 +38,9 @@ function onMapSelected(derivedRule: Rule) {
             </Container>
         {:else}
             <Container>
-                <SimulationPlayer {sim} />
+                {#if sim}
+                    <SimulationPlayer {sim} />
+                {/if}
             </Container>
         {/if}
     </div>

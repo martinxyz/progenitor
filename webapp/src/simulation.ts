@@ -80,14 +80,20 @@ export const rules: Rule[] = [
 const steps_between_snapshots = 500
 
 export default class Simulation {
-    constructor(private rule: Rule) {
-        this.restart()
-    }
     private sim: ProgenitorSimulation
     private step_no: number
     private snapshot1: [number, Uint8Array]
     private snapshot2: [number, Uint8Array]
 
+    constructor(private rule: Rule) {
+        // this.restart()
+        // FIXME: code duplication just to make type checker happy...
+        console.log('new simulation')
+        this.sim = this.rule.create()
+        this.step_no = 0
+        this.snapshot1 = [0, this.sim.export_snapshot()]
+        this.snapshot2 = this.snapshot1
+    }
     restart() {
         console.log('new simulation')
         this.sim = this.rule.create()

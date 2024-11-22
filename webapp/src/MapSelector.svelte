@@ -2,15 +2,22 @@
 import { demo_turing, Snapshots } from 'progenitor'
 import type { Rule } from './simulation'
 
-let map_bins: Uint8Array[][]
-let bins_rows: number[]
-let bins_cols: number[]
+let map_bins: Uint8Array[][] = $state([])
+let bins_rows: number[] = $state([])
+let bins_cols: number[] = $state([])
 
-export let selectHandler: (rule: Rule) => void = () => {}
-export let rule: Rule
+let {
+    selectHandler = () => {},
+    rule,
+}: {
+    selectHandler: (rule: Rule) => void
+    rule: Rule
+} = $props()
 
-$: filename = rule.load_map
-$: loadData(filename)
+let filename = $derived(rule.load_map)
+$effect(() => {
+    loadData(filename!)
+})
 
 async function loadData(filename: string) {
     map_bins = []
@@ -42,7 +49,7 @@ async function loadData(filename: string) {
 
     map_bins = []
     for (let _ of bins_rows) {
-        var r = []
+        let r: any[] = []
         map_bins.push(r)
         for (let _ of bins_cols) {
             r.push(null)
@@ -77,7 +84,7 @@ function loadbin(bin: Uint8Array | null) {
                 <div
                     class="cell"
                     class:full={map_bins[row][col] != null}
-                    on:click={() => loadbin(map_bins[row][col])}
+                    onclick={() => loadbin(map_bins[row][col])}
                 >
                     <div title={`${row}, ${col}`} class="inner"></div>
                 </div>

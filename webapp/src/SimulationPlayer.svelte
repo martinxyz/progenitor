@@ -14,23 +14,28 @@ import {
 import type { Hex as HexType } from 'honeycomb-grid'
 import Color from 'colorjs.io'
 
-export let sim: Simulation
+let { sim }: { sim: Simulation } = $props()
 
 let autoplay = true
-$: {
+$effect(() => {
     if (sim && autoplay) {
         autoplay = false
         onPlay()
     }
-}
+})
+
+let Hex: typeof HexType
+let myGrid: Grid<HexType>
+let viewportCol = 0
+let viewportRow = 0
 
 let canvas: HTMLCanvasElement
 let overlayCanvas: HTMLCanvasElement
-let cursorHover = null
-let cursorSelected = null
-$: renderCursors(cursorSelected, cursorHover)
-$: cursor = cursorSelected || cursorHover
-$: cellText =
+let cursorHover: HexType | null = null
+let cursorSelected: HexType | null = null
+$effect(() => renderCursors(cursorSelected, cursorHover))
+let cursor = $derived<HexType | null>(cursorSelected || cursorHover)
+let cellText = $derived(
     sim && cursor
         ? sim.get_cell_text(
               // FIXME: this leads to correct behaviour, but should be solved elsewhere
@@ -39,48 +44,46 @@ $: cellText =
                   (viewportRow % 2 == 0 ? 0 : cursor.row % 2),
               cursor.row + viewportRow,
           )
-        : null
+        : null,
+)
 
-let showEnergy = false
-let showDirection = true
-
-let Hex: typeof HexType
-let myGrid: Grid<HexType>
-let viewportCol = 0
-let viewportRow = 0
+let showEnergy = $state(false)
+let showDirection = $state(true)
 
 let ctx: CanvasRenderingContext2D
 let overlayCtx: CanvasRenderingContext2D
 
-$: {
+$effect(() => {
     // rendering triggers
     sim
     showEnergy
     showDirection
-    // This causes an infinite re-triggering of the rendering:
-    //   requestAnimationFrame(renderSim)
-    renderSim()
+    simUpdated()
+})
+
+function simUpdated() {
+    requestAnimationFrame(renderSim)
 }
 
 onMount(() => {
     canvas.width = 450
     canvas.height = 388
-    ctx = canvas.getContext('2d', { alpha: false })
+    ctx = canvas.getContext('2d', { alpha: false })!
 
     overlayCanvas.width = canvas.width
     overlayCanvas.height = canvas.height
-    overlayCtx = overlayCanvas.getContext('2d')
+    overlayCtx = overlayCanvas.getContext('2d')!
 })
 
-let step = -1
-let intervalId = null
-let playSpeed = 3
+let step = $state(-1)
+let intervalId: number | null = $state(null)
+let playSpeed = $state(3)
 
-$: playing = intervalId != null
+let playing = $derived(intervalId != null)
 
 function onRestart() {
     sim.restart()
-    sim = sim
+    simUpdated()
     // if already playing, restart the timer
     if (!playing) play()
 }
@@ -93,12 +96,12 @@ function onPause() {
 function onStep() {
     stop()
     sim.steps(1)
-    sim = sim
+    simUpdated()
 }
 function onUndoStep() {
     stop()
     sim.step_undo()
-    sim = sim
+    simUpdated()
 }
 function onPlaySpeed() {
     if (playSpeed == 1) {
@@ -125,7 +128,7 @@ function intervalCallback() {
     try {
         if (document.hidden) return
         sim.steps(playSpeed == 1 ? playSpeed : playSpeed / 3)
-        sim = sim
+        simUpdated()
     } catch (e) {
         stop()
         throw e
@@ -149,6 +152,7 @@ function onKey(ev: KeyboardEvent) {
 
 function renderSim() {
     if (!ctx) return
+    if (!canvas) return
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     // debug what gets rendered:
     // ctx.fillStyle = '#233'
@@ -213,7 +217,7 @@ function renderSim() {
             ctx.translate(-hex.x, -hex.y)
         }
         ctx.beginPath()
-        hex.corners.forEach(({ x, y }) => ctx.lineTo(x, y))
+        hex.corners.forEach(({ x, y }: any) => ctx.lineTo(x, y))
 
         ctx.fillStyle = color
         ctx.fill()
@@ -288,7 +292,7 @@ function updateHexgrid(viewport: Viewport, canvas: HTMLCanvasElement) {
     )
 }
 
-function cursorToHex({ clientX, clientY }): HexType {
+function cursorToHex({ clientX, clientY }: any): HexType | null {
     let rect = canvas.getBoundingClientRect()
     const x = ((clientX - rect.left) / (rect.right - rect.left)) * canvas.width
     const y = ((clientY - rect.top) / (rect.bottom - rect.top)) * canvas.height
@@ -318,20 +322,23 @@ function onClick(event: MouseEvent) {
     }
 }
 
-function renderCursors(selected: HexCoordinates, hover: HexCoordinates) {
+function renderCursors(
+    selected: HexCoordinates | null,
+    hover: HexCoordinates | null,
+) {
     if (!overlayCtx) return
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
     if (selected) {
-        renderCursorHex(overlayCtx, myGrid.getHex(selected))
+        renderCursorHex(overlayCtx, myGrid.getHex(selected)!)
     } else if (hover) {
-        renderCursorHex(overlayCtx, myGrid.getHex(hover))
+        renderCursorHex(overlayCtx, myGrid.getHex(hover)!)
     }
 }
 
 function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
     ctx.save()
     ctx.beginPath()
-    hex.corners.forEach(({ x, y }) => ctx.lineTo(x, y))
+    hex.corners.forEach(({ x, y }: any) => ctx.lineTo(x, y))
     ctx.closePath()
     ctx.strokeStyle = '#FFF9'
     ctx.lineWidth = 4
@@ -343,38 +350,38 @@ function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
 }
 </script>
 
-<div class="host" on:keydown={onKey}>
+<div class="host" onkeydown={onKey}>
     <div>
         <div class="canvasDiv">
-            <canvas class="mainCanvas" bind:this={canvas} />
+            <canvas class="mainCanvas" bind:this={canvas}> </canvas>
             <canvas
                 class="overlayCanvas"
                 bind:this={overlayCanvas}
-                on:mousemove={onMouseMove}
-                on:mouseleave={onMouseLeave}
-                on:click={onClick}
-            />
+                onmousemove={onMouseMove}
+                onmouseleave={onMouseLeave}
+                onclick={onClick}
+            ></canvas>
         </div>
         <div class="button-row">
-            <button on:click={onRestart} title="Restart (Backspace)">
+            <button onclick={onRestart} title="Restart (Backspace)">
                 <i class="fas fa-sync"></i>
             </button>
-            <button on:click={onUndoStep} title="Step Back (Arrow Left)">
+            <button onclick={onUndoStep} title="Step Back (Arrow Left)">
                 <i class="fas fa-step-backward"></i>
             </button>
-            <button on:click={onStep} title="Single Step (Arrow Right)">
+            <button onclick={onStep} title="Single Step (Arrow Right)">
                 <i class="fas fa-step-forward"></i>
             </button>
             {#if playing}
-                <button on:click={onPause} title="Pause">
+                <button onclick={onPause} title="Pause">
                     <i class="fas fa-pause"></i>
                 </button>
             {:else}
-                <button on:click={onPlay} title="Play">
+                <button onclick={onPlay} title="Play">
                     <i class="fas fa-play"></i>
                 </button>
             {/if}
-            <button on:click={onPlaySpeed} title="Play Speed">
+            <button onclick={onPlaySpeed} title="Play Speed">
                 {#if playSpeed < 2000}
                     x{playSpeed}
                 {:else}

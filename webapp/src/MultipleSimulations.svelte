@@ -45,7 +45,7 @@ function onRestart() {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            let sim: ProgenitorSimulation
+            let sim!: ProgenitorSimulation
             for (let i = 0; i < 15; i++) {
                 sim = rule.create()
                 sim.steps(400) // this is what takes most time
@@ -139,7 +139,7 @@ function onRestart() {
         />
     </label>
     <div class="spacer"></div>
-    <button on:click={onRestart}> Generate! </button>
+    <button onclick={onRestart}> Generate! </button>
 </div>
 
 <div class="canvasContainer" bind:this={canvasContainer}></div>
