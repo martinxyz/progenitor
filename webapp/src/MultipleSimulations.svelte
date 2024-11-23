@@ -27,6 +27,7 @@ onMount(async () => {
     })
     // const res = app.renderer.height / 100;
     canvasContainer.appendChild(app.canvas)
+    // app.renderer.on('resize', callback, callbackContext)
 
     onRestart()
 
@@ -63,6 +64,9 @@ function onRestart() {
             let target = RenderTexture.create({
                 width: renderSize,
                 height: renderSize,
+                antialias: true,
+                resolution: 2,
+                // scaleMode: 'nearest',
             })
             renderTextures.push(target)
             let simContainer = renderSim(sim, app, renderSize)
