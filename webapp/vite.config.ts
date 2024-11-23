@@ -9,11 +9,14 @@ export default defineConfig({
         // hot-reload breaks when the wasm module got recompiled
         svelte({ hot: false }),
         wasm(),
+        // Removing this plugin also fixes the interaction problem:
         topLevelAwait(),
     ],
     base: '',
     build: {
-        minify: false,
+        // Add this before removing topLevelAwait() (doesn't fix the problem on its own):
+        // target: 'es2022',
+        minify: true,
         sourcemap: true,
     },
 })
