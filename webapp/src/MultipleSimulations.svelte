@@ -5,15 +5,18 @@ import { renderSim } from './render'
 import { Application, Sprite, RenderTexture, Matrix, Rectangle } from 'pixi.js'
 import { onMount } from 'svelte'
 
-export let rule: Rule
+let { rule }: { rule: Rule } = $props()
 
-// let sim1: ProgenitorSimulation
-// let sim2: ProgenitorSimulation
-
-let param1 = 0.5
-let rows = 5
-let cols = 5
 let canvasContainer: HTMLElement
+
+let param1 = $state(0.5)
+let rows = $state(5)
+let cols = $state(5)
+let steps = $state(200)
+let simConfig = $state('')
+let message = $state('')
+let message_is_error = $state(false)
+let busy = $state(false)
 
 const app = new Application()
 
@@ -29,16 +32,36 @@ onMount(async () => {
     canvasContainer.appendChild(app.canvas)
     // app.renderer.on('resize', callback, callbackContext)
 
-    onRestart()
-
-    // app.stage.addChild(simContainer1);
-    // app.stage.addChild(new Sprite(sim1Texture));
+    simConfig = JSON.stringify(rule.default_config, undefined, 2)
+    onGenerate()
 })
 
+function onGenerate() {
+    if (busy) return
+    busy = true
+    // message = '⟳ Generating...'
+    message = ''
+    message_is_error = false
+    app.stage.removeChildren()
+    setTimeout(async () => {
+        try {
+            await restart()
+            message = ''
+        } catch (e: any) {
+            console.error(e)
+            message = '✗ ' + (e?.message || e)
+            message_is_error = true
+        } finally {
+            busy = false
+        }
+    })
+}
+
 let renderTextures: RenderTexture[] = []
-function onRestart() {
+async function restart() {
     app.stage.removeChildren()
     renderTextures.forEach((rt) => rt.destroy()) // or reuse...
+    renderTextures = []
     let tileSize = Math.floor(
         Math.min(app.screen.width / cols, app.screen.height / rows),
     )
@@ -46,10 +69,17 @@ function onRestart() {
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
+            await new Promise((resolve) => requestAnimationFrame(resolve))
+
             let sim!: ProgenitorSimulation
             for (let i = 0; i < 15; i++) {
-                sim = rule.create()
-                sim.steps(400) // this is what takes most time
+                if (rule.create_with_config) {
+                    sim = rule.create_with_config(JSON.parse(simConfig))
+                } else {
+                    sim = rule.create()
+                }
+
+                sim.steps(steps) // this is what takes most time
 
                 let viewport = sim.viewport_hint()
                 let cell_types = sim.data(viewport, 0)
@@ -115,9 +145,15 @@ function onRestart() {
         name="volume"
         min="0"
         max="1"
-        step="0.01"
+        step="0.05"
     />
 </label>
+
+{#if rule.default_config}
+    <div class="row">
+        <textarea bind:value={simConfig}> </textarea>
+    </div>
+{/if}
 
 <div class="row">
     <label>
@@ -142,8 +178,23 @@ function onRestart() {
             step="1"
         />
     </label>
+    <label>
+        <span>steps:</span>
+        <input
+            type="number"
+            bind:value={steps}
+            name="steps"
+            min="0"
+            max="10000"
+            step="1"
+        />
+    </label>
     <div class="spacer"></div>
-    <button onclick={onRestart}> Generate! </button>
+    <!-- <button onclick={onGenerate} disabled={busy}>Generate!</button> "disabled" steals keyboard focus... -->
+    <button onclick={onGenerate} class:busy>Generate!</button>
+    <span class="message" class:error={message_is_error} title={message}
+        >{message}</span
+    >
 </div>
 
 <div class="canvasContainer" bind:this={canvasContainer}></div>
@@ -172,9 +223,28 @@ function onRestart() {
 button {
     margin: 0 0.2em 0 0;
     min-width: 3.8em;
-    color: #2e170ed5;
+    &.busy {
+        color: gray;
+        cursor: wait;
+    }
 }
 .spacer {
     width: 0.5rem;
+}
+textarea {
+    width: 100%;
+    height: 10rem;
+}
+span.message {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* flex-grow: 1;
+       flex-basis: 0;
+       flex-shrink: 0; */
+    width: 14rem;
+    &.error {
+        color: #711;
+    }
 }
 </style>

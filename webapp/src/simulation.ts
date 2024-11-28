@@ -25,6 +25,8 @@ export interface CellInfo {
 export interface Rule {
     label: string
     create: () => ProgenitorSimulation
+    create_with_config?: (config: any) => ProgenitorSimulation
+    default_config?: any
     load_map?: string
     multiple?: boolean
     default?: boolean
@@ -72,6 +74,8 @@ export const rules: Rule[] = [
     {
         label: 'growth',
         create: () => progenitor.demo_growth(),
+        create_with_config: (config: any) => progenitor.demo_growth_with_config(JSON.stringify(config)),
+        default_config: JSON.parse(progenitor.demo_growth_default_config()),
         multiple: true,
         default: true,
     },

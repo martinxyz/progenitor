@@ -18,9 +18,31 @@ use crate::SimRng;
 use crate::Simulation;
 
 const RADIUS: i32 = 21;
-const MAX_CELL_TYPES: u8 = 4;
+const MAX_CELL_TYPES: u8 = 8;
 const GROWTH_REQURIEMENT: u16 = 12;
-const INITIAL_ENERGY: u16 = 8000;
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub struct Configuration {
+    initial_energy: u16,
+    cell_types: u8,
+}
+
+impl Default for Configuration {
+    fn default() -> Self {
+        Self {
+            initial_energy: 8000,
+            cell_types: 4,
+        }
+    }
+}
+
+impl Configuration {
+    pub fn into_simulation(self) -> GrowthSim {
+        assert!(self.cell_types <= MAX_CELL_TYPES);
+        let seed = thread_rng().next_u64();
+        GrowthSim::new_with_config(seed, self)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct Cell {
@@ -40,6 +62,7 @@ impl Cell {
 #[derive(Serialize, Deserialize)]
 pub struct GrowthSim {
     rng: SimRng,
+    // config: Configuration,
     rules: [CellType; MAX_CELL_TYPES as usize],
     state: AxialTile<Option<Cell>>,
 }
@@ -57,10 +80,10 @@ impl CellType {
             growth: [0; 8],
         }
     }
-    fn new_random(rng: &mut impl Rng) -> Self {
+    fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
         Self {
             flow: array::from_fn(|_| rng.gen_range(0..=4)),
-            growth: array::from_fn(|_| rng.gen_range(0..MAX_CELL_TYPES)),
+            growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
@@ -104,17 +127,17 @@ impl GrowthSim {
         //         best_seed = seed;
         //     }
         // }
-        Self::new_with_seed(thread_rng().next_u64())
+        Self::new_with_config(thread_rng().next_u64(), Configuration::default())
     }
 
-    pub fn new_with_seed(seed: u64) -> Self {
+    fn new_with_config(seed: u64, config: Configuration) -> Self {
         let mut rng = SimRng::seed_from_u64(seed);
         let state = hexmap::new(RADIUS, None, |location| {
             Some({
                 if location.dist_from_center() == 0 {
                     Cell {
                         rule: 1,
-                        energy: INITIAL_ENERGY,
+                        energy: config.initial_energy,
                         // less symmetry:
                         connections: DirectionSet::single(Direction::West),
                         // hex-symmetrical growth:
@@ -129,7 +152,7 @@ impl GrowthSim {
             if i == 0 {
                 CellType::new_inert()
             } else {
-                CellType::new_random(&mut rng)
+                CellType::new_random(&mut rng, &config)
             }
         });
         Self { rng, rules, state }
