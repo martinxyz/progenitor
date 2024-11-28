@@ -10,8 +10,7 @@ let { rule }: { rule: Rule } = $props()
 let canvasContainer: HTMLElement
 
 let param1 = $state(0.5)
-let rows = $state(5)
-let cols = $state(5)
+let columns = $state(5)
 let steps = $state(200)
 let simConfig = $state('')
 let message = $state('')
@@ -63,12 +62,13 @@ async function restart() {
     renderTextures.forEach((rt) => rt.destroy()) // or reuse...
     renderTextures = []
     let tileSize = Math.floor(
-        Math.min(app.screen.width / cols, app.screen.height / rows),
+        Math.min(app.screen.width / columns, app.screen.width / columns),
     )
+    let rows = Math.floor((columns / app.screen.width) * app.screen.height)
     if (tileSize < 8) tileSize = 8
 
     for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
+        for (let col = 0; col < columns; col++) {
             await new Promise((resolve) => requestAnimationFrame(resolve))
 
             let sim!: ProgenitorSimulation
@@ -157,22 +157,11 @@ async function restart() {
 
 <div class="row">
     <label>
-        <span>rows:</span>
+        <span>columns:</span>
         <input
             type="number"
-            bind:value={rows}
-            name="rows"
-            min="1"
-            max="40"
-            step="1"
-        />
-    </label>
-    <label>
-        <span>cols:</span>
-        <input
-            type="number"
-            bind:value={cols}
-            name="cols"
+            bind:value={columns}
+            name="columns"
             min="1"
             max="40"
             step="1"
