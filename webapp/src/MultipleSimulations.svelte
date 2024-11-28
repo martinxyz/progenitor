@@ -2,20 +2,28 @@
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Rule } from './simulation'
 import { renderSim } from './render'
-import { Application, Sprite, RenderTexture, Matrix, Rectangle } from 'pixi.js'
+import {
+    Application,
+    Sprite,
+    RenderTexture,
+    Matrix,
+    Rectangle,
+    Container,
+} from 'pixi.js'
 import { onMount } from 'svelte'
 
 let { rule }: { rule: Rule } = $props()
 
-let canvasContainer: HTMLElement
+let canvasContainer = $state<HTMLElement | undefined>(undefined)
 
 let param1 = $state(0.5)
+let filtering = $state(true)
 let columns = $state(5)
 let steps = $state(200)
 let simConfig = $state('')
-let message = $state('')
-let message_is_error = $state(false)
+let lastError = $state('')
 let busy = $state(false)
+let large = $state(false)
 
 const app = new Application()
 
@@ -27,9 +35,10 @@ onMount(async () => {
         //  autoDensity: true,
         // resolution: window.devicePixelRatio || 1,
     })
-    // const res = app.renderer.height / 100;
-    canvasContainer.appendChild(app.canvas)
-    // app.renderer.on('resize', callback, callbackContext)
+    canvasContainer?.appendChild(app.canvas)
+    // app.renderer.on('resize', () => {
+    //     console.log('resize!')
+    // })
 
     simConfig = JSON.stringify(rule.default_config, undefined, 2)
     onGenerate()
@@ -38,34 +47,54 @@ onMount(async () => {
 function onGenerate() {
     if (busy) return
     busy = true
-    // message = '⟳ Generating...'
-    message = ''
-    message_is_error = false
+    lastError = ''
     app.stage.removeChildren()
     setTimeout(async () => {
         try {
             await restart()
-            message = ''
+            lastError = ''
         } catch (e: any) {
             console.error(e)
-            message = '✗ ' + (e?.message || e)
-            message_is_error = true
+            lastError = '✗ ' + (e?.message || e)
         } finally {
             busy = false
         }
     })
 }
 
+function onLarge() {
+    large = !large
+    if (large) {
+        columns *= 2
+    } else {
+        columns /= 2
+    }
+    if (columns < 2) columns = 2
+    if (columns > 200) columns = 200
+
+    // wait for layout to settle
+    setTimeout(() => {
+        onGenerate()
+    }, 100)
+}
+
 let renderTextures: RenderTexture[] = []
 async function restart() {
+    app.resize() // resize event does not trigger for "large" button
     app.stage.removeChildren()
     renderTextures.forEach((rt) => rt.destroy()) // or reuse...
     renderTextures = []
-    let tileSize = Math.floor(
-        Math.min(app.screen.width / columns, app.screen.width / columns),
-    )
-    let rows = Math.floor((columns / app.screen.width) * app.screen.height)
+    let tileSize = Math.floor(app.screen.width / columns)
     if (tileSize < 8) tileSize = 8
+    let rows = Math.floor((columns / app.screen.width) * app.screen.height)
+    if (rows < 1) rows = 1
+
+    let container = new Container()
+    container.pivot.x = (tileSize * columns) / 2
+    container.pivot.y = (tileSize * rows) / 2
+
+    container.x = app.screen.width / 2
+    container.y = app.screen.height / 2
 
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < columns; col++) {
@@ -81,13 +110,17 @@ async function restart() {
 
                 sim.steps(steps) // this is what takes most time
 
-                let viewport = sim.viewport_hint()
-                let cell_types = sim.data(viewport, 0)
-                let count = 0
-                for (let t of cell_types) {
-                    if (t != 0 && t != 255) count += 1
+                if (filtering) {
+                    let viewport = sim.viewport_hint()
+                    let cell_types = sim.data(viewport, 0)
+                    let count = 0
+                    for (let t of cell_types) {
+                        if (t != 0 && t != 255) count += 1
+                    }
+                    if (count > 30 && count < 160) break
+                } else {
+                    break
                 }
-                if (count > 30 && count < 160) break
             }
 
             const renderSize = tileSize * 2
@@ -129,8 +162,9 @@ async function restart() {
                 sprite.scale = 1
             })
 
-            app.stage.addChild(sprite)
+            container.addChild(sprite)
         }
+        app.stage.addChild(container)
     }
 }
 </script>
@@ -159,6 +193,7 @@ async function restart() {
     <label>
         <span>columns:</span>
         <input
+            disabled={busy}
             type="number"
             bind:value={columns}
             name="columns"
@@ -178,15 +213,25 @@ async function restart() {
             step="1"
         />
     </label>
+    <label>
+        <input type="checkbox" bind:checked={filtering} />
+        <span>filter boring</span>
+    </label>
     <div class="spacer"></div>
     <!-- <button onclick={onGenerate} disabled={busy}>Generate!</button> "disabled" steals keyboard focus... -->
     <button onclick={onGenerate} class:busy>Generate!</button>
-    <span class="message" class:error={message_is_error} title={message}
-        >{message}</span
-    >
+    <button onclick={onLarge} class:busy>Large</button>
 </div>
 
-<div class="canvasContainer" bind:this={canvasContainer}></div>
+{#if lastError}
+    <div class="row">
+        <span class="error" title={lastError}>
+            {lastError}
+        </span>
+    </div>
+{/if}
+
+<div class="canvasContainer" class:large bind:this={canvasContainer}></div>
 
 <style lang="scss">
 .row {
@@ -204,11 +249,16 @@ async function restart() {
 }
 .canvasContainer {
     background-color: #2e170e;
-    /* height: 15rem; */
-    height: 600px;
-    /* width: 15rem; */
-    width: 600px;
+    height: 800px;
+    max-width: 45rem;
+    width: 100%;
 }
+.canvasContainer.large {
+    width: 95vw;
+    height: 130vh;
+    max-width: inherit;
+}
+
 button {
     margin: 0 0.2em 0 0;
     min-width: 3.8em;
@@ -224,14 +274,10 @@ textarea {
     width: 100%;
     height: 10rem;
 }
-span.message {
-    white-space: nowrap;
+span.error {
     overflow: hidden;
     text-overflow: ellipsis;
-    /* flex-grow: 1;
-       flex-basis: 0;
-       flex-shrink: 0; */
-    width: 14rem;
+    max-width: 30rem;
     &.error {
         color: #711;
     }

@@ -31,7 +31,7 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             initial_energy: 8000,
-            cell_types: 4,
+            cell_types: 6,
         }
     }
 }
