@@ -1,4 +1,3 @@
-#![feature(test)]
 use progenitor::coords::Cube;
 use progenitor::sim1::{Cell, CellType, CellTypeRef, World};
 use progenitor::Simulation;
@@ -64,6 +63,8 @@ fn simple_growth() {
     assert_eq!(1 + 6 + 12, count_growing_cells(&w));
 }
 
+/* #[bench] is not available on stable rust; criterion, or DIY, I guess.
+
 extern crate test;
 use test::Bencher;
 
@@ -86,3 +87,5 @@ fn benchtest(b: &mut Bencher) {
     */
     b.iter(|| w.step());
 }
+
+*/
