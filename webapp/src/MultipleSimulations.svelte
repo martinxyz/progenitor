@@ -197,7 +197,7 @@ async function restart() {
 
 {#if rule.default_config}
     <div class="row">
-        <textarea bind:value={simConfig}> </textarea>
+        <textarea spellcheck="false" bind:value={simConfig}> </textarea>
     </div>
 {/if}
 

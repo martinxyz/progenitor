@@ -25,6 +25,9 @@ const GROWTH_REQURIEMENT: u16 = 12;
 pub struct Configuration {
     initial_energy: u16,
     cell_types: u8,
+    max_flow: u8,
+    flow_swap: bool,
+    grow_prob: f32,
 }
 
 impl Default for Configuration {
@@ -32,6 +35,9 @@ impl Default for Configuration {
         Self {
             initial_energy: 8000,
             cell_types: 6,
+            max_flow: 9,
+            flow_swap: false,
+            grow_prob: 0.97,
         }
     }
 }
@@ -62,7 +68,7 @@ impl Cell {
 #[derive(Serialize, Deserialize)]
 pub struct GrowthSim {
     rng: SimRng,
-    // config: Configuration,
+    config: Configuration,
     rules: [CellType; MAX_CELL_TYPES as usize],
     state: AxialTile<Option<Cell>>,
 }
@@ -82,7 +88,7 @@ impl CellType {
     }
     fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
         Self {
-            flow: array::from_fn(|_| rng.gen_range(0..=4)),
+            flow: array::from_fn(|_| rng.gen_range(0..=config.max_flow)),
             growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
         }
     }
@@ -94,14 +100,20 @@ impl CellType {
         self.growth[idx]
     }
 
-    fn flow(&self, connections: DirectionSet, flow_dir: Direction) -> u8 {
-        let c1: usize = connections.contains(flow_dir + Angle::RightBack).into();
-        let c2: usize = connections.contains(flow_dir + Angle::Back).into();
-        let c3: usize = connections.contains(flow_dir + Angle::LeftBack).into();
-        // More fun, harder to comprehend?:
-        // let c1: usize = connections.contains(flow_dir + Angle::Left).into();
-        // let c2: usize = connections.contains(flow_dir + Angle::Forward).into();
-        // let c3: usize = connections.contains(flow_dir + Angle::Right).into();
+    fn flow(&self, connections: DirectionSet, flow_dir: Direction, swap: bool) -> u8 {
+        let c1: usize;
+        let c2: usize;
+        let c3: usize;
+        if !swap {
+            c1 = connections.contains(flow_dir + Angle::RightBack).into();
+            c2 = connections.contains(flow_dir + Angle::Back).into();
+            c3 = connections.contains(flow_dir + Angle::LeftBack).into();
+        } else {
+            // More fun, harder to comprehend?:
+            c1 = connections.contains(flow_dir + Angle::Left).into();
+            c2 = connections.contains(flow_dir + Angle::Right).into();
+            c3 = connections.contains(flow_dir + Angle::Back).into();
+        }
         let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
         self.flow[idx]
     }
@@ -138,10 +150,9 @@ impl GrowthSim {
                     Cell {
                         rule: 1,
                         energy: config.initial_energy,
-                        // less symmetry:
-                        connections: DirectionSet::single(Direction::West),
-                        // hex-symmetrical growth:
-                        // connections: DirectionSet::none(),
+                        connections: DirectionSet::single(Direction::West)
+                            .with(Direction::NorthEast, true)
+                            .with(Direction::SouthEast, true),
                     }
                 } else {
                     Cell::EMPTY
@@ -155,7 +166,12 @@ impl GrowthSim {
                 CellType::new_random(&mut rng, &config)
             }
         });
-        Self { rng, rules, state }
+        Self {
+            rng,
+            rules,
+            state,
+            config,
+        }
     }
 
     fn count_cells(&self) -> i32 {
@@ -192,6 +208,11 @@ impl Simulation for GrowthSim {
                         grow_allowed = grow_allowed || neigh_grow_allowed;
                     }
                 }
+                if grow_allowed && self.config.grow_prob < 1.0 {
+                    if !self.rng.gen_bool(self.config.grow_prob.into()) {
+                        grow_allowed = false
+                    }
+                }
                 if grow_allowed {
                     Some(Cell {
                         rule: grow_into,
@@ -216,8 +237,9 @@ impl Simulation for GrowthSim {
                 for (dir, neigh) in neighbourhood.iter_dirs() {
                     let neigh_rule = &self.rules[neigh.rule as usize];
                     let flow = {
-                        let flow1 = center_rule.flow(center.connections, -dir);
-                        let flow2 = neigh_rule.flow(neigh.connections, dir);
+                        let flow1 =
+                            center_rule.flow(center.connections, -dir, self.config.flow_swap);
+                        let flow2 = neigh_rule.flow(neigh.connections, dir, self.config.flow_swap);
                         u8::min(flow1, flow2)
                     };
 
