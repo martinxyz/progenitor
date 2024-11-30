@@ -15,15 +15,16 @@ import { onMount } from 'svelte'
 let { rule }: { rule: Rule } = $props()
 
 let canvasContainer = $state<HTMLElement | undefined>(undefined)
+let fullscreenDiv: HTMLElement
 
 let param1 = $state(0.5)
 let filtering = $state(true)
-let columns = $state(5)
+let columns = $state(6)
 let steps = $state(200)
 let simConfig = $state('')
 let lastError = $state('')
 let busy = $state(false)
-let large = $state(false)
+let isFullscreen = $state(false)
 
 const app = new Application()
 
@@ -62,25 +63,36 @@ function onGenerate() {
     })
 }
 
-function onLarge() {
-    large = !large
-    if (large) {
-        columns *= 2
+async function onFullscreenButton() {
+    if (document.fullscreenElement !== fullscreenDiv) {
+        await fullscreenDiv.requestFullscreen()
+        onFullscreenChange()
+        isFullscreen = true
     } else {
-        columns /= 2
+        await document.exitFullscreen()
+        onFullscreenChange()
+        isFullscreen = false
     }
-    if (columns < 2) columns = 2
-    if (columns > 200) columns = 200
+}
+$effect(() => {
+    // event not available on all browsers
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () =>
+        document.removeEventListener('fullscreenchange', onFullscreenChange)
+})
+async function onFullscreenChange() {
+    let isFullscreenOld = isFullscreen
+    isFullscreen = document.fullscreenElement === fullscreenDiv
+    if (isFullscreenOld === isFullscreen) return
 
-    // wait for layout to settle
-    setTimeout(() => {
-        onGenerate()
-    }, 100)
+    // wait for layout to settle, then re-generate
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    onGenerate()
 }
 
 let renderTextures: RenderTexture[] = []
 async function restart() {
-    app.resize() // resize event does not trigger for "large" button
+    app.resize() // resize event does not trigger for "fullscreen" button
     app.stage.removeChildren()
     renderTextures.forEach((rt) => rt.destroy()) // or reuse...
     renderTextures = []
@@ -189,56 +201,63 @@ async function restart() {
     </div>
 {/if}
 
-<div class="row">
-    <label>
-        <span>columns:</span>
-        <input
-            disabled={busy}
-            type="number"
-            bind:value={columns}
-            name="columns"
-            min="1"
-            max="40"
-            step="1"
-        />
-    </label>
-    <label>
-        <span>steps:</span>
-        <input
-            type="number"
-            bind:value={steps}
-            name="steps"
-            min="0"
-            max="10000"
-            step="1"
-        />
-    </label>
-    <label>
-        <input type="checkbox" bind:checked={filtering} />
-        <span>filter boring</span>
-    </label>
-    <div class="spacer"></div>
-    <!-- <button onclick={onGenerate} disabled={busy}>Generate!</button> "disabled" steals keyboard focus... -->
-    <button onclick={onGenerate} class:busy>Generate!</button>
-    <button onclick={onLarge} class:busy>Large</button>
-</div>
-
-{#if lastError}
+<div bind:this={fullscreenDiv} class="fullscreenDiv" class:isFullscreen>
     <div class="row">
-        <span class="error" title={lastError}>
-            {lastError}
-        </span>
+        <label>
+            <span>columns:</span>
+            <input
+                disabled={busy}
+                type="number"
+                bind:value={columns}
+                name="columns"
+                min="1"
+                max="40"
+                step="1"
+            />
+        </label>
+        <label>
+            <span>steps:</span>
+            <input
+                type="number"
+                bind:value={steps}
+                name="steps"
+                min="0"
+                max="10000"
+                step="1"
+            />
+        </label>
+        <label>
+            <input type="checkbox" bind:checked={filtering} />
+            <span>filter boring</span>
+        </label>
+        <div class="spacer"></div>
+        <button onclick={onGenerate} class:busy>Generate!</button>
+        <div class="spacer-grow"></div>
+        <button
+            title="fullscreen"
+            aria-label="fullscreen"
+            onclick={onFullscreenButton}
+            class="fas fa-up-right-and-down-left-from-center"
+        ></button>
     </div>
-{/if}
 
-<div class="canvasContainer" class:large bind:this={canvasContainer}></div>
+    {#if lastError}
+        <div class="row">
+            <span class="error" title={lastError}>
+                {lastError}
+            </span>
+        </div>
+    {/if}
+
+    <div class="canvasContainer" bind:this={canvasContainer}></div>
+</div>
 
 <style lang="scss">
 .row {
     display: flex;
     gap: 0.5rem;
-    align-items: center;
-    padding-bottom: 0.3em;
+    /* padding-bottom: 0.3em; */
+    margin-bottom: 0.3em;
     input[type='range'] {
         flex-grow: 1;
     }
@@ -246,17 +265,22 @@ async function restart() {
         padding-top: 0.1rem;
         padding-bottom: 0.1rem;
     }
+    align-content: space-between;
 }
+
+.fullscreenDiv {
+    display: flex;
+    flex-direction: column;
+    background-color: #ccc;
+}
+.fullscreenDiv.isFullscreen .row {
+    margin: 0.3em;
+}
+
 .canvasContainer {
+    height: 38rem;
+    flex-grow: 1;
     background-color: #2e170e;
-    height: 800px;
-    max-width: 45rem;
-    width: 100%;
-}
-.canvasContainer.large {
-    width: 95vw;
-    height: 130vh;
-    max-width: inherit;
 }
 
 button {
@@ -269,6 +293,9 @@ button {
 }
 .spacer {
     width: 0.5rem;
+}
+.spacer-grow {
+    flex-grow: 1;
 }
 textarea {
     width: 100%;
