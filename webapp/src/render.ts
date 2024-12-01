@@ -43,7 +43,7 @@ export function renderSim(
     let hexSizeInner: number
     if (detailed) {
         let border = hexSize * 0.08
-        border = Math.ceil(border / (1/4)) * (1/4)
+        border = Math.ceil(border / (1 / 4)) * (1 / 4)
         hexSizeInner = hexSize - border
     } else {
         hexSizeInner = hexSize
@@ -106,14 +106,14 @@ export function renderSim(
         }
     }
 
-    let t = 0
-    app.ticker.add(() => {
-        t += 0.05
-        // grid.scale = 1.0 + 0.1 * Math.cos(t*.03)
-        // for (let child of grid.children) {
-        //     child.tint = { r: 80, g: 80, b: Math.round(Math.random() * 65) }
-        // }
-    })
+    // let t = 0
+    // app.ticker.add(() => {
+    //     t += 0.05
+    //     grid.scale = 1.0 + 0.1 * Math.cos(t*.03)
+    //     for (let child of grid.children) {
+    //         child.tint = { r: 80, g: 80, b: Math.round(Math.random() * 65) }
+    //     }
+    // })
 
     // FIXME: change API such that this is not needed
     viewport.free()

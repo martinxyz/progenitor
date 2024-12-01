@@ -74,7 +74,8 @@ export const rules: Rule[] = [
     {
         label: 'growth',
         create: () => progenitor.demo_growth(),
-        create_with_config: (config: any) => progenitor.demo_growth_with_config(JSON.stringify(config)),
+        create_with_config: (config: any) =>
+            progenitor.demo_growth_with_config(JSON.stringify(config)),
         default_config: JSON.parse(progenitor.demo_growth_default_config()),
         multiple: true,
         default: true,

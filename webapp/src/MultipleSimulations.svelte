@@ -10,7 +10,7 @@ import {
     Rectangle,
     Container,
 } from 'pixi.js'
-import { onMount } from 'svelte'
+import { onMount, onDestroy } from 'svelte'
 
 let { rule }: { rule: Rule } = $props()
 
@@ -45,11 +45,30 @@ onMount(async () => {
     onGenerate()
 })
 
+let renderTextures: RenderTexture[] = []
+function destroyScene() {
+    renderTextures.forEach((rt) => rt.destroy(true)) // or reuse them...?
+    renderTextures = []
+
+    for (let child of app.stage.children) {
+        child.destroy(true)
+    }
+    app.stage.removeChildren()
+
+    // FIXME: with columns=33 we are still leaking some ~100 MB on JS heap per restart (most
+    // inside some ArrayBuffer)
+}
+
+onDestroy(() => {
+    destroyScene()
+    app.destroy(true)
+})
+
 function onGenerate() {
     if (busy) return
     busy = true
     lastError = ''
-    app.stage.removeChildren()
+    app.stage.removeChildren() // or destroy?
     setTimeout(async () => {
         try {
             await restart()
@@ -74,12 +93,7 @@ async function onFullscreenButton() {
         isFullscreen = false
     }
 }
-$effect(() => {
-    // event not available on all browsers
-    document.addEventListener('fullscreenchange', onFullscreenChange)
-    return () =>
-        document.removeEventListener('fullscreenchange', onFullscreenChange)
-})
+// event not available on all browsers
 async function onFullscreenChange() {
     let isFullscreenOld = isFullscreen
     isFullscreen = document.fullscreenElement === fullscreenDiv
@@ -90,12 +104,9 @@ async function onFullscreenChange() {
     onGenerate()
 }
 
-let renderTextures: RenderTexture[] = []
 async function restart() {
+    destroyScene()
     app.resize() // resize event does not trigger for "fullscreen" button
-    app.stage.removeChildren()
-    renderTextures.forEach((rt) => rt.destroy()) // or reuse...
-    renderTextures = []
     let tileSize = Math.floor(app.screen.width / columns)
     if (tileSize < 8) tileSize = 8
     let rows = Math.floor((columns / app.screen.width) * app.screen.height)
@@ -108,10 +119,10 @@ async function restart() {
     container.x = app.screen.width / 2
     container.y = app.screen.height / 2
 
+    let stepsSinceLastFrame = 0
+
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < columns; col++) {
-            await new Promise((resolve) => requestAnimationFrame(resolve))
-
             let sim!: ProgenitorSimulation
             for (let i = 0; i < 15; i++) {
                 if (rule.create_with_config) {
@@ -121,6 +132,12 @@ async function restart() {
                 }
 
                 sim.steps(steps) // this is what takes most time
+
+                stepsSinceLastFrame += steps
+                if (stepsSinceLastFrame > 1000) {
+                    await new Promise(requestAnimationFrame)
+                    stepsSinceLastFrame = 0
+                }
 
                 if (filtering) {
                     let viewport = sim.viewport_hint()
@@ -150,13 +167,18 @@ async function restart() {
                 target,
                 transform: Matrix.IDENTITY.clone(),
             })
+            simContainer.destroy({
+                children: true,
+                texture: true,
+                textureSource: true,
+            }) // or reuse?
             let x = col * tileSize + tileSize / 2
             let y = row * tileSize + tileSize / 2
 
             let sprite = new Sprite({ texture: target, x, y })
             sprite.anchor = 0.5
             sprite.eventMode = 'static'
-            sprite.cursor = 'pointer'
+            // sprite.cursor = 'pointer'
             sprite.hitArea = new Rectangle(
                 -tileSize / 2,
                 -tileSize / 2,
@@ -180,6 +202,8 @@ async function restart() {
     }
 }
 </script>
+
+<svelte:document onfullscreenchange={onFullscreenChange} />
 
 <label class="row" style="display:none;">
     <span>
