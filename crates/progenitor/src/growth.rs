@@ -22,8 +22,19 @@ const MAX_CELL_TYPES: u8 = 8;
 const GROWTH_REQURIEMENT: u16 = 12;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
+pub enum Symmetry {
+    Unidirectional,
+    Broad,
+    Bidirectional,
+    Triangular,
+    Angled,
+    Full,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Configuration {
     initial_energy: u16,
+    initial_symmetry: Symmetry,
     cell_types: u8,
     max_flow: u8,
     flow_swap: bool,
@@ -34,8 +45,9 @@ impl Default for Configuration {
     fn default() -> Self {
         Self {
             initial_energy: 8000,
+            initial_symmetry: Symmetry::Broad,
             cell_types: 6,
-            max_flow: 9,
+            max_flow: 12,
             flow_swap: false,
             grow_prob: 0.97,
         }
@@ -150,9 +162,20 @@ impl GrowthSim {
                     Cell {
                         rule: 1,
                         energy: config.initial_energy,
-                        connections: DirectionSet::single(Direction::West)
-                            .with(Direction::NorthEast, true)
-                            .with(Direction::SouthEast, true),
+                        connections: match config.initial_symmetry {
+                            Symmetry::Unidirectional => DirectionSet::single(Direction::West),
+                            Symmetry::Broad => DirectionSet::single(Direction::West)
+                                .with(Direction::NorthWest, true),
+                            Symmetry::Angled => DirectionSet::single(Direction::West)
+                                .with(Direction::NorthEast, true),
+                            Symmetry::Bidirectional => {
+                                DirectionSet::single(Direction::West).with(Direction::East, true)
+                            }
+                            Symmetry::Triangular => DirectionSet::single(Direction::West)
+                                .with(Direction::NorthEast, true)
+                                .with(Direction::SouthEast, true),
+                            Symmetry::Full => DirectionSet::all(),
+                        },
                     }
                 } else {
                     Cell::EMPTY
@@ -228,8 +251,8 @@ impl Simulation for GrowthSim {
                 // Energy transfer happens between two cells. It is based only
                 // on information that both cells can see. To keep things
                 // simple, we allow a cell to transfer energy away only if it
-                // could transfer the same amount to all 6 neighbours, otherwise
-                // it could transfer more than it has.
+                // could transfer the same amount to all 6 neighbours, so
+                // it cannot transfer more than it has.
                 //
                 let mut energy_transfer: i32 = 0;
                 let center = neighbourhood.center;
@@ -240,7 +263,13 @@ impl Simulation for GrowthSim {
                         let flow1 =
                             center_rule.flow(center.connections, -dir, self.config.flow_swap);
                         let flow2 = neigh_rule.flow(neigh.connections, dir, self.config.flow_swap);
-                        u8::min(flow1, flow2)
+                        // u8::min(flow1, flow2)  // okay
+                        // u8::max(flow1, flow2)  // slightly worse, I think
+                        // ((flow1 as u16 + flow2 as u16) / 2) as u8  // okay
+                        // ((flow1 as i16 + flow2 as i16) - 4).clamp(0, 255) as u8  // interesting!
+                        ((flow1 as i16 + flow2 as i16) - 7).clamp(0, 255) as u8  // interesting! (some pretty cool ones) (kind-of ReLU?)
+                        // u8::saturating_sub(flow1, flow2) // wrong (has to be symmetric)
+                        // 2  // very boring (circles only)
                     };
 
                     let energy1 = center.energy;
