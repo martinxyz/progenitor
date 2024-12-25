@@ -56,8 +56,9 @@ export const rules: Rule[] = [
         create: () => progenitor.demo_tumblers(),
     },
     {
-        label: 'builders (random nn)',
-        create: () => progenitor.demo_builders_random(),
+        label: 'hive',
+        create: () => progenitor.demo_hive(),
+        default: true,
     },
     {
         label: 'builders (optimized nn)',
@@ -78,7 +79,6 @@ export const rules: Rule[] = [
             progenitor.demo_growth_with_config(JSON.stringify(config)),
         default_config: JSON.parse(progenitor.demo_growth_default_config()),
         multiple: true,
-        default: true,
     },
 ]
 

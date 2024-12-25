@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
-use progenitor::{builders, falling_sand, growth, pairs, sunburn, tumblers, turing};
+use progenitor::{builders, falling_sand, growth, hive, pairs, sunburn, tumblers, turing};
 
 #[wasm_bindgen]
 pub fn demo_falling_sand() -> JsSimulation {
@@ -66,9 +66,13 @@ pub fn demo_growth_default_config() -> String {
 }
 #[wasm_bindgen]
 pub fn demo_growth_with_config(config: &str) -> Result<JsSimulation, JsValue> {
-    let config: growth::Configuration = serde_json::from_str(config).map_err(|e| {
-        JsValue::from(format!("Could not parse Configuration:\n {}", e))
-    })?;
+    let config: growth::Configuration = serde_json::from_str(config)
+        .map_err(|e| JsValue::from(format!("Could not parse Configuration:\n {}", e)))?;
     Ok(config.into_simulation().into())
     // serde_wasm_bindgen::from_value(object)  // advantage: also deserializes arrays, hashmaps, etc. (but slower, and dependency)
+}
+
+#[wasm_bindgen]
+pub fn demo_hive() -> JsSimulation {
+    hive::new().into()
 }

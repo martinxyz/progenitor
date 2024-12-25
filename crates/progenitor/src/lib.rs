@@ -6,6 +6,7 @@ pub mod coords;
 pub use coords::{Direction, DirectionSet, Neighbourhood};
 mod hexgrid_view;
 mod simulation;
+mod tiled;
 pub use hexgrid_view::{CellView, HexgridView};
 pub use simulation::Simulation;
 
@@ -24,6 +25,7 @@ mod independent_pairs;
 pub mod builders;
 pub mod falling_sand;
 pub mod growth;
+pub mod hive;
 pub mod pairs;
 pub mod sim1;
 pub mod sunburn;
