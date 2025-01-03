@@ -31,8 +31,8 @@ let viewportRow = 0
 
 let canvas: HTMLCanvasElement
 let overlayCanvas: HTMLCanvasElement
-let cursorHover: HexType | null = null
-let cursorSelected: HexType | null = null
+let cursorHover: HexType | null = $state(null)
+let cursorSelected: HexType | null = $state(null)
 $effect(() => renderCursors(cursorSelected, cursorHover))
 let cursor = $derived<HexType | null>(cursorSelected || cursorHover)
 let cellText = $derived(
