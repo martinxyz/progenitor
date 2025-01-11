@@ -179,10 +179,17 @@ pub struct DirectionSet {
 
 impl DirectionSet {
     pub const fn none() -> Self {
-        DirectionSet { mask: 0 }
+        DirectionSet { mask: 0b00000000 }
     }
     pub const fn all() -> Self {
-        DirectionSet { mask: (1 << 6) - 1 }
+        DirectionSet { mask: 0b00111111 }
+    }
+    pub fn from_bits(mask: u8) -> Self {
+        assert_eq!(mask & 0b11000000, 0);
+        Self { mask }
+    }
+    pub fn bits(&self) -> u8 {
+        self.mask
     }
     pub const fn single(dir: Direction) -> Self {
         DirectionSet {
@@ -219,6 +226,12 @@ impl DirectionSet {
     #[must_use]
     pub fn transmuted(&self, transmute: impl Fn(Direction) -> Direction) -> Self {
         DirectionSet::matching(|dir| self.contains(transmute(dir)))
+    }
+    #[must_use]
+    pub fn swapped(&self, dir1: Direction, dir2: Direction) -> Self {
+        let has1 = self.contains(dir1);
+        let has2 = self.contains(dir2);
+        self.with(dir1, has2).with(dir2, has1)
     }
     pub fn count(&self) -> u8 {
         self.mask.count_ones() as u8
@@ -359,6 +372,13 @@ impl<T: Copy> Neighbourhood<T> {
     //         right: n[(i + 1) % 6],
     //     })
     // }
+
+    pub fn map<T2: Copy>(&self, f: impl Fn(T) -> T2) -> Neighbourhood<T2> {
+        Neighbourhood {
+            center: f(self.center),
+            neighbours: self.neighbours.map(f),
+        }
+    }
 }
 
 impl<T: Copy> Neighbourhood<Option<T>> {

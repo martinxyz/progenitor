@@ -105,6 +105,14 @@ impl<CellT: Copy> AxialTile<CellT> {
         self.data.iter_mut()
     }
 
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
     pub fn area(&self) -> i32 {
         self.width * self.height
     }
@@ -146,6 +154,13 @@ impl<CellT: Copy> AxialTile<CellT> {
     pub fn iter_valid_neighbourhoods(&self) -> impl Iterator<Item = Neighbourhood<CellT>> + '_ {
         (1..self.height - 1)
             .flat_map(move |r| (1..self.width - 1).map(move |q| self.neighbourhood_rq(r, q)))
+    }
+
+    /// Transform all cells
+    pub fn map<Cell2: Copy>(&self, mut rule: impl FnMut(CellT) -> Cell2) -> AxialTile<Cell2> {
+        AxialTile::new_internal(self.width, self.height, || {
+            self.data.iter().map(|item| rule(*item)).collect()
+        })
     }
 
     /// Cellular automaton step

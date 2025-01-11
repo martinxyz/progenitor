@@ -47,7 +47,7 @@ let cellText = $derived(
         : null,
 )
 
-let showEnergy = $state(false)
+let showEnergy = $state(true)
 let showDirection = $state(true)
 
 let ctx: CanvasRenderingContext2D

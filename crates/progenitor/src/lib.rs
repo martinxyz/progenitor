@@ -4,6 +4,8 @@ extern crate num_derive;
 // foundation
 pub mod coords;
 pub use coords::{Direction, DirectionSet, Neighbourhood};
+mod bit_particles;
+use bit_particles::BitParticles;
 mod hexgrid_view;
 mod simulation;
 mod tiled;

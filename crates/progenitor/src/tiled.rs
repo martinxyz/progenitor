@@ -1,5 +1,4 @@
-use hex2d::Coordinate;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{coords, AxialTile};
 
@@ -31,7 +30,11 @@ impl TiledMap {
 
         for row in 0..layer.width {
             for col in 0..layer.height {
-                let pos: coords::Cube = coords::Offset { col: col + pad, row }.into();
+                let pos: coords::Cube = coords::Offset {
+                    col: col + pad,
+                    row,
+                }
+                .into();
                 if map.valid(pos) {
                     map.set_cell(
                         pos,
