@@ -24,7 +24,7 @@ impl BitParticles {
     pub fn resting(&self) -> u8 {
         (self.0 & 0b11000000).count_ones() as u8
     }
-    pub fn ca_step(nh: Neighbourhood<Self>) -> Self {
+    pub fn collect_neighbours(nh: Neighbourhood<Self>) -> Self {
         let incoming = DirectionSet::matching(|dir| nh[-dir].outgoing().contains(dir));
         let resting = nh.center.0 & 0b11000000;
         Self(resting | incoming.bits())
