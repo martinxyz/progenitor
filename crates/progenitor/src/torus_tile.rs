@@ -124,8 +124,8 @@ impl<CellT: Copy> TorusTile<CellT> {
         }
     }
 
-    /// For convolution-like operations
     /*
+    /// For convolution-like operations
     pub fn mutate_with_radius_1<F>(&mut self, mut f: F)
     where
         // note to self: I think FnMut instead of Fn implies that we should

@@ -382,7 +382,7 @@ impl<T: Copy> Neighbourhood<T> {
 }
 
 impl<T: Copy> Neighbourhood<Option<T>> {
-    pub fn valid_only(&self) -> Option<Neighbourhood<T>> {
+    pub fn try_unwrap_all(&self) -> Option<Neighbourhood<T>> {
         Some(Neighbourhood {
             center: self.center?,
             neighbours: [

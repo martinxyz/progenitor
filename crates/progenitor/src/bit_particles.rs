@@ -47,9 +47,9 @@ impl BitParticles {
     }
     pub fn shuffle8_cheap(&mut self, rng: &mut impl Rng) {
         let mut rnd: u8 = rng.gen();
-        let idx1 = (rnd as u8) & 0b111;
+        let idx1 = rnd & 0b111;
         rnd >>= 4;
-        let idx2 = (rnd as u8) & 0b111;
+        let idx2 = rnd & 0b111;
         let bit1 = (self.0 & (1 << idx1)) != 0;
         let bit2 = (self.0 & (1 << idx2)) != 0;
 
@@ -70,6 +70,16 @@ impl BitParticles {
             if bit1 != bit2 {
                 self.0 ^= (1 << idx1) | (1 << idx2);
             }
+        }
+    }
+    pub fn swap_random_neighbours(&mut self, rng: &mut impl Rng) {
+        let idx1 = ((rng.gen::<u32>() as u64 * 6) >> 32) as u8;
+        let idx2 = if idx1 == 5 { 0 } else { idx1 + 1 };
+
+        let bit1 = (self.0 & (1 << idx1)) != 0;
+        let bit2 = (self.0 & (1 << idx2)) != 0;
+        if bit1 != bit2 {
+            self.0 ^= (1 << idx1) | (1 << idx2);
         }
     }
 }

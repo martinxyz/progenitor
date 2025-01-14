@@ -208,7 +208,7 @@ impl GrowthSim {
 impl Simulation for GrowthSim {
     fn step(&mut self) {
         self.state = self.state.ca_step(None, |neighbourhood| {
-            let Some(neighbourhood) = neighbourhood.valid_only() else {
+            let Some(neighbourhood) = neighbourhood.try_unwrap_all() else {
                 return neighbourhood.center;
             };
             if neighbourhood.center.rule == 0 {

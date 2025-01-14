@@ -3,10 +3,10 @@ enum Cell {
     Border,
     Air,
     Wall,
-    Hive,
+    Seed,
     Worker,
-    Plant,
-    Fruit,
+    Object1,
+    Object2,
 }
 use std::fmt::Debug;
 
@@ -54,19 +54,26 @@ pub fn new() -> HiveSim {
         0 => Border,
         2 => Wall,
         6 => Air,
-        10 => Hive,
-        13 => Plant,
-        16 => Fruit,
+        10 => Seed,
+        13 => Object1,
+        16 => Object2,
         _ => Border,
     });
     let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+    let mut vapour_init = BitParticles::EMPTY;
+    // vapour_init.set_resting(2);
+    vapour_init.set_outgoing(DirectionSet::single(Direction::West));
     let map = map.map(|cell| Hex {
         cell,
         humidity: match cell {
-            Plant => rng.gen_range(0..=255),
+            Object1 => rng.gen_range(0..=255),
             _ => 0,
         },
-        vapour: BitParticles::EMPTY,
+        vapour: if matches!(cell, Air) {
+            vapour_init
+        } else {
+            BitParticles::EMPTY
+        },
     });
 
     HiveSim { hexes: map, rng }
@@ -81,37 +88,61 @@ impl Simulation for HiveSim {
             hex.vapour = BitParticles::ca_step(nh.map(|h| h.vapour));
             match hex.cell {
                 Border | Wall => hex.vapour.reflect_all(),
-                Plant => {
-                    hex.vapour.set_outgoing(DirectionSet::all());
+                Object1 => {
+                    hex.vapour.set_outgoing(DirectionSet::none());
                 }
                 _ => {
                     // sometimes leak resting vapour particles
                     // if hex.vapour.resting() == 2 {
-                    //     hex.vapour.set_resting(1);
+                    //     if self.rng.gen::<u8>() < 100 {
+                    //         hex.vapour.set_resting(1);
+                    //     }
                     // }
+                    // if hex.vapour.resting() == 0 {
+                    // if self.rng.gen::<u8>() < 10 {
+                    //     hex.vapour.set_resting(0);
+                    // }
+                    // }
+                    if self.rng.gen::<u8>() < 200 {
+                        hex.vapour.set_resting(1);
+                    } else {
+                        if hex.vapour.resting() == 1 {
+                            hex.vapour.set_resting(0);
+                        }
+                    }
+
+                    if self.rng.gen::<u8>() < 3 {
+                        hex.vapour.shuffle8_cheap(&mut self.rng);
+                        // hex.vapour.swap_random_neighbours(&mut self.rng);
+                    }
 
                     // random walk (more or less)
-                    hex.vapour.shuffle8_cheap_4x(&mut self.rng);
-                    // hex.vapour.shuffle8_cheap(&mut self.rng);
+                    // hex.vapour.shuffle8_cheap_4x(&mut self.rng);
 
-                    // slight downwards bias
-                    use Direction::*;
-                    // if hex.vapour.outgoing().contains(NorthEast) || hex.vapour.outgoing().contains(NorthWest) {
-                    //     hex.vapour.shuffle8_cheap(&mut self.rng);
+                    // if self.rng.gen::<u8>() < 10 {
+                    //     hex.vapour.swap_random_neighbours(&mut self.rng);
                     // }
+
+                    use Direction::*;
 
                     // strong downwards bias
                     let mut o = hex.vapour.outgoing();
-                    if o.contains(NorthEast) {
-                        o = o.swapped(NorthEast, East)
-                    } else if !o.contains(SouthEast) {
-                        o = o.swapped(SouthEast, East)
+                    o = o.swapped(SouthWest, SouthEast); // straight down (zig-zag)
+                    o = o.swapped(NorthWest, NorthEast); // straight up
+
+                    if self.rng.gen::<u8>() < 250 {
+                        if o.contains(NorthEast) {
+                            o = o.swapped(NorthEast, East)
+                        } else if !o.contains(SouthEast) {
+                            o = o.swapped(SouthEast, East)
+                        }
+                        if o.contains(NorthWest) {
+                            o = o.swapped(NorthWest, West)
+                        } else if !o.contains(SouthWest) {
+                            o = o.swapped(SouthWest, West)
+                        }
                     }
-                    if o.contains(NorthWest) {
-                        o = o.swapped(NorthWest, West)
-                    } else if !o.contains(SouthWest) {
-                        o = o.swapped(SouthWest, West)
-                    }
+
                     hex.vapour.set_outgoing(o);
                 }
             }
@@ -175,14 +206,14 @@ impl HexgridView for HiveSim {
             Border => return None,
             Air => 2,
             Wall => 4,
-            Hive => 5,
+            Seed => 5,
             Worker => 0,
-            Plant => 3,
-            Fruit => 1,
+            Object1 => 3,
+            Object2 => 1,
         };
         Some(CellView {
             cell_type,
-            energy: Some(hex.vapour.count() * 2),
+            energy: Some(hex.vapour.outgoing().count() * 2),
             // energy: Some(hex.humidity),
             ..Default::default()
         })

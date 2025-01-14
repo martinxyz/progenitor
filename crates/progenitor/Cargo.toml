@@ -36,12 +36,18 @@ indicatif = { version = "0.17.7", features = ["rayon"] }
 
 [lints.rust]
 unsafe_code = "forbid"
+dead_code = "allow"  # useful, except when prototyping different variants of a feature
 
 [lints.clippy]
-# those are a bit pedantic (some of them even hurt readability, IMO)
+# Those are a bit pedantic. Some even hurt readability, IMO. Others are simply
+# not important enough to fix them multiple times during prototying.
 new_without_default = "allow"
 match_like_matches_macro = "allow"
 manual_range_patterns = "allow"
+comparison_chain = "allow"
 collapsible_if = "allow"
+collapsible_else_if = "allow"
 let_and_return = "allow"
 identity_op = "allow"  # I'll multiply by one whenever I like!
+# Just disable all style hints?
+# style = "allow"
