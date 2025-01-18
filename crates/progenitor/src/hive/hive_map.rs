@@ -81,9 +81,9 @@ pub enum Symmetry {
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            initial_energy: 8000,
+            initial_energy: 200,
             initial_symmetry: Symmetry::Broad,
-            cell_types: 2,
+            cell_types: 4,
             max_flow: 12,
             flow_swap: false,
             grow_prob: 0.97,
@@ -224,6 +224,15 @@ impl Simulation for HiveSim {
                 let mut energy: i32 = center_p.energy.into();
                 energy += energy_transfer;
                 assert!(energy >= 0);
+
+                if self.rng.gen::<u8>() < 10 {
+                    energy += hex.vapour.outgoing().count() as i32 * 10;
+                    hex.vapour.set_outgoing(DirectionSet::none());
+                } else if hex.vapour.count() > 3 {
+                    energy -= 5;
+                }
+                energy -= 1;
+
                 let energy = energy.clamp(0, 0xFFFF) as u16;
                 hex.cell = Plant(PlantCell { energy, ..center_p })
             } else if matches!(nh.center.cell, Air) {
