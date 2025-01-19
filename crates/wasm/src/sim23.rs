@@ -86,5 +86,5 @@ pub fn measure_hive(seed: u64) -> Vec<f32> {
     let m1 = sim.measure_size();
     sim.steps(300 - 50);
     let m2 = sim.measure_size();
-    [m1, m2].into()
+    [m2, m1].into()
 }
