@@ -6,7 +6,7 @@ import wasm from 'vite-plugin-wasm'
 export default defineConfig({
     plugins: [
         // hot-reload breaks when the wasm module got recompiled
-        svelte({ hot: false }),
+        svelte({ compilerOptions: {hmr : false} }),
         wasm(),
     ],
     base: '',
