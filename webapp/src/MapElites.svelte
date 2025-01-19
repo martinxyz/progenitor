@@ -1,10 +1,10 @@
 <script lang="ts">
 import type { Rule } from './simulation'
 import * as progenitor from 'progenitor'
-import { onMount } from 'svelte'
-import { archive_bin, archive_cols, archive_rows, type Solution } from './archive'
+import { onDestroy, onMount } from 'svelte'
+import { type Archive, archive_cols, archive_rows, extend_archive, type Solution } from './archive'
 
-let map_bins: (Solution | null)[] = $state(Array(archive_rows * archive_cols).fill(null))
+let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
 
 let {
     selectHandler = () => {},
@@ -15,22 +15,38 @@ let {
 $effect(() => {
 })
 
+const workers: Worker[] = []
+
+let total_evals = $state(0)
+function onWorkerMessage(this: Worker, ev: MessageEvent<Archive | null>) {
+    if (ev.data) {
+        total_evals += 10
+        extend_archive(map_bins, ev.data)
+    } else {
+        this.postMessage(null)  // post a second one so it doesn't wait for us to sync?
+    }
+    if (total_evals < 10_000) {
+        // workers[0].postMessage($state.snapshot(map_bins))
+        this.postMessage(null)
+    }
+}
+
 onMount(() => {
-    setTimeout(evolve, 300)
+    const threads = navigator.hardwareConcurrency;
+    console.log('starting', threads, 'worker threads');
+    for (let thread = 0; thread < threads; thread++) {
+        let worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module'})
+        workers.push(worker)
+        worker.onmessage = onWorkerMessage
+    }
 })
 
-let evolve_step = 0n
-function evolve() {
-    evolve_step += 1n
-    let measures = progenitor.measure_hive(evolve_step)
-    console.log('measure_hive', evolve_step, progenitor.measure_hive(evolve_step))
-    let solution = { seed: evolve_step, measures }
-    let bin = archive_bin(solution)
-    if (!map_bins[bin]) {
-        map_bins[bin] = solution
+onDestroy(() => {
+    console.log('destroying', workers.length, 'worker threads')
+    while (workers.length) {
+        workers.pop()!.terminate()
     }
-    setTimeout(evolve, 300)
-}
+})
 
 function loadbin(bin: bigint | null) {
     if (!bin) return
@@ -43,7 +59,9 @@ function loadbin(bin: bigint | null) {
     selectHandler(rule2)
 }
 </script>
-
+<div>
+    Total evals: {total_evals.toLocaleString()}  (worker threads: {workers.length})
+</div>
 <div class="table">
     {#each {length: archive_rows} as _, row}
         <div class="row">
