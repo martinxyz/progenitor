@@ -3,6 +3,7 @@ import SimulationPlayer from './SimulationPlayer.svelte'
 import RuleSelector from './RuleSelector.svelte'
 import Container from './Container.svelte'
 import MapSelector from './MapSelector.svelte'
+import MapElites from './MapElites.svelte'
 import Simulation, { rules } from './simulation'
 import type { Rule } from './simulation'
 import MultipleSimulations from './MultipleSimulations.svelte'
@@ -30,6 +31,11 @@ function onMapSelected(derivedRule: Rule) {
         {#if rule.load_map}
             <Container>
                 <MapSelector selectHandler={onMapSelected} {rule} />
+            </Container>
+        {/if}
+        {#if rule.map_elites}
+            <Container>
+                <MapElites selectHandler={onMapSelected} />
             </Container>
         {/if}
         {#if rule.multiple}

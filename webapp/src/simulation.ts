@@ -28,6 +28,7 @@ export interface Rule {
     create_with_config?: (config: any) => ProgenitorSimulation
     default_config?: any
     load_map?: string
+    map_elites?: boolean
     multiple?: boolean
     default?: boolean
 }
@@ -57,7 +58,8 @@ export const rules: Rule[] = [
     },
     {
         label: 'hive',
-        create: () => progenitor.demo_hive(),
+        create: () => progenitor.demo_hive(0n),
+        map_elites: true,
         default: true,
     },
     {

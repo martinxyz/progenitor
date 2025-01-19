@@ -4,8 +4,7 @@ use crate::{
     DirectionSet, HexgridView, SimRng, Simulation,
 };
 use hex2d::Angle;
-use rand::{thread_rng, Rng, SeedableRng};
-use rand_pcg::Pcg32;
+use rand::{thread_rng, Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use std::{array, fmt::Debug};
 use Cell::*;
@@ -83,7 +82,7 @@ impl Default for Configuration {
         Self {
             initial_energy: 200,
             initial_symmetry: Symmetry::Broad,
-            cell_types: 4,
+            cell_types: 6,
             max_flow: 12,
             flow_swap: false,
             grow_prob: 0.97,
@@ -137,42 +136,48 @@ impl CellType {
     }
 }
 
-pub fn new() -> HiveSim {
-    static JSON: &str = include_str!("../../../../maps/testmap.tmj");
-    let map = load_axial_tile_from_json(JSON, Border, |idx| match idx {
-        0 => Border,
-        2 => Wall,
-        6 => Air,
-        10 => Seed,
-        13 => Object1,
-        16 => Object2,
-        _ => Border,
-    });
-    let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
-    let mut vapour_init = BitParticles::EMPTY;
-    vapour_init.set_outgoing(DirectionSet::single(Direction::West));
-    let map = map.map(|cell| Hex {
-        cell,
-        vapour: if matches!(cell, Air) {
-            vapour_init
-        } else {
-            BitParticles::EMPTY
-        },
-    });
+impl HiveSim {
+    pub fn new() -> HiveSim {
+        Self::new_with_seed(thread_rng().next_u64())
+    }
 
-    let config = Configuration::default();
-    let rules = array::from_fn(|i| {
-        if i == 0 {
-            CellType::new_inert()
-        } else {
-            CellType::new_random(&mut rng, &config)
+    pub fn new_with_seed(seed: u64) -> HiveSim {
+        static JSON: &str = include_str!("../../../../maps/testmap.tmj");
+        let map = load_axial_tile_from_json(JSON, Border, |idx| match idx {
+            0 => Border,
+            2 => Wall,
+            6 => Air,
+            10 => Seed,
+            13 => Object1,
+            16 => Object2,
+            _ => Border,
+        });
+        let mut rng = SimRng::seed_from_u64(seed);
+        let mut vapour_init = BitParticles::EMPTY;
+        vapour_init.set_outgoing(DirectionSet::single(Direction::West));
+        let map = map.map(|cell| Hex {
+            cell,
+            vapour: if matches!(cell, Air) {
+                vapour_init
+            } else {
+                BitParticles::EMPTY
+            },
+        });
+
+        let config = Configuration::default();
+        let rules = array::from_fn(|i| {
+            if i == 0 {
+                CellType::new_inert()
+            } else {
+                CellType::new_random(&mut rng, &config)
+            }
+        });
+        HiveSim {
+            hexes: map,
+            rng,
+            config: Configuration::default(),
+            rules,
         }
-    });
-    HiveSim {
-        hexes: map,
-        rng,
-        config: Configuration::default(),
-        rules,
     }
 }
 
@@ -333,5 +338,14 @@ impl HexgridView for HiveSim {
 
     fn viewport_hint(&self) -> coords::Rectangle {
         self.hexes.viewport()
+    }
+}
+
+impl HiveSim {
+    pub fn measure_size(&self) -> f32 {
+        self.hexes
+            .iter_cells()
+            .filter(|h| matches!(h.cell, Plant(_)))
+            .count() as f32
     }
 }

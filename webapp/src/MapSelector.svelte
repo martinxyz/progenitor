@@ -1,5 +1,5 @@
 <script lang="ts">
-import { demo_turing, Snapshots } from 'progenitor'
+import { Snapshots } from 'progenitor'
 import type { Rule } from './simulation'
 
 let map_bins: Uint8Array[][] = $state([])
