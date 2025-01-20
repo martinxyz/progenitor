@@ -1,7 +1,13 @@
 <script lang="ts">
 import type { Rule } from './simulation'
 import { onDestroy, onMount } from 'svelte'
-import { type Archive, archive_cols, archive_rows, extend_archive, type Solution } from './archive'
+import {
+    type Archive,
+    archive_cols,
+    archive_rows,
+    extend_archive,
+    type Solution,
+} from './archive'
 
 let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
 
@@ -11,8 +17,7 @@ let {
     selectHandler: (rule: Rule) => void
 } = $props()
 
-$effect(() => {
-})
+$effect(() => {})
 
 const workers: Worker[] = []
 
@@ -22,7 +27,7 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<Archive | null>) {
         total_evals += 10
         extend_archive(map_bins, ev.data)
     } else {
-        this.postMessage(null)  // post a second one so it doesn't wait for us to sync?
+        this.postMessage(null) // post a second one so it doesn't wait for us to sync?
     }
     if (total_evals < 10_000) {
         // workers[0].postMessage($state.snapshot(map_bins))
@@ -31,10 +36,12 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<Archive | null>) {
 }
 
 onMount(() => {
-    const threads = navigator.hardwareConcurrency;
-    console.log('starting', threads, 'worker threads');
+    const threads = navigator.hardwareConcurrency
+    console.log('starting', threads, 'worker threads')
     for (let thread = 0; thread < threads; thread++) {
-        let worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module'})
+        let worker = new Worker(new URL('./worker.ts', import.meta.url), {
+            type: 'module',
+        })
         workers.push(worker)
         worker.onmessage = onWorkerMessage
     }
@@ -58,20 +65,26 @@ function loadbin(bin: bigint | null) {
     selectHandler(rule2)
 }
 </script>
+
 <div>
-    Total evals: {total_evals.toLocaleString()}  (worker threads: {workers.length})
+    Total evals: {total_evals.toLocaleString()} (worker threads: {workers.length})
 </div>
 <div class="table">
-    {#each {length: archive_rows} as _, row}
+    {#each { length: archive_rows } as _, row}
         <div class="row">
-            {#each {length: archive_cols} as _, col}
-                {@const bin = map_bins[col*archive_rows + row]}
+            {#each { length: archive_cols } as _, col}
+                {@const bin = map_bins[col * archive_rows + row]}
                 <div
                     class="cell"
                     class:full={bin != null}
-                    onclick={() => { if (bin) loadbin(bin.seed) }}
+                    onclick={() => {
+                        if (bin) loadbin(bin.seed)
+                    }}
                 >
-                    <div title={`${row}, ${col}, ${bin?.measures}`} class="inner"></div>
+                    <div
+                        title={`${row}, ${col}, ${bin?.measures}`}
+                        class="inner"
+                    ></div>
                 </div>
             {/each}
         </div>

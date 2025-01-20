@@ -6,7 +6,6 @@ import type { Viewport } from 'progenitor'
 import map_bins_url from '../assets/output/map_bins.dat?url'
 import turing_bins_url from '../assets/output/turing_bins.dat?url'
 
-
 export interface CellInfo {
     cell_type: number
     value1: number
