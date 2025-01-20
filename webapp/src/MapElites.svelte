@@ -1,6 +1,7 @@
 <script lang="ts">
 import type { Rule } from './simulation'
 import { onDestroy, onMount } from 'svelte'
+import * as progenitor from 'progenitor'
 import {
     type Archive,
     archive_cols,

@@ -1,4 +1,3 @@
-import './progenitor_wasm_init'
 import * as progenitor from 'progenitor'
 import {
     archive_bin,
@@ -7,6 +6,8 @@ import {
     type Archive,
     type Solution,
 } from './archive'
+
+import './progenitor_wasm_init'
 
 let map_bins: Archive = Array(archive_rows * archive_cols).fill(null)
 

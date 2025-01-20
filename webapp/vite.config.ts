@@ -16,6 +16,9 @@ export default defineConfig({
         sourcemap: true,
     },
     worker: {
-        format: 'es'
+        format: 'es',
+        plugins: () => [
+            wasm(),
+        ]
     }
 })

@@ -1,10 +1,11 @@
-import './progenitor_wasm_init'
 import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
 
 import map_bins_url from '../assets/output/map_bins.dat?url'
 import turing_bins_url from '../assets/output/turing_bins.dat?url'
+
+import './progenitor_wasm_init'
 
 export interface CellInfo {
     cell_type: number

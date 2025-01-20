@@ -37,7 +37,7 @@ Install [wasm-pack](https://rustwasm.github.io/wasm-pack/), e.g. `cargo install 
 
 ```bash
 cd crates/wasm
-wasm-pack build --target web
+wasm-pack build
 ```
 
 This will create a node package in the *pkg* directory.
