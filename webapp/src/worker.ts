@@ -1,4 +1,6 @@
+import './progenitor_wasm_init'
 import * as progenitor from 'progenitor'
+
 import {
     archive_bin,
     archive_cols,

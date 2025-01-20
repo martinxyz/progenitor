@@ -1,3 +1,4 @@
+import './progenitor_wasm_init'
 import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
@@ -5,15 +6,6 @@ import type { Viewport } from 'progenitor'
 import map_bins_url from '../assets/output/map_bins.dat?url'
 import turing_bins_url from '../assets/output/turing_bins.dat?url'
 
-// Required to see rust panic message and backtrace on JS console.
-// (Without it we only get the JS backtrace, saying "unreachable executed".)
-progenitor.set_panic_hook()
-
-if (progenitor.is_debug_build()) {
-    console.warn(
-        'the rust wasm module was built in debug mode and will run ~100x slower',
-    )
-}
 
 export interface CellInfo {
     cell_type: number
