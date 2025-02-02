@@ -75,16 +75,17 @@ pub fn demo_growth_with_config(config: &str) -> Result<JsSimulation, JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn demo_hive(seed: u64) -> JsSimulation {
-    HiveSim::new_with_seed(seed).into()
+pub fn demo_hive(seeds: &[u64]) -> JsSimulation {
+    HiveSim::new_with_seeds(seeds).into()
 }
 
 #[wasm_bindgen]
-pub fn measure_hive(seed: u64) -> Vec<f32> {
-    let mut sim = HiveSim::new_with_seed(seed);
+pub fn measure_hive(seeds: &[u64]) -> Vec<f32> {
+    let mut sim = HiveSim::new_with_seeds(seeds);
     sim.steps(50);
-    let m1 = sim.measure_size();
+    // let m1 = sim.measure_size();
     sim.steps(300 - 50);
-    let m2 = sim.measure_size();
-    [m2, m1].into()
+    let m1 = sim.measure_size();
+    let m2 = sim.measure_edges() / m1;
+    [m1, m2].into()
 }

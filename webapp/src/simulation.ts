@@ -50,7 +50,7 @@ export const rules: Rule[] = [
     },
     {
         label: 'hive',
-        create: () => progenitor.demo_hive(0n),
+        create: () => progenitor.demo_hive(new BigUint64Array([0n])),
         map_elites: true,
         default: true,
     },

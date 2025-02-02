@@ -82,7 +82,7 @@ impl Default for Configuration {
         Self {
             initial_energy: 200,
             initial_symmetry: Symmetry::Broad,
-            cell_types: 6,
+            cell_types: 8,
             max_flow: 12,
             flow_swap: false,
             grow_prob: 0.97,
@@ -138,10 +138,10 @@ impl CellType {
 
 impl HiveSim {
     pub fn new() -> HiveSim {
-        Self::new_with_seed(thread_rng().next_u64())
+        Self::new_with_seeds(&[thread_rng().next_u64()])
     }
 
-    pub fn new_with_seed(seed: u64) -> HiveSim {
+    pub fn new_with_seeds(seeds: &[u64]) -> HiveSim {
         static JSON: &str = include_str!("../../../../maps/testmap.tmj");
         let map = load_axial_tile_from_json(JSON, Border, |idx| match idx {
             0 => Border,
@@ -152,7 +152,7 @@ impl HiveSim {
             16 => Object2,
             _ => Border,
         });
-        let mut rng = SimRng::seed_from_u64(seed);
+        let mut rng = SimRng::seed_from_u64(seeds[0]);
         let mut vapour_init = BitParticles::EMPTY;
         vapour_init.set_outgoing(DirectionSet::single(Direction::West));
         let map = map.map(|cell| Hex {
@@ -165,13 +165,31 @@ impl HiveSim {
         });
 
         let config = Configuration::default();
-        let rules = array::from_fn(|i| {
+        let mut rules = array::from_fn(|i| {
             if i == 0 {
                 CellType::new_inert()
             } else {
                 CellType::new_random(&mut rng, &config)
             }
         });
+
+        // mutations
+        let mutation_prob = 0.5 / (rules.len() as f32);
+        for &seed2 in &seeds[1..] {
+            let mut rng = SimRng::seed_from_u64(seed2);
+            for rule in rules[1..].iter_mut() {
+                if rng.gen_bool(mutation_prob.into()) {
+                    *rule = CellType::new_random(&mut rng, &config)
+                } else {
+                    for j in 0..8 {
+                        if rng.gen_bool(mutation_prob.into()) {
+                            rule.flow[j] = (rule.flow[j] as i32 + rng.gen_range(-2..=2)).clamp(0, config.max_flow as i32) as u8
+                        }
+                    }
+                }
+            }
+        }
+
         HiveSim {
             hexes: map,
             rng,
@@ -347,5 +365,8 @@ impl HiveSim {
             .iter_cells()
             .filter(|h| matches!(h.cell, Plant(_)))
             .count() as f32
+    }
+    pub fn measure_edges(&self) -> f32 {
+        self.hexes.count_edges(|h| matches!(h.cell, Plant(_))) as f32
     }
 }
