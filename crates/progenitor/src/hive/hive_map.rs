@@ -183,7 +183,9 @@ impl HiveSim {
                 } else {
                     for j in 0..8 {
                         if rng.gen_bool(mutation_prob.into()) {
-                            rule.flow[j] = (rule.flow[j] as i32 + rng.gen_range(-2..=2)).clamp(0, config.max_flow as i32) as u8
+                            rule.flow[j] = (rule.flow[j] as i32 + rng.gen_range(-2..=2))
+                                .clamp(0, config.max_flow as i32)
+                                as u8
                         }
                     }
                 }
