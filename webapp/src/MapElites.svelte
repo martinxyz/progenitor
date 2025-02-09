@@ -47,7 +47,7 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<Archive | null>) {
         // post a second one so it doesn't wait for us to sync? (doesn't seem to help)
         // this.postMessage([])
     }
-    if (total_evals < 100_000) {
+    if (total_evals < 10_000_000) {
         // workers[0].postMessage($state.snapshot(map_bins))
         let solutions = []
         for (let i = 0; i < 50; i++) {

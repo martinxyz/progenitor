@@ -55,37 +55,25 @@ pub struct HiveSim {
     rules: [CellType; MAX_CELL_TYPES as usize],
 }
 const MAX_CELL_TYPES: u8 = 8;
-const GROWTH_REQURIEMENT: u16 = 12;
+const GROWTH_REQURIEMENT: u16 = 32;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Configuration {
     initial_energy: u16,
-    initial_symmetry: Symmetry,
     cell_types: u8,
     max_flow: u8,
     flow_swap: bool,
     grow_prob: f32,
 }
 
-#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
-pub enum Symmetry {
-    Unidirectional,
-    Broad,
-    Bidirectional,
-    Triangular,
-    Angled,
-    Full,
-}
-
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            initial_energy: 200,
-            initial_symmetry: Symmetry::Broad,
+            initial_energy: 350,
             cell_types: 8,
-            max_flow: 12,
+            max_flow: 30,
             flow_swap: false,
-            grow_prob: 0.97,
+            grow_prob: 0.1,
         }
     }
 }
@@ -153,8 +141,8 @@ impl HiveSim {
             _ => Border,
         });
         let mut rng = SimRng::seed_from_u64(seeds[0]);
-        let mut vapour_init = BitParticles::EMPTY;
-        vapour_init.set_outgoing(DirectionSet::single(Direction::West));
+        let vapour_init = BitParticles::EMPTY;
+        // vapour_init.set_outgoing(DirectionSet::single(Direction::West));
         let map = map.map(|cell| Hex {
             cell,
             vapour: if matches!(cell, Air) {
@@ -208,6 +196,7 @@ impl Simulation for HiveSim {
             hex.vapour = vapour::step(nh.map(|h| h.vapour));
             match hex.cell {
                 Border | Wall => hex.vapour.reflect_all(),
+                Plant(PlantCell { rule: 2, ..}) => hex.vapour.reflect_all(),
                 _ => vapour::apply_air_rules(&mut hex.vapour, &mut self.rng),
             }
 
@@ -250,16 +239,27 @@ impl Simulation for HiveSim {
                 energy += energy_transfer;
                 assert!(energy >= 0);
 
-                if self.rng.gen::<u8>() < 10 {
-                    energy += hex.vapour.outgoing().count() as i32 * 10;
-                    hex.vapour.set_outgoing(DirectionSet::none());
-                } else if hex.vapour.count() > 3 {
+                // if self.rng.gen::<u8>()< 20 {
+                if center_p.rule == 1 {
+                    energy += nh.neighbours.iter().map(|n| n.vapour.outgoing().count() as i32).sum::<i32>();
+                    energy += hex.vapour.outgoing().count() as i32;
+                    if self.rng.gen::<u8>() < 20 {
+                        hex.vapour.set_outgoing(DirectionSet::none());
+                    }
+                    // } else if hex.vapour.count() > 3 {
                     energy -= 5;
+                } else if self.rng.gen::<u8>() < 40 {
+                    energy -= 1;
                 }
-                energy -= 1;
 
-                let energy = energy.clamp(0, 0xFFFF) as u16;
-                hex.cell = Plant(PlantCell { energy, ..center_p })
+                if energy < 0 && self.rng.gen::<u8>() < 10 {
+                    // xxx violates "no transformations" rule... okay?
+                    hex.cell = Air;
+                } else {
+                    let energy = energy.clamp(0, 0xFFFF) as u16;
+                    hex.cell = Plant(PlantCell { energy, ..center_p })
+                }
+
             } else if matches!(nh.center.cell, Air) {
                 // no energy flow, but a neighbour may grow a cell here
                 let mut grow_into = 0;
@@ -296,25 +296,13 @@ impl Simulation for HiveSim {
             } else if matches!(hex.cell, Seed) {
                 hex.cell =
                     Plant(PlantCell {
-                        rule: 1,
+                        rule: 3,
                         energy: self.config.initial_energy,
-                        connections: match self.config.initial_symmetry {
-                            Symmetry::Unidirectional => DirectionSet::single(Direction::West),
-                            Symmetry::Broad => DirectionSet::single(Direction::West)
-                                .with(Direction::NorthWest, true),
-                            Symmetry::Angled => DirectionSet::single(Direction::West)
-                                .with(Direction::NorthEast, true),
-                            Symmetry::Bidirectional => {
-                                DirectionSet::single(Direction::West).with(Direction::East, true)
-                            }
-                            Symmetry::Triangular => DirectionSet::single(Direction::West)
-                                .with(Direction::NorthEast, true)
-                                .with(Direction::SouthEast, true),
-                            Symmetry::Full => DirectionSet::all(),
-                        },
+                        connections:
+                            // DirectionSet::single(Direction::West).with(Direction::NorthWest, true),
+                            DirectionSet::all()
                     })
             }
-
             hex
         });
     }
@@ -341,6 +329,8 @@ impl HexgridView for HiveSim {
             Object2 => 1,
             Plant(p) => match p.rule {
                 0 => 3,
+                1 => 5,
+                2 => 4,
                 _ => 1,
             },
         };

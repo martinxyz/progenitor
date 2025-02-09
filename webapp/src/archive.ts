@@ -15,7 +15,7 @@ export const archive_rows = 20
 export const archive_cols = 42
 
 const limits = [
-    { min: 70, max: 160 },
+    { min: 1, max: 160 },
     { min: 1.3, max: 3.8 },
 ]
 

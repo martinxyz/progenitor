@@ -82,10 +82,15 @@ pub fn demo_hive(seeds: &[u64]) -> JsSimulation {
 #[wasm_bindgen]
 pub fn measure_hive(seeds: &[u64]) -> Vec<f32> {
     let mut sim = HiveSim::new_with_seeds(seeds);
-    sim.steps(50);
-    // let m1 = sim.measure_size();
-    sim.steps(300 - 50);
-    let m1 = sim.measure_size();
-    let m2 = sim.measure_edges() / m1;
-    [m1, m2].into()
+    sim.steps(1000);
+    let mut m1 = 0.0;
+    let mut m2 = 0.0;
+    let n = 100;
+    for _ in 0..n {
+        sim.steps(10);
+        let size = sim.measure_size();
+        m1 += size;
+        m2 += sim.measure_edges() / size;
+    }
+    [m1/(n as f32), m2/(n as f32)].into()
 }
