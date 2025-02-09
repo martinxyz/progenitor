@@ -15,8 +15,8 @@ export const archive_rows = 20
 export const archive_cols = 42
 
 const limits = [
-    { min: 1, max: 160 },
-    { min: 1.3, max: 3.8 },
+    { min: 10, max: 200 },
+    { min: 1.3, max: 3.0 },
 ]
 
 export function archive_bin(solution: Solution) {
@@ -31,8 +31,10 @@ export function archive_bin(solution: Solution) {
 
 export function extend_archive(a: Archive, a2: Archive): void {
     a2.forEach((solution, idx) => {
-        if (!a[idx]) {
-            a[idx] = solution
+        if (solution) {
+            if (!a[idx] && Math.random() < 0.5) {
+                a[idx] = solution
+            }
         }
     })
 }

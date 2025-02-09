@@ -82,6 +82,7 @@ impl Default for Configuration {
 pub struct CellType {
     flow: [u8; 8],
     growth: [u8; 8],
+    gravity_bias: u8,
 }
 
 impl CellType {
@@ -89,12 +90,14 @@ impl CellType {
         Self {
             flow: [0; 8],
             growth: [0; 8],
+            gravity_bias: 0,
         }
     }
     fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
         Self {
             flow: array::from_fn(|_| rng.gen_range(0..=config.max_flow)),
             growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
+            gravity_bias: rng.gen(),
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
@@ -175,6 +178,9 @@ impl RainfallSim {
                                 .clamp(0, config.max_flow as i32)
                                 as u8
                         }
+                    }
+                    if rng.gen_bool(mutation_prob.into()) {
+                        rule.gravity_bias = rng.gen();
                     }
                 }
             }
@@ -270,9 +276,16 @@ impl Simulation for RainfallSim {
                 let mut grow_allowed = false;
                 for (dir, neigh) in nh.iter_dirs() {
                     let Plant(neigh_p) = neigh.cell else { continue };
-                    let neigh_grow_into =
-                        self.rules[neigh_p.rule as usize].grow_type(neigh_p.connections, -dir);
-                    let neigh_grow_allowed = neigh_p.energy >= GROWTH_REQURIEMENT;
+                    let growth_dir = -dir;
+                    let rule = &self.rules[neigh_p.rule as usize];
+                    let neigh_grow_into = rule.grow_type(neigh_p.connections, growth_dir);
+                    use Direction::*;
+                    let neigh_grow_allowed = match rule.gravity_bias % 8 {
+                        1 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, NorthWest | NorthEast),
+                        2 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, SouthWest | SouthEast),
+                        3 => neigh_p.energy >= GROWTH_REQURIEMENT && !matches!(growth_dir, NorthWest | NorthEast),
+                        _ => neigh_p.energy >= GROWTH_REQURIEMENT,
+                    };
                     if neigh_grow_into > grow_into {
                         // switch to higher priority rule
                         grow_into = neigh_grow_into;
