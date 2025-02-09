@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use crate::JsSimulation;
 
 use progenitor::{
-    builders, falling_sand, growth, hive::HiveSim, pairs, sunburn, tumblers, turing, Simulation,
+    builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers, turing, Simulation,
 };
 
 #[wasm_bindgen]
@@ -75,13 +75,13 @@ pub fn demo_growth_with_config(config: &str) -> Result<JsSimulation, JsValue> {
 }
 
 #[wasm_bindgen]
-pub fn demo_hive(seeds: &[u64]) -> JsSimulation {
-    HiveSim::new_with_seeds(seeds).into()
+pub fn demo_rainfall(seeds: &[u64]) -> JsSimulation {
+    RainfallSim::new_with_seeds(seeds).into()
 }
 
 #[wasm_bindgen]
-pub fn measure_hive(seeds: &[u64]) -> Vec<f32> {
-    let mut sim = HiveSim::new_with_seeds(seeds);
+pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
+    let mut sim = RainfallSim::new_with_seeds(seeds);
     sim.steps(1000);
     let mut m1 = 0.0;
     let mut m2 = 0.0;
@@ -92,5 +92,5 @@ pub fn measure_hive(seeds: &[u64]) -> Vec<f32> {
         m1 += size;
         m2 += sim.measure_edges() / size;
     }
-    [m1/(n as f32), m2/(n as f32)].into()
+    [m1 / (n as f32), m2 / (n as f32)].into()
 }

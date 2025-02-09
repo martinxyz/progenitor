@@ -48,7 +48,7 @@ const BORDER: Hex = Hex {
 };
 
 #[derive(Serialize, Deserialize)]
-pub struct HiveSim {
+pub struct RainfallSim {
     hexes: AxialTile<Hex>,
     rng: SimRng,
     config: Configuration,
@@ -124,12 +124,12 @@ impl CellType {
     }
 }
 
-impl HiveSim {
-    pub fn new() -> HiveSim {
+impl RainfallSim {
+    pub fn new() -> RainfallSim {
         Self::new_with_seeds(&[thread_rng().next_u64()])
     }
 
-    pub fn new_with_seeds(seeds: &[u64]) -> HiveSim {
+    pub fn new_with_seeds(seeds: &[u64]) -> RainfallSim {
         static JSON: &str = include_str!("../../../../maps/testmap.tmj");
         let map = load_axial_tile_from_json(JSON, Border, |idx| match idx {
             0 => Border,
@@ -180,7 +180,7 @@ impl HiveSim {
             }
         }
 
-        HiveSim {
+        RainfallSim {
             hexes: map,
             rng,
             config: Configuration::default(),
@@ -189,14 +189,14 @@ impl HiveSim {
     }
 }
 
-impl Simulation for HiveSim {
+impl Simulation for RainfallSim {
     fn step(&mut self) {
         self.hexes = self.hexes.ca_step(BORDER, |nh| {
             let mut hex = nh.center;
             hex.vapour = vapour::step(nh.map(|h| h.vapour));
             match hex.cell {
                 Border | Wall => hex.vapour.reflect_all(),
-                Plant(PlantCell { rule: 2, ..}) => hex.vapour.reflect_all(),
+                Plant(PlantCell { rule: 2, .. }) => hex.vapour.reflect_all(),
                 _ => vapour::apply_air_rules(&mut hex.vapour, &mut self.rng),
             }
 
@@ -241,7 +241,11 @@ impl Simulation for HiveSim {
 
                 // if self.rng.gen::<u8>()< 20 {
                 if center_p.rule == 1 {
-                    energy += nh.neighbours.iter().map(|n| n.vapour.outgoing().count() as i32).sum::<i32>();
+                    energy += nh
+                        .neighbours
+                        .iter()
+                        .map(|n| n.vapour.outgoing().count() as i32)
+                        .sum::<i32>();
                     energy += hex.vapour.outgoing().count() as i32;
                     if self.rng.gen::<u8>() < 20 {
                         hex.vapour.set_outgoing(DirectionSet::none());
@@ -259,7 +263,6 @@ impl Simulation for HiveSim {
                     let energy = energy.clamp(0, 0xFFFF) as u16;
                     hex.cell = Plant(PlantCell { energy, ..center_p })
                 }
-
             } else if matches!(nh.center.cell, Air) {
                 // no energy flow, but a neighbour may grow a cell here
                 let mut grow_into = 0;
@@ -294,8 +297,7 @@ impl Simulation for HiveSim {
                     })
                 }
             } else if matches!(hex.cell, Seed) {
-                hex.cell =
-                    Plant(PlantCell {
+                hex.cell = Plant(PlantCell {
                         rule: 3,
                         energy: self.config.initial_energy,
                         connections:
@@ -316,7 +318,7 @@ impl Simulation for HiveSim {
     }
 }
 
-impl HexgridView for HiveSim {
+impl HexgridView for RainfallSim {
     fn cell_view(&self, pos: coords::Cube) -> Option<CellView> {
         let hex = self.hexes.cell(pos)?;
         let cell_type = match hex.cell {
@@ -351,7 +353,7 @@ impl HexgridView for HiveSim {
     }
 }
 
-impl HiveSim {
+impl RainfallSim {
     pub fn measure_size(&self) -> f32 {
         self.hexes
             .iter_cells()

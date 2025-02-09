@@ -94,7 +94,7 @@ function loadbin(bin: Genotype | null) {
     let rule2: Rule = {
         label: '(selected from map)',
         create: () => {
-            return progenitor.demo_hive(new BigUint64Array(bin))
+            return progenitor.demo_rainfall(new BigUint64Array(bin))
         },
     }
     selectHandler(rule2)

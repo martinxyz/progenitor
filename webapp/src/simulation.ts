@@ -49,8 +49,8 @@ export const rules: Rule[] = [
         create: () => progenitor.demo_tumblers(),
     },
     {
-        label: 'hive',
-        create: () => progenitor.demo_hive(new BigUint64Array([0n])),
+        label: 'rainfall',
+        create: () => progenitor.demo_rainfall(new BigUint64Array([0n])),
         map_elites: true,
         default: true,
     },

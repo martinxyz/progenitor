@@ -12,7 +12,7 @@ import './progenitor_wasm_init'
 let map_bins: Archive = Array(archive_rows * archive_cols).fill(null)
 
 function evolve(seeds: bigint[]) {
-    let measures = progenitor.measure_hive(new BigUint64Array(seeds))
+    let measures = progenitor.measure_rainfall(new BigUint64Array(seeds))
     let solution = { seeds, measures }
     let bin = archive_bin(solution)
     if (!map_bins[bin]) {
