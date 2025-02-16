@@ -26,9 +26,9 @@ const workers: Worker[] = []
 // let seeds = [BigInt(Math.floor(Math.random() * 2 ** 32))]
 
 function randomArchiveEntryMutated(): Genotype {
-    var candidates: (Solution | null)[] = map_bins.filter((entry) => !!entry)
+    let candidates: (Solution | null)[] = map_bins.filter((entry) => !!entry)
     candidates.push(null)
-    var entry = candidates[Math.floor(Math.random() * candidates.length)]
+    let entry = candidates[Math.floor(Math.random() * candidates.length)]
     if (entry === null) {
         // sample from initial distribution
         return [BigInt(Math.floor(Math.random() * 2 ** 32))]
@@ -91,8 +91,7 @@ onDestroy(() => {
 
 function loadbin(bin: Genotype | null) {
     if (!bin) return
-    let rule2: Rule = {
-        label: '(selected from map)',
+    let rule2: Rule = { label: '(selected from map)',
         create: () => {
             return progenitor.demo_rainfall(new BigUint64Array(bin))
         },
