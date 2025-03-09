@@ -202,7 +202,7 @@ impl Simulation for RainfallSim {
             hex.vapour = vapour::step(nh.map(|h| h.vapour));
             match hex.cell {
                 Border | Wall => hex.vapour.reflect_all(),
-                Plant(PlantCell { rule: 2, .. }) => hex.vapour.reflect_all(),
+                Plant(PlantCell { rule: 3, .. }) => hex.vapour.reflect_all(),
                 _ => vapour::apply_air_rules(&mut hex.vapour, &mut self.rng),
             }
 
@@ -246,7 +246,7 @@ impl Simulation for RainfallSim {
                 assert!(energy >= 0);
 
                 // if self.rng.gen::<u8>()< 20 {
-                if center_p.rule == 1 {
+                if center_p.rule == 2 {
                     energy += nh
                         .neighbours
                         .iter()
@@ -344,8 +344,8 @@ impl HexgridView for RainfallSim {
             Object2 => 1,
             Plant(p) => match p.rule {
                 0 => 3,
-                1 => 5,
-                2 => 4,
+                2 => 5,
+                3 => 4,
                 _ => 1,
             },
         };
