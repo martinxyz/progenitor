@@ -28,13 +28,3 @@ export function archive_bin(solution: Solution) {
     let row = clamp(Math.floor(m1_norm * archive_rows), 0, archive_rows)
     return col * archive_rows + row
 }
-
-export function extend_archive(a: Archive, a2: Archive): void {
-    a2.forEach((solution, idx) => {
-        if (solution) {
-            if (!a[idx] && Math.random() < 0.5) {
-                a[idx] = solution
-            }
-        }
-    })
-}

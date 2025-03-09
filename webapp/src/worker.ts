@@ -1,30 +1,19 @@
 import * as progenitor from 'progenitor'
-import {
-    archive_bin,
-    archive_cols,
-    archive_rows,
-    type Archive,
-    type Solution,
-} from './archive'
+import { type Solution } from './archive'
 
 import './progenitor_wasm_init'
 
-let map_bins: Archive = Array(archive_rows * archive_cols).fill(null)
-
-function evolve(seeds: bigint[]) {
+function evolve(seeds: bigint[]): Solution {
     let measures = progenitor.measure_rainfall(new BigUint64Array(seeds))
-    let solution = { seeds, measures }
-    let bin = archive_bin(solution)
-    if (!map_bins[bin]) {
-        map_bins[bin] = solution
-    }
+    return { seeds, measures }
 }
 
 onmessage = function (event: MessageEvent<bigint[][]>) {
+    let solutions: Solution[] = []
     for (let seed of event.data) {
-        evolve(seed)
+        solutions.push(evolve(seed))
     }
-    postMessage(map_bins)
+    postMessage(solutions)
 }
 
 postMessage(null) // ready signal to main thread (onmessage handler is bound)

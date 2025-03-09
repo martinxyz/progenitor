@@ -4,9 +4,9 @@ import { onDestroy, onMount } from 'svelte'
 import * as progenitor from 'progenitor'
 import {
     type Archive,
+    archive_bin,
     archive_cols,
     archive_rows,
-    extend_archive,
     type Genotype,
     type Solution,
 } from './archive'
@@ -40,9 +40,15 @@ function randomArchiveEntryMutated(): Genotype {
 let total_evals = $state(0)
 let last_perf: any
 let evals_per_second: number | null = $state(null)
-function onWorkerMessage(this: Worker, ev: MessageEvent<Archive | null>) {
+function onWorkerMessage(this: Worker, ev: MessageEvent<Solution[] | null>) {
     if (ev.data) {
-        extend_archive(map_bins, ev.data)
+        for (const solution of ev.data) {
+            let bin = archive_bin(solution)
+            // if (... || Math.random() < 0.5) {
+            if (!map_bins[bin]) {
+                map_bins[bin] = solution
+            }
+        }
     } else {
         // post a second one so it doesn't wait for us to sync? (doesn't seem to help)
         // this.postMessage([])
@@ -91,7 +97,8 @@ onDestroy(() => {
 
 function loadbin(bin: Genotype | null) {
     if (!bin) return
-    let rule2: Rule = { label: '(selected from map)',
+    let rule2: Rule = {
+        label: '(selected from map)',
         create: () => {
             return progenitor.demo_rainfall(new BigUint64Array(bin))
         },
