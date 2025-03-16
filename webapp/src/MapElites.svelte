@@ -71,7 +71,7 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
         for (let i = 0; i < batch_size; i++) {
             let seeds: Genotype
             let generation: number
-            if (population.length < 10 || Math.random() < 0.05) {
+            if (population.length < 10) {
                 seeds = initialDistribution()
                 generation = 0
             } else {
@@ -88,8 +88,14 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
                             ? parent
                             : parent2
                 }
-                generation = parent.generation + 1
-                seeds = mutated(parent.seeds)
+                if (parent.generation === 0 && Math.random() < 0.25) {
+                    // generation 0 has not been out-competed yet, so the initial distribution may still find something
+                    seeds = initialDistribution()
+                    generation = 0
+                } else {
+                    generation = parent.generation + 1
+                    seeds = mutated(parent.seeds)
+                }
             }
             batch.push({ seeds, generation })
         }
