@@ -66,11 +66,8 @@ function calculate_dominated_novelty_scores(solutions: Solution[]) {
     }
 
     for (let i = 0; i < N; i++) {
-        const dists2 = []
-        for (let j = i + 1; j < N; j++) {
-            dists2.push(distances2[i * N + j])
-        }
-        dists2.sort((a, b) => a - b) // perf bottleneck (in renderer thread)
+        let dists2 = distances2.slice(i * N + (i + 1), i * N + N)
+        dists2.sort()
         if (dists2.length === 0) {
             solutions[i].competitionFitness = Infinity
         } else {
