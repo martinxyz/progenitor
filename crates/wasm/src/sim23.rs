@@ -90,7 +90,7 @@ pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
         sim.steps(10);
         let size = sim.measure_size();
         m1 += size;
-        m2 += sim.measure_edges() / size;
+        m2 += sim.measure_edges() / (size + 4.0);
     }
     [m1 / (n as f32), m2 / (n as f32)].into()
 }

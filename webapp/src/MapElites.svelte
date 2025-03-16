@@ -8,10 +8,18 @@ import {
     archive_cols,
     archive_rows,
     type Genotype,
+    novelty_search_reduce,
     type Solution,
 } from './archive'
+import ArchiveGrid from './ArchiveGrid.svelte'
+import type { WorkItem, WorkResult } from './worker'
 
 let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
+let population: Solution[] = []
+let offspring: Solution[] = []
+const offspring_size = 1000
+const population_size = offspring_size
+const batch_size = 50
 
 let {
     selectHandler = () => {},
@@ -22,31 +30,35 @@ let {
 $effect(() => {})
 
 const workers: Worker[] = []
-// let last_seed = 0n
-// let seeds = [BigInt(Math.floor(Math.random() * 2 ** 32))]
 
-function randomArchiveEntryMutated(): Genotype {
-    let candidates: (Solution | null)[] = map_bins.filter((entry) => !!entry)
-    candidates.push(null)
-    let entry = candidates[Math.floor(Math.random() * candidates.length)]
-    if (entry === null) {
-        // sample from initial distribution
-        return [BigInt(Math.floor(Math.random() * 2 ** 32))]
-    } else {
-        return [...entry.seeds, BigInt(Math.floor(Math.random() * 2 ** 32))]
-    }
+function initialDistribution() {
+    // sample from initial distribution
+    return [BigInt(Math.floor(Math.random() * 2 ** 32))]
+}
+
+function mutated(genotype: Genotype): Genotype {
+    return [...genotype, BigInt(Math.floor(Math.random() * 2 ** 32))]
 }
 
 let total_evals = $state(0)
 let last_perf: any
 let evals_per_second: number | null = $state(null)
-function onWorkerMessage(this: Worker, ev: MessageEvent<Solution[] | null>) {
+function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
     if (ev.data) {
-        for (const solution of ev.data) {
+        for (const result of ev.data) {
+            let solution = result.solution
             let bin = archive_bin(solution)
-            // if (... || Math.random() < 0.5) {
-            if (!map_bins[bin]) {
+            if (!map_bins[bin] || map_bins[bin].fitness < solution.fitness) {
                 map_bins[bin] = solution
+            }
+            offspring.push(solution)
+            if (offspring.length >= offspring_size) {
+                // generation complete!
+                population = novelty_search_reduce(
+                    [...population, ...offspring],
+                    population_size,
+                )
+                offspring = []
             }
         }
     } else {
@@ -55,14 +67,34 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<Solution[] | null>) {
     }
     if (total_evals < 10_000_000) {
         // workers[0].postMessage($state.snapshot(map_bins))
-        let solutions = []
-        for (let i = 0; i < 50; i++) {
-            // last_seed += 1n
-            let solution: Genotype = randomArchiveEntryMutated()
-            solutions.push(solution)
+        let batch: WorkItem[] = []
+        for (let i = 0; i < batch_size; i++) {
+            let seeds: Genotype
+            let generation: number
+            if (population.length < 10 || Math.random() < 0.05) {
+                seeds = initialDistribution()
+                generation = 0
+            } else {
+                // bias towards parents with high score (tournament?)
+                let parent =
+                    population[Math.floor(Math.random() * population.length)]
+                for (let j = 0; j < 3; j++) {
+                    let parent2 =
+                        population[
+                            Math.floor(Math.random() * population.length)
+                        ]
+                    parent =
+                        parent.competitionFitness! > parent2.competitionFitness!
+                            ? parent
+                            : parent2
+                }
+                generation = parent.generation + 1
+                seeds = mutated(parent.seeds)
+            }
+            batch.push({ seeds, generation })
         }
-        this.postMessage(solutions)
-        total_evals += solutions.length
+        this.postMessage(batch)
+        total_evals += batch.length
         let ts = performance.now()
         if (last_perf && ts > last_perf.ts + 3_000) {
             evals_per_second =
@@ -112,6 +144,7 @@ function loadbin(bin: Genotype | null) {
     {#if evals_per_second}
         ({evals_per_second.toFixed(0)?.toLocaleString()} evals per second)
     {/if}
+    coverage: {map_bins.filter((bin) => bin != null).length}
 </div>
 <div class="table">
     {#each { length: archive_rows } as _, row}
@@ -126,9 +159,12 @@ function loadbin(bin: Genotype | null) {
                     }}
                 >
                     <div
-                        title={bin?.measures[0].toFixed(3) +
-                            ' / ' +
-                            bin?.measures[1].toFixed(3)}
+                        title={bin
+                            ? bin.measures_raw[0].toFixed(3) +
+                              ' / ' +
+                              bin.measures_raw[1].toFixed(3) +
+                              ` (gen ${bin.generation})`
+                            : 'empty'}
                         class="inner"
                     ></div>
                 </div>
