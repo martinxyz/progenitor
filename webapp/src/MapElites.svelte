@@ -11,7 +11,7 @@ import {
     novelty_search_reduce,
     type Solution,
 } from './archive'
-import ArchiveGrid from './ArchiveGrid.svelte'
+import ArchivePlot from './ArchivePlot.svelte'
 import type { WorkItem, WorkResult } from './worker'
 
 let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
@@ -20,6 +20,8 @@ let offspring: Solution[] = []
 const offspring_size = 1000
 const population_size = offspring_size
 const batch_size = 50
+
+let plotData: any[] = $state([])
 
 let {
     selectHandler = () => {},
@@ -58,6 +60,12 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
                     [...population, ...offspring],
                     population_size,
                 )
+                plotData = population.map((s) => ({
+                    bc1: s.measures_raw[0],
+                    bc2: -s.measures_raw[1],
+                    fitness: s.competitionFitness,
+                    generation: s.generation,
+                }))
                 offspring = []
             }
         }
@@ -152,6 +160,9 @@ function loadbin(bin: Genotype | null) {
     {/if}
     coverage: {map_bins.filter((bin) => bin != null).length}
 </div>
+
+<ArchivePlot data={plotData}></ArchivePlot>
+
 <div class="table">
     {#each { length: archive_rows } as _, row}
         <div class="row">
