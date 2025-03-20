@@ -1,10 +1,12 @@
+use nalgebra::{zero, SVector};
 use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 
 use progenitor::{
-    builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers, turing, Simulation,
+    builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers, turing,
+    Simulation,
 };
 
 #[wasm_bindgen]
@@ -81,16 +83,34 @@ pub fn demo_rainfall(seeds: &[u64]) -> JsSimulation {
 
 #[wasm_bindgen]
 pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
-    let mut sim = RainfallSim::new_with_seeds(seeds);
-    sim.steps(1000);
-    let mut m1 = 0.0;
-    let mut m2 = 0.0;
-    let n = 100;
-    for _ in 0..n {
-        sim.steps(10);
-        let size = sim.measure_size();
-        m1 += size;
-        m2 += sim.measure_edges() / (size + 4.0);
+    const M: usize = 2;
+    const EVALS: usize = 2;
+    let mut measures = SVector::<f32, M>::zeros();
+    for eval in 0..EVALS {
+        let m: SVector<f32, M> = {
+            let mut sim = RainfallSim::new_with_seeds(seeds);
+            if eval != 0 {
+                sim.re_seed(eval as u64);
+            }
+            // sim.steps(4000);
+            let mut weights: f32 = 0.0;
+            let mut m1 = 0.0;
+            let mut m2 = 0.0;
+            let n = 400;
+            for ss in 0..n {
+                sim.steps(10);
+                let size = sim.measure_size();
+                // let weight = 1.0f32;
+                let weight = ss as f32;
+                let weight = weight * weight;
+                m1 += weight * size;
+                m2 += weight * sim.measure_edges() / (size + 4.0);
+                weights += weight;
+            }
+            [m1 / weights, m2 / weights].into()
+        };
+        measures += m;
     }
-    [m1 / (n as f32), m2 / (n as f32)].into()
+    measures /= EVALS as f32;
+    measures.as_slice().into()
 }

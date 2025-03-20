@@ -42,6 +42,15 @@ impl PlantCell {
     };
 }
 
+impl Hex {
+    fn solid(&self) -> bool {
+        matches!(self.cell, Border | Wall | Plant(PlantCell { rule: 3, .. }))
+    }
+    fn air(&self) -> bool {
+        matches!(self.cell, Air)
+    }
+}
+
 const BORDER: Hex = Hex {
     cell: Border,
     vapour: BitParticles::EMPTY,
@@ -63,7 +72,6 @@ pub struct Configuration {
     cell_types: u8,
     max_flow: u8,
     flow_swap: bool,
-    grow_prob: f32,
 }
 
 impl Default for Configuration {
@@ -73,7 +81,6 @@ impl Default for Configuration {
             cell_types: 8,
             max_flow: 30,
             flow_swap: false,
-            grow_prob: 0.1,
         }
     }
 }
@@ -83,6 +90,7 @@ pub struct CellType {
     flow: [u8; 8],
     growth: [u8; 8],
     gravity_bias: u8,
+    grow_prob: f32,
 }
 
 impl CellType {
@@ -91,6 +99,7 @@ impl CellType {
             flow: [0; 8],
             growth: [0; 8],
             gravity_bias: 0,
+            grow_prob: 0.0,
         }
     }
     fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
@@ -98,6 +107,7 @@ impl CellType {
             flow: array::from_fn(|_| rng.gen_range(0..=config.max_flow)),
             growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
             gravity_bias: rng.gen(),
+            grow_prob: sigmoid(rng.gen_range(-3.0..3.0f32))
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
@@ -127,9 +137,22 @@ impl CellType {
     }
 }
 
+fn logit(p: f32) -> f32 {
+    let p = p.clamp(0.00001, 0.99999);
+    (p / (1.0 - p)).ln()
+}
+
+fn sigmoid(x: f32) -> f32 {
+    1.0 / (1.0 + (-x).exp())
+}
+
 impl RainfallSim {
     pub fn new() -> RainfallSim {
         Self::new_with_seeds(&[thread_rng().next_u64()])
+    }
+
+    pub fn re_seed(&mut self, seed: u64) {
+        self.rng = SimRng::seed_from_u64(seed);
     }
 
     pub fn new_with_seeds(seeds: &[u64]) -> RainfallSim {
@@ -167,8 +190,10 @@ impl RainfallSim {
         // mutations
         let mutation_prob = 0.5 / (rules.len() as f32);
         for &seed2 in &seeds[1..] {
+
             let mut rng = SimRng::seed_from_u64(seed2);
             for rule in rules[1..].iter_mut() {
+                rule.grow_prob = sigmoid(logit(rule.grow_prob) + rng.gen_range(-0.2..0.2));
                 if rng.gen_bool(mutation_prob.into()) {
                     *rule = CellType::new_random(&mut rng, &config)
                 } else {
@@ -189,7 +214,7 @@ impl RainfallSim {
         RainfallSim {
             hexes: map,
             rng,
-            config: Configuration::default(),
+            config,
             rules,
         }
     }
@@ -280,10 +305,16 @@ impl Simulation for RainfallSim {
                     let rule = &self.rules[neigh_p.rule as usize];
                     let neigh_grow_into = rule.grow_type(neigh_p.connections, growth_dir);
                     use Direction::*;
-                    let neigh_grow_allowed = match rule.gravity_bias % 8 {
+                    let neigh_grow_allowed = match rule.gravity_bias % 16 {
                         1 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, NorthWest | NorthEast),
                         2 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, SouthWest | SouthEast),
                         3 => neigh_p.energy >= GROWTH_REQURIEMENT && !matches!(growth_dir, NorthWest | NorthEast),
+                        4 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].air(),
+                        5 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].solid(),
+                        6 => neigh_p.energy >= GROWTH_REQURIEMENT && (nh[SouthEast].solid() || nh[SouthWest].solid()),
+                        7 => neigh_p.energy >= GROWTH_REQURIEMENT && !(nh[SouthEast].solid() || nh[SouthWest].solid()),
+                        8 => neigh_p.energy >= GROWTH_REQURIEMENT && (nh[NorthEast].solid() || nh[NorthWest].solid()),
+                        9 => neigh_p.energy >= GROWTH_REQURIEMENT && !(nh[NorthEast].solid() || nh[NorthWest].solid()),
                         _ => neigh_p.energy >= GROWTH_REQURIEMENT,
                     };
                     if neigh_grow_into > grow_into {
@@ -297,8 +328,8 @@ impl Simulation for RainfallSim {
                         grow_allowed = grow_allowed || neigh_grow_allowed;
                     }
                 }
-                if grow_allowed && self.config.grow_prob < 1.0 {
-                    if !self.rng.gen_bool(self.config.grow_prob.into()) {
+                if grow_allowed && self.rules[grow_into as usize].grow_prob < 1.0 {
+                    if !self.rng.gen_bool(self.rules[grow_into as usize].grow_prob.into()) {
                         grow_allowed = false
                     }
                 }
@@ -349,9 +380,15 @@ impl HexgridView for RainfallSim {
                 _ => 1,
             },
         };
+        let energy_vapour = hex.vapour.outgoing().count() * 2;
+        let energy_plant = match hex.cell {
+            Plant(p) => (p.energy / 8).clamp(0, 200) as u8,
+            _ => 0,
+        };
+
         Some(CellView {
             cell_type,
-            energy: Some(hex.vapour.outgoing().count() * 2),
+            energy: Some(energy_plant.saturating_add(energy_vapour)),
             ..Default::default()
         })
     }

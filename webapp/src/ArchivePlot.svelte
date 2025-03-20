@@ -1,26 +1,26 @@
 <script lang="ts">
-import { onMount } from 'svelte'
-import embed, { type VisualizationSpec } from 'vega-embed'
+import { onDestroy, onMount } from 'svelte'
+import embed, { type Result, vega, type VisualizationSpec } from 'vega-embed'
 
 let { data } = $props()
 
-/*
-onMount(() => {
-    if (!data) data = [{ bc1: 2, bc2: 2 }, { bc1: 5, bc2: 5 }]
-    console.log('data', data)
-    // if (!data) return
-    spec.data = { values: data }
-    embed('#vis', spec)
+let plot: Result
+
+onMount(async () => {
+    // plot = await embed('#vis', spec)
 })
-*/
+
+onDestroy(() => {
+    plot?.finalize()
+})
+
 $effect(() => {
-    if (!data.length)
-        data = [
-            { bc1: 2, bc2: 2 },
-            { bc1: 5, bc2: 5 },
-        ]
-    spec.data = { values: data }
-    embed('#vis', spec)
+    plot?.finalize()
+    spec.data = { values: $state.snapshot(data) }
+    embed('#vis', spec, { actions: false }).then(p => plot = p)
+    // should not re-create the plot on every change...?
+    // let changeset = vega.changeset().remove(() => true).insert(data);
+    // plot.view.change('source_0', changeset).run()
 })
 
 const spec: VisualizationSpec = {

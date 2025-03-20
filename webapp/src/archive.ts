@@ -99,7 +99,8 @@ function calculate_dominated_novelty_scores(solutions: Solution[]) {
 function reevaluate_fitness(solutions: Solution[]) {
     for (let solution of solutions) {
         // random, but preserve older solutions (with fewer mutation steps)
-        solution.fitness = -solution.generation + Math.random()
+        // solution.fitness = -solution.generation + Math.random()
+        solution.fitness = Math.random()
         // if (solution.fitness === 0) {
         //     solution.fitness = Math.random()
         // }
