@@ -42,10 +42,14 @@ function mutated(genotype: Genotype): Genotype {
     return [...genotype, BigInt(Math.floor(Math.random() * 2 ** 32))]
 }
 
+let resumed = Promise.resolve()
+let paused = $state(false)
+
 let total_evals = $state(0)
 let last_perf: any
 let evals_per_second: number | null = $state(null)
-function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
+async function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
+    await resumed
     if (ev.data) {
         for (const result of ev.data) {
             let solution = result.solution
@@ -126,6 +130,19 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
     }
 }
 
+
+let resume: () => void
+function onPause() {
+    if (paused) return
+    paused = true
+    resumed = new Promise<void>(resolve => resume = resolve)
+}
+function onResume() {
+    if (!paused) return
+    paused = false
+    resume()
+}
+
 onMount(() => {
     const threads = navigator.hardwareConcurrency
     console.log('starting', threads, 'worker threads')
@@ -157,12 +174,23 @@ function loadbin(bin: Genotype | null) {
 }
 </script>
 
-<div>
+<div style="display: flex; justify-content: space-between">
+    <div>
     Total evals: {total_evals.toLocaleString()} ({workers.length} threads)
     {#if evals_per_second}
         ({evals_per_second.toFixed(0)?.toLocaleString()} evals per second)
     {/if}
     coverage: {map_bins.filter((bin) => bin != null).length}
+    </div>
+    {#if paused}
+        <button onclick={onResume} title="Resume">
+            <i class="fas fa-play"></i>
+        </button>
+    {:else}
+        <button onclick={onPause} title="Pause">
+            <i class="fas fa-pause"></i>
+        </button>
+    {/if}
 </div>
 
 <ArchivePlot data={plotData}></ArchivePlot>
