@@ -56,15 +56,19 @@ function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
             offspring.push(solution)
             if (offspring.length >= offspring_size) {
                 // generation complete!
+                let old_population = new Set(population)
                 population = novelty_search_reduce(
                     [...population, ...offspring],
                     population_size,
                 )
+
                 plotData = population.map((s) => ({
                     bc1: s.measures_raw[0],
                     bc2: -s.measures_raw[1],
+                    bc1n: s.measures_norm[0],
+                    bc2n: -s.measures_norm[1],
                     fitness: s.competitionFitness,
-                    generation: s.generation,
+                    generation: old_population.has(s) ? 'old' : 'new',
                 }))
                 offspring = []
             }
