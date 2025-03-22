@@ -1,6 +1,11 @@
 export function average(l: number[] | Float32Array): number | null {
     if (l.length == 0) return null
-    return l.reduce((acc, val) => acc + val, 0) / l.length
+    // typescript...
+    if (l instanceof Float32Array) {
+        return l.reduce((acc: number, val: number) => acc + val, 0) / l.length
+    } else {
+        return l.reduce((acc: number, val: number) => acc + val, 0) / l.length
+    }
 }
 
 export function clamp(number: number, min: number, max: number) {
