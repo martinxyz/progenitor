@@ -21,6 +21,8 @@ const offspring_size = 1000
 const population_size = offspring_size
 const batch_size = 50
 
+const stats_interval_ms = 5000
+
 let plotData: any[] = $state([])
 
 let {
@@ -31,7 +33,7 @@ let {
 
 $effect(() => {})
 
-const workers: Worker[] = []
+const workers: Worker[] = $state([])
 
 function initialDistribution() {
     // sample from initial distribution
@@ -46,9 +48,10 @@ let resumed = Promise.resolve()
 let paused = $state(false)
 
 let total_evals = $state(0)
-let last_perf: any
-let evals_per_second: number | null = $state(null)
-async function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
+async function onWorkerMessage(
+    this: Worker,
+    ev: MessageEvent<WorkResult[] | null>,
+) {
     await resumed
     if (ev.data) {
         for (const result of ev.data) {
@@ -117,25 +120,14 @@ async function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | nul
         }
         this.postMessage(batch)
         total_evals += batch.length
-        let ts = performance.now()
-        if (last_perf && ts > last_perf.ts + 3_000) {
-            evals_per_second =
-                ((total_evals - last_perf.total_evals) / (ts - last_perf.ts)) *
-                1000
-            last_perf = null
-        }
-        if (!last_perf) {
-            last_perf = { ts, total_evals }
-        }
     }
 }
-
 
 let resume: () => void
 function onPause() {
     if (paused) return
     paused = true
-    resumed = new Promise<void>(resolve => resume = resolve)
+    resumed = new Promise<void>((resolve) => (resume = resolve))
 }
 function onResume() {
     if (!paused) return
@@ -153,14 +145,26 @@ onMount(() => {
         workers.push(worker)
         worker.onmessage = onWorkerMessage
     }
+    onDestroy(() => {
+        console.log('destroying', workers.length, 'worker threads')
+        while (workers.length) {
+            workers.pop()!.terminate()
+        }
+    })
+
+    let intervalTimer = setInterval(updateStats, stats_interval_ms)
+    onDestroy(() => clearInterval(intervalTimer))
 })
 
-onDestroy(() => {
-    console.log('destroying', workers.length, 'worker threads')
-    while (workers.length) {
-        workers.pop()!.terminate()
+let evals_per_second: number | null = $state(null)
+let total_evals_old: number | null = null
+function updateStats() {
+    if (total_evals_old != null && total_evals != null) {
+        evals_per_second =
+            ((total_evals - total_evals_old) / stats_interval_ms) * 1000
     }
-})
+    total_evals_old = total_evals
+}
 
 function loadbin(bin: Genotype | null) {
     if (!bin) return
@@ -176,11 +180,16 @@ function loadbin(bin: Genotype | null) {
 
 <div style="display: flex; justify-content: space-between">
     <div>
-    Total evals: {total_evals.toLocaleString()} ({workers.length} threads)
-    {#if evals_per_second}
-        ({evals_per_second.toFixed(0)?.toLocaleString()} evals per second)
-    {/if}
-    coverage: {map_bins.filter((bin) => bin != null).length}
+        Total evals: {total_evals.toLocaleString()} |
+        {#if paused}
+            paused |
+        {:else}
+            {workers.length} threads |
+        {/if}
+        {#if evals_per_second}
+            {evals_per_second.toFixed(0)?.toLocaleString()} evals/s |
+        {/if}
+        coverage: {map_bins.filter((bin) => bin != null).length}
     </div>
     {#if paused}
         <button onclick={onResume} title="Resume">

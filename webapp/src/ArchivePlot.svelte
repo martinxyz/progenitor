@@ -8,7 +8,7 @@ let plot1: Result | undefined = $state()
 let plot2: Result | undefined = $state()
 
 onMount(async () => {
-    plot1 = await embed('#vis1', spec1, { actions: false, })
+    plot1 = await embed('#vis1', spec1, { actions: false })
     // console.log(view.getState().signals)
     // view.addSignalListener('myhovering', (name, value) => {
     //     console.log(value)  // an array (of selected values) for each value (only with encodings: ['x', 'y'] or similar)
@@ -19,7 +19,7 @@ onMount(async () => {
         console.log(datum)
     })
 
-    plot2 = await embed('#vis2', spec2, { actions: false, })
+    plot2 = await embed('#vis2', spec2, { actions: false })
 })
 
 onDestroy(() => {
@@ -31,43 +31,58 @@ $effect(() => {
     if (plot1) {
         plot1.view.data('mydata', $state.snapshot(data) ?? [])
         plot1.view.run()
+        plot1.view.resize() // fixes missing axes after tick layout
     }
     if (plot2) {
         plot2.view.data('mydata', $state.snapshot(data) ?? [])
         plot2.view.run()
+        plot2.view.resize() // fixes missing axes after tick layout
     }
 })
 
+const spec_common: Partial<VisualizationSpec> = {
+    width: 'container',
+    height: 400,
+    background: '#ccc',
+    view: {
+        fill: 'white',
+        // fill: null
+    },
+}
+
 const spec1: VisualizationSpec = {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    description: 'test plot',
-/*
+    ...spec_common,
+    data: { name: 'mydata' },
+    // description: 'test plot',
+    /*
     params: [{
         name: 'grid',
         select: 'interval',
         bind: 'scales',
     }],
 */
-    data: {name: 'mydata'},
-    params: [{
-        name: 'myhovering',
-        select: {
-            type: 'point',
-            on: 'pointerover',
-            toggle: false,
-            nearest: true,
-            // encodings: ['x', 'y'],
-        }
-    }],
-/*
+
+    // "background": "orange",
+    // "view": {"fill": "yellow"},
+    params: [
+        {
+            name: 'myhovering',
+            select: {
+                type: 'point',
+                on: 'pointerover',
+                toggle: false,
+                nearest: true,
+                // encodings: ['x', 'y'],
+            },
+        },
+    ],
+    /*
     signals: [{
         name: 'barClick',
         value: 0,
         on: [{events: 'rect:mousedown', update: 'datum'}]
     }],
 */
-    width: 'container',
-    height: 400,
     mark: 'circle',
     encoding: {
         x: { field: 'bc1', type: 'quantitative' },
@@ -75,22 +90,21 @@ const spec1: VisualizationSpec = {
         color: {
             field: 'fitness',
             type: 'quantitative',
-            condition: {param: 'myhovering', value: 'black', empty: false},
+            condition: { param: 'myhovering', value: 'black', empty: false },
         },
         size: {
-            condition: {param: 'myhovering', value: 100, empty: false},
+            condition: { param: 'myhovering', value: 100, empty: false },
             value: 20,
-        }
+        },
     },
 }
 
 const spec2: VisualizationSpec = {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    description: 'test plot',
-    width: 'container',
-    height: 400,
+    ...spec_common,
+    data: { name: 'mydata' },
+    // description: 'test plot',
+
     mark: 'circle',
-    data: {name: 'mydata'},
     encoding: {
         x: { field: 'bc1n', type: 'quantitative' },
         y: { field: 'bc2n', type: 'quantitative' },
@@ -101,16 +115,25 @@ const spec2: VisualizationSpec = {
 </script>
 
 <details open>
-    <summary>Plot1</summary>
+    <summary class="button-like">Archive (raw BCs) with fitness</summary>
     <div class="graph-container" id="vis1"></div>
 </details>
 <details>
-    <summary>Plot2</summary>
+    <summary class="button-like">Archive (norm BCs) with generation</summary>
     <div class="graph-container" id="vis2"></div>
 </details>
 
 <style lang="css">
-  .graph-container {
-      width: 100%;
-  }
+.graph-container {
+    width: 100%;
+}
+summary {
+    cursor: pointer;
+    user-select: none;
+    border-radius: 5px;
+    padding-left: 0.5em;
+}
+summary:hover {
+    background-color: #ddd;
+}
 </style>

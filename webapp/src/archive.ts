@@ -1,3 +1,5 @@
+import { average, clamp } from './math'
+
 export type Archive = (Solution | null)[]
 
 export type Genotype = bigint[]
@@ -11,8 +13,16 @@ export interface Solution {
     generation: number
 }
 
-function clamp(number: number, min: number, max: number) {
-    return Math.max(min, Math.min(number, max))
+function soft_clamp(number: number, min: number, max: number) {
+    // clamp without technically destroying information
+    // (such that finding the K nearest neighbours is still meaningful)
+    let x_norm = (number - min) / (max - min)
+    if (x_norm > 0.95) {
+        x_norm = 0.95 + 0.05 * Math.tanh(x_norm - 0.95)
+    } else if (x_norm < 0.05) {
+        x_norm = 0.05 + 0.05 * Math.tanh(x_norm - 0.05)
+    }
+    return x_norm * (max - min) + min
 }
 
 export const archive_rows = 20
@@ -85,9 +95,8 @@ function calculate_dominated_novelty_scores(solutions: Solution[]) {
             solutions[i].competitionFitness = Infinity
         } else {
             let dists = dists2.slice(0, K).map((dist2) => Math.sqrt(dist2))
-            // let dists = dists2.slice(0, K) // this seems to work better...?
-            solutions[i].competitionFitness =
-                dists.reduce((a, b) => a + b, 0) / dists.length
+            // let dists = dists2.slice(0, K) // squared dist seems to work better...?
+            solutions[i].competitionFitness = average(dists) ?? NaN
             if (!isFinite(solutions[i].competitionFitness ?? NaN)) {
                 console.log(solutions[i])
                 throw new Error('competitionFitness not finite')
