@@ -2,7 +2,6 @@ import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
 
-import map_bins_url from '../assets/output/map_bins.dat?url'
 import turing_bins_url from '../assets/output/turing_bins.dat?url'
 
 import './progenitor_wasm_init'
@@ -29,11 +28,6 @@ export const rules: Rule[] = [
     {
         label: 'progenitor cells',
         create: () => progenitor.demo_progenitor(),
-    },
-    {
-        label: 'experiment results (select from map)',
-        create: () => progenitor.demo_map(),
-        load_map: map_bins_url,
     },
     {
         label: 'falling sand (CA)',

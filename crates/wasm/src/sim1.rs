@@ -3,9 +3,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 use progenitor::sim1;
-use progenitor::{coords, world1, SIZE};
+use progenitor::{coords, SIZE};
 use sim1::{CellType, CellTypeRef, GrowDirection};
-use world1::Params;
 
 fn progenitor_world_empty() -> sim1::World {
     sim1::World::new()
@@ -93,15 +92,6 @@ pub fn demo_progenitor() -> JsSimulation {
         transform_at_random_p: 2,
         ..base
     };
-    sim.into()
-}
-
-#[wasm_bindgen]
-pub fn demo_map() -> JsSimulation {
-    let mut sim = progenitor_world_empty();
-    let mut params = Params::default();
-    params.mutate(&mut rand::rng());
-    sim.types = world1::rules(&params);
     sim.into()
 }
 
