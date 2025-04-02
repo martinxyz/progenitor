@@ -1,11 +1,7 @@
 use std::array;
 
 use nalgebra::SVector;
-use rand::seq::IteratorRandom;
-use rand::thread_rng;
-use rand::Rng;
-use rand::RngCore;
-use rand::SeedableRng;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
@@ -66,9 +62,9 @@ impl LutRule {
             neighbourhood_features: array::from_fn(|_| {
                 SVector::from_fn(|_, _| *[-13, -2, -1, 0, 0, 1, 2, 13].iter().choose(rng).unwrap())
             }),
-            neighbourhood_features_thresholds: array::from_fn(|_| rng.gen_range(-60..=60)),
-            transform: array::from_fn(|_| rng.gen_bool(0.2)),
-            change_heading: array::from_fn(|_| rng.gen_bool(0.2)),
+            neighbourhood_features_thresholds: array::from_fn(|_| rng.random_range(-60..=60)),
+            transform: array::from_fn(|_| rng.random_bool(0.2)),
+            change_heading: array::from_fn(|_| rng.random_bool(0.2)),
         }
     }
 
@@ -110,7 +106,7 @@ impl LutRule {
 
         let mut cell = center;
         if self.change_heading[idx] {
-            cell.heading = Direction::try_from((rng.gen::<u8>() % 8) as i32).ok();
+            cell.heading = Direction::try_from((rng.random::<u8>() % 8) as i32).ok();
         }
         if self.transform[idx] {
             cell.kind = if cell.kind == CellType::Air {
@@ -127,7 +123,7 @@ const RADIUS: i32 = 12;
 
 impl Tumblers {
     pub fn new() -> Self {
-        let seed = thread_rng().next_u64();
+        let seed = rand::rng().next_u64();
         Self::new_with_seed(seed)
         // Self::new_with_seed(33)
     }
@@ -135,7 +131,7 @@ impl Tumblers {
     pub fn new_with_seed(seed: u64) -> Self {
         let mut rng = SimRng::seed_from_u64(seed);
         let mut state = hexmap::new(RADIUS, Cell::BORDER, |location| {
-            let random_heading = Direction::try_from(rng.gen::<u8>() as i32 % 8).ok();
+            let random_heading = Direction::try_from(rng.random::<u8>() as i32 % 8).ok();
             match location.dist_from_center() {
                 0..=1 => Cell {
                     kind: CellType::Blob,
@@ -145,7 +141,7 @@ impl Tumblers {
                     kind: CellType::Air,
                     heading: random_heading,
                 },
-                _ if rng.gen_bool(0.08) => Cell {
+                _ if rng.random_bool(0.08) => Cell {
                     kind: CellType::Stone,
                     heading: random_heading,
                 },

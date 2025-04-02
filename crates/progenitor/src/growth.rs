@@ -1,10 +1,7 @@
 use std::array;
 
 use hex2d::Angle;
-use rand::thread_rng;
-use rand::Rng;
-use rand::RngCore;
-use rand::SeedableRng;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
@@ -57,7 +54,7 @@ impl Default for Configuration {
 impl Configuration {
     pub fn into_simulation(self) -> GrowthSim {
         assert!(self.cell_types <= MAX_CELL_TYPES);
-        let seed = thread_rng().next_u64();
+        let seed = rand::rng().next_u64();
         GrowthSim::new_with_config(seed, self)
     }
 }
@@ -100,8 +97,8 @@ impl CellType {
     }
     fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
         Self {
-            flow: array::from_fn(|_| rng.gen_range(0..=config.max_flow)),
-            growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
+            flow: array::from_fn(|_| rng.random_range(0..=config.max_flow)),
+            growth: array::from_fn(|_| rng.random_range(0..config.cell_types)),
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
@@ -136,7 +133,7 @@ impl GrowthSim {
         // let mut best_seed = 0;
         // let mut best_score = i32::MIN;
         // for _ in 0..50 {
-        //     let seed = thread_rng().next_u64();
+        //     let seed = rand::rng().next_u64();
         //     let mut trial = Self::new_with_seed(seed);
         //     let score = {
         //         trial.steps(800);
@@ -151,7 +148,7 @@ impl GrowthSim {
         //         best_seed = seed;
         //     }
         // }
-        Self::new_with_config(thread_rng().next_u64(), Configuration::default())
+        Self::new_with_config(rand::rng().next_u64(), Configuration::default())
     }
 
     fn new_with_config(seed: u64, config: Configuration) -> Self {
@@ -232,7 +229,7 @@ impl Simulation for GrowthSim {
                     }
                 }
                 if grow_allowed && self.config.grow_prob < 1.0 {
-                    if !self.rng.gen_bool(self.config.grow_prob.into()) {
+                    if !self.rng.random_bool(self.config.grow_prob.into()) {
                         grow_allowed = false
                     }
                 }

@@ -2,8 +2,7 @@ use super::wall_sim::Cell;
 use crate::{hexmap, AxialTile};
 use crate::{Direction, Neighbourhood};
 use hex2d::Coordinate;
-use rand::seq::SliceRandom;
-use rand::Rng;
+use rand::prelude::*;
 
 pub const RING_RADIUS: i32 = 33;
 
@@ -18,10 +17,10 @@ pub fn create_world(rng: &mut impl Rng) -> AxialTile<Cell> {
                 _ => 0.5,
             }
         };
-        if rng.gen_bool(wall_prob as f64) {
+        if rng.random_bool(wall_prob as f64) {
             return Cell::Wall;
         }
-        if c > 5 && rng.gen_bool(0.05) {
+        if c > 5 && rng.random_bool(0.05) {
             Cell::Food
         } else {
             Cell::Air
@@ -39,10 +38,10 @@ pub fn create_world(rng: &mut impl Rng) -> AxialTile<Cell> {
             }
             Cell::Air => {
                 if walls > 0 {
-                    if rng.gen_bool(0.05) {
+                    if rng.random_bool(0.05) {
                         return Cell::Wall;
                     } else if walls == 1 {
-                        if rng.gen_bool(0.1) {
+                        if rng.random_bool(0.1) {
                             return Cell::Wall;
                         }
                     }
@@ -76,7 +75,7 @@ pub fn find_agent_starting_place(rng: &mut impl Rng, cells: &AxialTile<Cell>) ->
                 pos = old_pos;
             }
             Some(Cell::Air) => {
-                if !rng.gen_bool(reject_prob) {
+                if !rng.random_bool(reject_prob) {
                     break pos;
                 }
                 reject_prob *= reject_prob_decay;

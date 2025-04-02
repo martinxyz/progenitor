@@ -1,5 +1,4 @@
 use bincode::{DefaultOptions, Options};
-use rand::thread_rng;
 use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
@@ -101,7 +100,7 @@ pub fn demo_progenitor() -> JsSimulation {
 pub fn demo_map() -> JsSimulation {
     let mut sim = progenitor_world_empty();
     let mut params = Params::default();
-    params.mutate(&mut thread_rng());
+    params.mutate(&mut rand::rng());
     sim.types = world1::rules(&params);
     sim.into()
 }

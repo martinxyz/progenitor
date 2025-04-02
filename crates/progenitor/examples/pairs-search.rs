@@ -4,8 +4,7 @@ use std::io::{BufWriter, Write};
 
 use indicatif::ParallelProgressIterator;
 use progenitor::pairs;
-use rand::{thread_rng, SeedableRng};
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use rayon::prelude::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -22,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_par_iter()
         .progress_count(POPULATION.try_into().unwrap())
         .map(|_| {
-            let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+            let mut rng = SimRng::from_rng(rand::rng()).unwrap();
             let params = pairs::random_params(&mut rng);
             let mut score = 0f32;
             for _ in 0..EVALUATIONS {

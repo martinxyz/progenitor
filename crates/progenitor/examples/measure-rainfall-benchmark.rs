@@ -1,5 +1,5 @@
 use progenitor::{rainfall::RainfallSim, Simulation};
-use rayon::prelude::*;
+// use rayon::prelude::*;
 use std::time::Instant;
 
 pub fn measure_rainfall(seeds: &[u64]) -> (f32, f32) {
@@ -17,11 +17,13 @@ fn main() {
     {
         eprintln!("warning: was compiled without optimizations");
     }
+    eprintln!("test");
 
     let t0 = Instant::now();
     let n = 1000;
     let results: Vec<_> = (0..n)
-        .into_par_iter()
+        // .into_par_iter()
+        .into_iter()
         .map(|_| measure_rainfall(&[0]))
         .collect();
     let mut result = (0.0, 0.0);

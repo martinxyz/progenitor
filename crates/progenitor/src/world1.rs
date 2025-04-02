@@ -15,21 +15,21 @@ pub struct Params {
 
 fn mutate_u8_p128(p: u8, rng: &mut impl Rng) -> u8 {
     let step = max(1, p / 8) as i8;
-    (p as i16 + rng.gen_range(-step..=step) as i16).clamp(0, 128) as u8
+    (p as i16 + rng.random_range(-step..=step) as i16).clamp(0, 128) as u8
 }
 
 fn mutate_grow(p: &mut u8, dir: &mut GrowDirection, rng: &mut impl Rng) {
-    if rng.gen_bool(0.1) {
+    if rng.random_bool(0.1) {
         // type-changing mutation
-        *dir = match rng.gen_range(0..4) {
+        *dir = match rng.random_range(0..4) {
             0 => GrowDirection::Forward,
             1 => GrowDirection::RandomChoice,
             _ => GrowDirection::All,
         };
-        *p = match rng.gen_range(0..4) {
+        *p = match rng.random_range(0..4) {
             0 => 0,
             1 => *p,
-            _ => rng.gen_range(0..=127), // (note: should not be uniform...)
+            _ => rng.random_range(0..=127), // (note: should not be uniform...)
         }
     } else {
         *p = mutate_u8_p128(*p, rng)

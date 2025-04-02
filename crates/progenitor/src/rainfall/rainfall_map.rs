@@ -4,7 +4,7 @@ use crate::{
     DirectionSet, HexgridView, SimRng, Simulation,
 };
 use hex2d::Angle;
-use rand::{thread_rng, Rng, RngCore, SeedableRng};
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{array, fmt::Debug};
 use Cell::*;
@@ -104,10 +104,10 @@ impl CellType {
     }
     fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
         Self {
-            flow: array::from_fn(|_| rng.gen_range(0..=config.max_flow)),
-            growth: array::from_fn(|_| rng.gen_range(0..config.cell_types)),
-            gravity_bias: rng.gen(),
-            grow_prob: sigmoid(rng.gen_range(-3.0..3.0f32))
+            flow: array::from_fn(|_| rng.random_range(0..=config.max_flow)),
+            growth: array::from_fn(|_| rng.random_range(0..config.cell_types)),
+            gravity_bias: rng.random(),
+            grow_prob: sigmoid(rng.random_range(-3.0..3.0f32)),
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
@@ -148,7 +148,7 @@ fn sigmoid(x: f32) -> f32 {
 
 impl RainfallSim {
     pub fn new() -> RainfallSim {
-        Self::new_with_seeds(&[thread_rng().next_u64()])
+        Self::new_with_seeds(&[rand::rng().next_u64()])
     }
 
     pub fn re_seed(&mut self, seed: u64) {
@@ -190,22 +190,21 @@ impl RainfallSim {
         // mutations
         let mutation_prob = 0.5 / (rules.len() as f32);
         for &seed2 in &seeds[1..] {
-
             let mut rng = SimRng::seed_from_u64(seed2);
             for rule in rules[1..].iter_mut() {
-                rule.grow_prob = sigmoid(logit(rule.grow_prob) + rng.gen_range(-0.2..0.2));
-                if rng.gen_bool(mutation_prob.into()) {
+                rule.grow_prob = sigmoid(logit(rule.grow_prob) + rng.random_range(-0.2..0.2));
+                if rng.random_bool(mutation_prob.into()) {
                     *rule = CellType::new_random(&mut rng, &config)
                 } else {
                     for j in 0..8 {
-                        if rng.gen_bool(mutation_prob.into()) {
-                            rule.flow[j] = (rule.flow[j] as i32 + rng.gen_range(-2..=2))
+                        if rng.random_bool(mutation_prob.into()) {
+                            rule.flow[j] = (rule.flow[j] as i32 + rng.random_range(-2..=2))
                                 .clamp(0, config.max_flow as i32)
                                 as u8
                         }
                     }
-                    if rng.gen_bool(mutation_prob.into()) {
-                        rule.gravity_bias = rng.gen();
+                    if rng.random_bool(mutation_prob.into()) {
+                        rule.gravity_bias = rng.random();
                     }
                 }
             }
@@ -270,7 +269,7 @@ impl Simulation for RainfallSim {
                 energy += energy_transfer;
                 assert!(energy >= 0);
 
-                // if self.rng.gen::<u8>()< 20 {
+                // if self.rng.random::<u8>()< 20 {
                 if center_p.rule == 2 {
                     energy += nh
                         .neighbours
@@ -278,16 +277,16 @@ impl Simulation for RainfallSim {
                         .map(|n| n.vapour.outgoing().count() as i32)
                         .sum::<i32>();
                     energy += hex.vapour.outgoing().count() as i32;
-                    if self.rng.gen::<u8>() < 20 {
+                    if self.rng.random::<u8>() < 20 {
                         hex.vapour.set_outgoing(DirectionSet::none());
                     }
                     // } else if hex.vapour.count() > 3 {
                     energy -= 5;
-                } else if self.rng.gen::<u8>() < 40 {
+                } else if self.rng.random::<u8>() < 40 {
                     energy -= 1;
                 }
 
-                if energy < 0 && self.rng.gen::<u8>() < 10 {
+                if energy < 0 && self.rng.random::<u8>() < 10 {
                     // xxx violates "no transformations" rule... okay?
                     hex.cell = Air;
                 } else {
@@ -306,15 +305,36 @@ impl Simulation for RainfallSim {
                     let neigh_grow_into = rule.grow_type(neigh_p.connections, growth_dir);
                     use Direction::*;
                     let neigh_grow_allowed = match rule.gravity_bias % 16 {
-                        1 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, NorthWest | NorthEast),
-                        2 => neigh_p.energy >= GROWTH_REQURIEMENT && matches!(growth_dir, SouthWest | SouthEast),
-                        3 => neigh_p.energy >= GROWTH_REQURIEMENT && !matches!(growth_dir, NorthWest | NorthEast),
+                        1 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && matches!(growth_dir, NorthWest | NorthEast)
+                        }
+                        2 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && matches!(growth_dir, SouthWest | SouthEast)
+                        }
+                        3 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && !matches!(growth_dir, NorthWest | NorthEast)
+                        }
                         4 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].air(),
                         5 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].solid(),
-                        6 => neigh_p.energy >= GROWTH_REQURIEMENT && (nh[SouthEast].solid() || nh[SouthWest].solid()),
-                        7 => neigh_p.energy >= GROWTH_REQURIEMENT && !(nh[SouthEast].solid() || nh[SouthWest].solid()),
-                        8 => neigh_p.energy >= GROWTH_REQURIEMENT && (nh[NorthEast].solid() || nh[NorthWest].solid()),
-                        9 => neigh_p.energy >= GROWTH_REQURIEMENT && !(nh[NorthEast].solid() || nh[NorthWest].solid()),
+                        6 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && (nh[SouthEast].solid() || nh[SouthWest].solid())
+                        }
+                        7 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && !(nh[SouthEast].solid() || nh[SouthWest].solid())
+                        }
+                        8 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && (nh[NorthEast].solid() || nh[NorthWest].solid())
+                        }
+                        9 => {
+                            neigh_p.energy >= GROWTH_REQURIEMENT
+                                && !(nh[NorthEast].solid() || nh[NorthWest].solid())
+                        }
                         _ => neigh_p.energy >= GROWTH_REQURIEMENT,
                     };
                     if neigh_grow_into > grow_into {
@@ -329,7 +349,10 @@ impl Simulation for RainfallSim {
                     }
                 }
                 if grow_allowed && self.rules[grow_into as usize].grow_prob < 1.0 {
-                    if !self.rng.gen_bool(self.rules[grow_into as usize].grow_prob.into()) {
+                    if !self
+                        .rng
+                        .random_bool(self.rules[grow_into as usize].grow_prob.into())
+                    {
                         grow_allowed = false
                     }
                 }
@@ -382,7 +405,7 @@ impl HexgridView for RainfallSim {
         };
         let energy_vapour = hex.vapour.outgoing().count() * 2;
         let energy_plant = match hex.cell {
-            Plant(p) => (p.energy / 8).clamp(0, 200) as u8,
+            Plant(p) => (p.energy / 16).clamp(0, 200) as u8,
             _ => 0,
         };
 

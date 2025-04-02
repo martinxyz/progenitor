@@ -4,13 +4,12 @@ mod rules;
 use crate::coords;
 use crate::CellView;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 use crate::TorusNeighbourIter;
 use crate::TorusTile;
 use crate::VIEWPORT;
-use rand::thread_rng;
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use std::io::prelude::*;
 
 pub use cell::{Cell, CellType, CellTypeRef, CellTypes, GrowDirection};
@@ -19,12 +18,12 @@ pub struct World {
     pub cells: TorusTile<Cell>,
     // mut name2idx: HashMap<&str, u8>,
     pub types: cell::CellTypes,
-    rng: Pcg32,
+    rng: SimRng,
 }
 
 impl World {
     pub fn new() -> World {
-        let rng = Pcg32::from_rng(thread_rng()).unwrap();
+        let rng = SimRng::from_rng(&mut rand::rng());
         World {
             cells: TorusTile::new(Default::default()),
             types: CellTypes::new(),
@@ -33,7 +32,7 @@ impl World {
     }
 
     pub fn seed(&mut self, seed: u64) {
-        self.rng = Pcg32::seed_from_u64(seed);
+        self.rng = SimRng::seed_from_u64(seed);
     }
 
     pub fn set_cell(&mut self, pos: coords::Cube, cell: Cell) {

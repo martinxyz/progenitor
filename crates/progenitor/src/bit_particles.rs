@@ -13,7 +13,7 @@ impl BitParticles {
     pub const EMPTY: Self = BitParticles(0b00000000);
     // pub const EIGHT: Self = BitParticles(0b11111111);
     // pub fn random50(rng: &mut impl Rng) -> Self {
-    //     Self(rng.gen())
+    //     Self(rng.random())
     // }
     pub fn count(&self) -> u8 {
         self.0.count_ones() as u8
@@ -46,7 +46,7 @@ impl BitParticles {
         self.set_outgoing(self.outgoing().mirrored());
     }
     pub fn shuffle8_cheap(&mut self, rng: &mut impl Rng) {
-        let mut rnd: u8 = rng.gen();
+        let mut rnd: u8 = rng.random();
         let idx1 = rnd & 0b111;
         rnd >>= 4;
         let idx2 = rnd & 0b111;
@@ -58,7 +58,7 @@ impl BitParticles {
         }
     }
     pub fn shuffle8_cheap_4x(&mut self, rng: &mut impl Rng) {
-        let mut rnd: u32 = rng.gen();
+        let mut rnd: u32 = rng.random();
         for _ in 0..4 {
             let idx1 = (rnd as u8) & 0b111;
             rnd >>= 4;
@@ -73,7 +73,7 @@ impl BitParticles {
         }
     }
     pub fn swap_random_neighbours(&mut self, rng: &mut impl Rng) {
-        let idx1 = ((rng.gen::<u32>() as u64 * 6) >> 32) as u8;
+        let idx1 = ((rng.random::<u32>() as u64 * 6) >> 32) as u8;
         let idx2 = if idx1 == 5 { 0 } else { idx1 + 1 };
 
         let bit1 = (self.0 & (1 << idx1)) != 0;

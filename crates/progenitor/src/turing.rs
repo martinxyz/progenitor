@@ -1,15 +1,11 @@
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
-use rand::Rng;
-use rand::RngCore;
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
 use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
+use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
 use crate::VIEWPORT;
@@ -46,8 +42,8 @@ pub struct Turing {
 fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
     (0..Turing::LUT_SIZE)
         .map(|_| Command {
-            next_state: rng.gen_range(0..Turing::STATES as u8),
-            next_symbol: rng.gen_range(0..Turing::SYMBOLS as u8),
+            next_state: rng.random_range(0..Turing::STATES as u8),
+            next_symbol: rng.random_range(0..Turing::SYMBOLS as u8),
             next_action: *Direction::all().choose(rng).unwrap(),
         })
         .collect()
@@ -55,7 +51,7 @@ fn random_rule(rng: &mut impl Rng) -> Vec<Command> {
 
 impl Turing {
     pub fn new_with_seed(seed: u64) -> Turing {
-        let mut rng = Pcg32::seed_from_u64(seed);
+        let mut rng = SimRng::seed_from_u64(seed);
         Turing {
             grid: TorusTile::new(0),
             rule_lut: random_rule(&mut rng),
@@ -64,7 +60,7 @@ impl Turing {
         }
     }
     pub fn new() -> Turing {
-        Self::new_with_seed(thread_rng().next_u64())
+        Self::new_with_seed(rand::rng().next_u64())
     }
 }
 
@@ -80,7 +76,7 @@ impl Simulation for Turing {
         self.pos = self.pos + command.next_action;
         self.state = command.next_state;
 
-        // if self.rng.gen_bool(0.02) {
+        // if self.rng.random_bool(0.02) {
         //     self.rule_lut = random_rule(&mut self.rng);
         // }
     }

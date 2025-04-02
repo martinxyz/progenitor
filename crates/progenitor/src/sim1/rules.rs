@@ -1,7 +1,7 @@
 use crate::{Direction, DirectionSet, Neighbourhood};
 
 use super::cell::{Cell, CellTypeRef, CellTypes, GrowDirection};
-use rand::{seq::IteratorRandom, seq::SliceRandom, Rng};
+use rand::prelude::*;
 
 // Temporary state of cell (intermediate calculation)
 #[derive(Debug, Clone, Copy)]
@@ -18,12 +18,12 @@ pub fn prepare_step(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> CellTem
     let growth = match ct.grow_p {
         0 => DirectionSet::none(),
         prob if prob < 128 => match ct.grow_dir {
-            GrowDirection::All => DirectionSet::matching(|_| rng.gen_range(0..128) < prob),
-            GrowDirection::Forward => match rng.gen_range(0..128) < prob {
+            GrowDirection::All => DirectionSet::matching(|_| rng.random_range(0..128) < prob),
+            GrowDirection::Forward => match rng.random_range(0..128) < prob {
                 false => DirectionSet::none(),
                 true => DirectionSet::single(cur.direction),
             },
-            GrowDirection::RandomChoice => match rng.gen_range(0..128) < prob {
+            GrowDirection::RandomChoice => match rng.random_range(0..128) < prob {
                 false => DirectionSet::none(),
                 true => DirectionSet::single(*Direction::all().choose(rng).unwrap()),
             },
@@ -100,7 +100,7 @@ fn self_transform(types: &CellTypes, rng: &mut impl Rng, cur: Cell) -> Cell {
     let trigger1 = false;
     let trigger2 = match ct.transform_at_random_p {
         0 => false,
-        prob if prob < 128 => rng.gen_range(0..128) < prob,
+        prob if prob < 128 => rng.random_range(0..128) < prob,
         _ => true,
     };
     if trigger1 || trigger2 {

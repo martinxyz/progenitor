@@ -1,5 +1,4 @@
-use nalgebra::{zero, SVector};
-use rand::thread_rng;
+use nalgebra::SVector;
 use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
@@ -47,7 +46,7 @@ pub fn demo_sunburn() -> JsSimulation {
 
 #[wasm_bindgen]
 pub fn demo_pairs() -> JsSimulation {
-    let sim = pairs::World::new(pairs::random_params(&mut thread_rng()));
+    let sim = pairs::World::new(pairs::random_params(&mut rand::rng()));
     // let sim = pairs::World::new(pairs::Params {
     //     p0: 211,
     //     p1: 102,

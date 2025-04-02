@@ -1,12 +1,7 @@
 use hex2d::Angle;
 use nalgebra::SVector;
 use num_traits::FromPrimitive;
-use rand::distributions;
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
-use rand::Rng;
-use rand::RngCore;
-use rand::SeedableRng;
+use rand::prelude::*;
 use rand_distr::Distribution;
 use rand_distr::Normal;
 use serde::{Deserialize, Serialize};
@@ -148,7 +143,7 @@ impl Builders {
             init_fac2: 1.0,
             bias_fac: 0.1,
         };
-        let rng = &mut thread_rng();
+        let rng = &mut rand::rng();
         let dist = Normal::new(0.0, 1.0).unwrap();
         let weights = dist.sample_iter(rng).take(hp.count_params()).collect();
 
@@ -162,7 +157,7 @@ impl Builders {
     }
 
     pub fn new_with_params(params: Params) -> Builders {
-        let seed = thread_rng().next_u64();
+        let seed = rand::rng().next_u64();
         Self::new_with_params_and_seed(params, seed)
     }
 
@@ -201,8 +196,8 @@ impl Builders {
         let pos = worldgen::find_agent_starting_place(rng, &self.state.cells);
         self.state.cells.set_cell(pos, Cell::Agent);
         let memory = {
-            let dist = distributions::Uniform::new(-1.0f32, 1.0f32);
-            SVector::from_distribution(&dist, rng)
+            let dist = rand::distr::Uniform::new(-1.0f32, 1.0f32).unwrap();
+            SVector::from_fn(|_, _| dist.sample(rng))
         };
         self.state.builders.push(Builder {
             pos,
@@ -268,9 +263,9 @@ impl Builders {
                 t.memory[6],
                 t.memory[7],
                 // allow use of randomness (in addition to action probabilities)
-                self.state.rng.gen(),
-                self.state.rng.gen(),
-                self.state.rng.gen(),
+                self.state.rng.random(),
+                self.state.rng.random(),
+                self.state.rng.random(),
             ]
             .map(|x| (x - 0.2) * 2.5); // input normalization for minimalists
             assert_eq!(N_MEMORY, 8);

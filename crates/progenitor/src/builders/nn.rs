@@ -3,8 +3,8 @@
 // later, maybe: (and especially in case the NNs get larger: enable blas)
 // use ndarray::prelude::*;
 use nalgebra::{SMatrix, SVector};
-use rand::distributions::{Distribution, WeightedIndex};
-use rand::Rng;
+use rand::distr::{weighted::WeightedIndex, Distribution};
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::stats::RangeTracker;

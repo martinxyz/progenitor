@@ -87,8 +87,8 @@ impl<CellT: Copy> TorusTile<CellT> {
     }
 
     pub fn random_pos(&self, rng: &mut impl Rng) -> coords::Cube {
-        let x = rng.gen_range(0..SIZE as i32);
-        let y = -x - rng.gen_range(0..SIZE as i32); // ugh.
+        let x = rng.random_range(0..SIZE as i32);
+        let y = -x - rng.random_range(0..SIZE as i32); // ugh.
         coords::Cube { x, y }
     }
 

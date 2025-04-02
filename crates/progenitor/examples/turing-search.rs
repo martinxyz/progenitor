@@ -1,7 +1,6 @@
 use progenitor::turing::Turing;
 use progenitor::{Simulation, SIZE};
-use rand::prelude::IteratorRandom;
-use rand::{thread_rng, Rng};
+use rand::prelude::*;
 
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
@@ -24,15 +23,15 @@ impl Params {
             // high number of iterations: many bins will be static or oscillating
             // low number of iterations: interesting to play, but most bins look just random
             // widely varied number of iterations: low iteration counts get selected (see above)
-            // iterations: 1 << rng.gen_range(12..18),
-            iterations: rng.gen_range(10_000..15_000),
+            // iterations: 1 << rng.random_range(12..18),
+            iterations: rng.random_range(10_000..15_000),
         }
     }
     pub fn mutate(&mut self, rng: &mut impl Rng) {
         /*
         // This just tends to converge to small number of iterations (boring).
         let fac_max: f32 = 1.2;
-        let fac = rng.gen_range(-fac_max.log2()..fac_max.log2()).exp2();
+        let fac = rng.random_range(-fac_max.log2()..fac_max.log2()).exp2();
         self.iterations = ((self.iterations as f32 * fac).clamp(10., 1e6).round()) as u64;
         */
         self.seed = rng.next_u64();
@@ -98,7 +97,7 @@ fn main() {
     const POPULATION_LAG: usize = 100;
     const EVALUATIONS: usize = 10_000_000;
 
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     let mut bins_found: HashMap<_, EvalResult> = HashMap::new();
 

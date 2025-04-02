@@ -1,4 +1,4 @@
-use rand::seq::SliceRandom;
+use rand::prelude::*;
 
 use crate::coords::Direction;
 use crate::{AxialTile, Neighbourhood, SimRng};

@@ -1,7 +1,4 @@
-use rand::thread_rng;
-use rand::Rng;
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::ca;
@@ -63,7 +60,7 @@ impl ca::TransactionalCaRule for Rule {
 
     fn step(&self, nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
         if let Cell::Dust(_) = nh.center {
-            Cell::Dust(match rng.gen_range(0..16) {
+            Cell::Dust(match rng.random_range(0..16) {
                 0 => Some(Direction::SouthWest),
                 1 => Some(Direction::SouthEast),
                 _ => None,
@@ -76,18 +73,18 @@ impl ca::TransactionalCaRule for Rule {
 
 impl World {
     pub fn new() -> World {
-        let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+        let mut rng = SimRng::from_rng(&mut rand::rng());
         World {
             cells: TorusTile::from_fn(|pos| {
                 if pos.z() > SIZE as i32 - 3 {
                     Cell::Grass
                 } else if pos.z() < 5 {
                     Cell::Sand
-                } else if rng.gen_bool(0.01) {
+                } else if rng.random_bool(0.01) {
                     Cell::Dust(None)
-                } else if rng.gen_bool(0.02) {
+                } else if rng.random_bool(0.02) {
                     Cell::Sand
-                } else if pos.z() > 20 && pos.z() < 24 && rng.gen_bool(0.6) {
+                } else if pos.z() > 20 && pos.z() < 24 && rng.random_bool(0.6) {
                     Cell::Grass
                 } else {
                     Cell::Air
@@ -98,7 +95,7 @@ impl World {
     }
 
     pub fn seed(&mut self, seed: u64) {
-        self.rng = Pcg32::seed_from_u64(seed);
+        self.rng = SimRng::seed_from_u64(seed);
     }
 }
 

@@ -1,7 +1,4 @@
-use rand::thread_rng;
-use rand::Rng;
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
@@ -83,7 +80,7 @@ impl DirectionSet {
 
 impl SunburnWorld {
     pub fn new() -> SunburnWorld {
-        let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+        let mut rng = SimRng::from_rng(&mut rand::rng());
 
         let cells = hexmap::new(RADIUS, BORDER, |location| {
             let kind = if location.dist_from_top() == 0 {
@@ -96,14 +93,14 @@ impl SunburnWorld {
                 match location.dist_from_center() {
                     // 0..=5 => Air,
                     2 => Blob(DirectionSet::none()),
-                    _ if rng.gen_bool(0.18) => Stone,
+                    _ if rng.random_bool(0.18) => Stone,
                     _ => Air,
                 }
             };
             Cell {
                 kind,
                 energy: match kind {
-                    Blob(..) => 1, // rng.gen_range(3..=5),
+                    Blob(..) => 1, // rng.random_range(3..=5),
                     _ => 0,
                 },
                 photons: DirectionSet::none(),
@@ -195,9 +192,9 @@ fn step2(nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
         // absorption
         let incoming = {
             let tmp: u8 = if kind.transparent() {
-                rng.gen::<u8>()
+                rng.random::<u8>()
             } else {
-                rng.gen::<u8>() % 8
+                rng.random::<u8>() % 8
             };
             if let Ok(dir) = Direction::try_from(tmp as i32) {
                 incoming.with(dir, false)
@@ -216,7 +213,7 @@ fn step2(nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
         match kind {
             Sun => emit,
             Air => transmit,
-            _ => match rng.gen::<u8>() % 8 {
+            _ => match rng.random::<u8>() % 8 {
                 0 | 1 | 2 => diffuse1,
                 3 | 4 | 5 => diffuse2,
                 _ => reflect,

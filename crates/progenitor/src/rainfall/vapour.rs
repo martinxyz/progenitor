@@ -8,7 +8,7 @@ pub(crate) fn step(nh: Neighbourhood<BitParticles>) -> BitParticles {
 }
 
 pub fn apply_air_rules(vapour: &mut BitParticles, rng: &mut impl Rng) {
-    if rng.gen::<u8>() < 200 {
+    if rng.random::<u8>() < 200 {
         vapour.set_resting(1);
     } else {
         if vapour.resting() == 1 {
@@ -16,7 +16,7 @@ pub fn apply_air_rules(vapour: &mut BitParticles, rng: &mut impl Rng) {
         }
     }
 
-    if rng.gen::<u8>() < 3 {
+    if rng.random::<u8>() < 3 {
         vapour.shuffle8_cheap(rng);
     }
 
@@ -25,7 +25,7 @@ pub fn apply_air_rules(vapour: &mut BitParticles, rng: &mut impl Rng) {
     o = o.swapped(SouthWest, SouthEast); // straight down (zig-zag)
     o = o.swapped(NorthWest, NorthEast); // straight up
 
-    if rng.gen::<u8>() < 250 {
+    if rng.random::<u8>() < 250 {
         if o.contains(NorthEast) {
             o = o.swapped(NorthEast, East)
         } else if !o.contains(SouthEast) {

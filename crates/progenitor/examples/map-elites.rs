@@ -1,7 +1,6 @@
 use progenitor::world1::{rules, Cell, CellTypeRef, Params, World};
 use progenitor::Simulation;
-use rand::prelude::IteratorRandom;
-use rand::{thread_rng, Rng};
+use rand::prelude::*;
 
 use std::collections::HashMap;
 use std::fs::{create_dir_all, File};
@@ -84,7 +83,7 @@ fn main() {
     const EVALUATIONS: usize = 10_000;
     // const INITIAL_POPULATION: usize = 10_000;
 
-    let mut rng = thread_rng();
+    let mut rng = rand::rng();
 
     let mut bins_found: HashMap<_, EvalResult> = HashMap::new();
 
@@ -108,7 +107,7 @@ fn main() {
             let random_parent = bins_found.values().choose(&mut rng).unwrap();
             let mut params = random_parent.1.clone();
             params.mutate(&mut rng);
-            while rng.gen_bool(0.7) {
+            while rng.random_bool(0.7) {
                 params.mutate(&mut rng);
             }
             // params = sample_initial_params(&mut rng);  // for validation: converges ~40% slower

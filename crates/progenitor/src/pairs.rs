@@ -1,7 +1,4 @@
-use rand::thread_rng;
-use rand::Rng;
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
+use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::coords;
@@ -40,9 +37,9 @@ pub struct Params {
 
 impl World {
     pub fn new(params: Params) -> World {
-        let mut rng = Pcg32::from_rng(thread_rng()).unwrap();
+        let mut rng = SimRng::from_rng(&mut rand::rng());
 
-        let init = hexmap::new(RADIUS, None, |_location| Some(rng.gen::<u8>()));
+        let init = hexmap::new(RADIUS, None, |_location| Some(rng.random::<u8>()));
         let init = init.ca_step(None, |location| {
             let center: u8 = location.center?;
             // let neighbours_sum1: i16 = location
@@ -72,7 +69,7 @@ impl World {
                     .map(|v| v.unwrap_or(128) as u16)
                     .into_iter()
                     .sum();
-                let dice: u8 = rng.gen_range(0..=(8 + 3));
+                let dice: u8 = rng.random_range(0..=(8 + 3));
                 match dice {
                     0..=6 => {
                         let dir = Direction::from_int(dice.into());
@@ -100,7 +97,7 @@ impl World {
     }
 
     pub fn seed(&mut self, seed: u64) {
-        self.rng = Pcg32::seed_from_u64(seed);
+        self.rng = SimRng::seed_from_u64(seed);
     }
 }
 
@@ -141,11 +138,11 @@ impl Simulation for World {
 
 pub fn random_params(rng: &mut impl Rng) -> Params {
     Params {
-        p0: rng.gen(),
-        p1: rng.gen(),
-        p2: rng.gen(),
-        count0: rng.gen_range(0..=6),
-        count1: rng.gen_range(0..=6),
+        p0: rng.random(),
+        p1: rng.random(),
+        p2: rng.random(),
+        count0: rng.random_range(0..=6),
+        count1: rng.random_range(0..=6),
     }
 }
 
