@@ -11,7 +11,7 @@ package-mode = false
 # ray 2.6 doesn't support python 3.11 yet (it only fails when using the jobs API)
 # ray 3.10 docu still says python 3.11 support is experimental
 python = ">=3.10,<3.11"
-maturin = "^1.5"
+maturin = "^1.8"
 # progenitor = {path = "target/wheels/progenitor-0.1.0-cp310-cp310-linux_x86_64.whl"}
 ribs = {extras = ["visualize"], version = "^0.5.2"}
 cma = "^3"

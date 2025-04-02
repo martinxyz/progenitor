@@ -133,11 +133,11 @@ impl Params {
     }
 
     #[staticmethod]
-    fn deserialize(bytes: &PyBytes) -> PyResult<Self> {
+    fn deserialize(bytes: &[u8]) -> PyResult<Self> {
         let params: progenitor::builders::Params = DefaultOptions::new()
             .with_fixint_encoding() // this is the default when encoding, see: https://docs.rs/bincode/latest/bincode/config/index.html#options-struct-vs-bincode-functions
             .reject_trailing_bytes()
-            .deserialize(bytes.as_bytes())
+            .deserialize(bytes)
             .map_err(|e| {
                 PyValueError::new_err(format!("bytes should deserialize to valid Params: {}", e))
             })?;

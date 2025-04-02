@@ -1,6 +1,7 @@
 // use pyo3::wrap_pyfunction;
-use pyo3::buffer::PyBuffer;
+// use pyo3::buffer::PyBuffer;
 use pyo3::prelude::*;
+use pyo3::Bound;
 // use pyo3::types::PyBytes;
 use ndarray::prelude::*;
 // use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD};
@@ -32,7 +33,14 @@ impl World {
         }
     }
 
-    fn get_particles(&self, py: Python, _x: i32, _y: i32, _w: i32, _h: i32) -> Py<PyArray1<bool>> {
+    fn get_particles<'py>(
+        &self,
+        py: Python<'py>,
+        _x: i32,
+        _y: i32,
+        _w: i32,
+        _h: i32,
+    ) -> Bound<'py, PyArray1<bool>> {
         // data: Array::from_elem((N, N), init)
         // use Cell::{Border, Empty, Cell};
         let cells = &self.inner.cells;
@@ -45,11 +53,11 @@ impl World {
     }
 
     // fn test_buffer_protocol(&mut self, buf: &PyBuffer) {
-    fn test_buffer_protocol(&self, v: &PyAny) -> PyResult<()> {
-        let buf: PyBuffer<u8> = PyBuffer::get(v)?;
-        println!("Buffer protocol shape: {:?}", buf.shape());
-        Ok(())
-    }
+    // fn test_buffer_protocol(&self, v: &PyAny) -> PyResult<()> {
+    //     let buf: PyBuffer<u8> = PyBuffer::get(v)?;
+    //     println!("Buffer protocol shape: {:?}", buf.shape());
+    //     Ok(())
+    // }
 
     // fn apply_lut_filter(&mut self, v: Vec<u8>) {
     //     println!("Foo! {}", v.len());
