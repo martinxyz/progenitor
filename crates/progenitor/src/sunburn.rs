@@ -185,7 +185,7 @@ fn step2(nh: Neighbourhood<Cell>, rng: &mut SimRng) -> Cell {
     let photons = {
         // TODO: use BitParticles instead
         let incoming = DirectionSet::matching(|dir| {
-            nh[dir].photons.contains(-dir)
+            nh[dir].photons.has(-dir)
             // delete photons that cross two walls
             // nh[dir].photons.contains(-dir) && (kind.transparent() || nh[dir].kind.transparent())
         });

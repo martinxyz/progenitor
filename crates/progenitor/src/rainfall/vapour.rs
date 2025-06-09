@@ -26,14 +26,14 @@ pub fn apply_air_rules(vapour: &mut BitParticles, rng: &mut impl Rng) {
     o = o.swapped(NorthWest, NorthEast); // straight up
 
     if rng.random::<u8>() < 250 {
-        if o.contains(NorthEast) {
+        if o.has(NorthEast) {
             o = o.swapped(NorthEast, East)
-        } else if !o.contains(SouthEast) {
+        } else if !o.has(SouthEast) {
             o = o.swapped(SouthEast, East)
         }
-        if o.contains(NorthWest) {
+        if o.has(NorthWest) {
             o = o.swapped(NorthWest, West)
-        } else if !o.contains(SouthWest) {
+        } else if !o.has(SouthWest) {
             o = o.swapped(SouthWest, West)
         }
     }

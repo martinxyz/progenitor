@@ -53,7 +53,7 @@ pub fn execute_step(types: &CellTypes, rng: &mut impl Rng, nh: Neighbourhood<Cel
     cur.particles = nh
         .iter_dirs()
         .fold(DirectionSet::none(), |ds, (dir, temp)| {
-            ds.with(-dir, temp.cell.particles.contains(-dir))
+            ds.with(-dir, temp.cell.particles.has(-dir))
         });
     let cur = cur;
 
@@ -61,7 +61,7 @@ pub fn execute_step(types: &CellTypes, rng: &mut impl Rng, nh: Neighbourhood<Cel
         .iter_dirs()
         .filter(|(dir, temp)| {
             let base_prio = types[cur.cell_type].priority;
-            temp.grow_directions.contains(-*dir)
+            temp.grow_directions.has(-*dir)
                 && temp.grow_prio > base_prio
                 && temp.grow_prio >= types[temp.grow_celltype].priority
         })

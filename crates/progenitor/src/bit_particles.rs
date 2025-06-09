@@ -11,10 +11,18 @@ pub struct BitParticles(u8);
 
 impl BitParticles {
     pub const EMPTY: Self = BitParticles(0b00000000);
-    // pub const EIGHT: Self = BitParticles(0b11111111);
+    pub const FULL: Self = BitParticles(0b11111111);
     // pub fn random50(rng: &mut impl Rng) -> Self {
     //     Self(rng.random())
     // }
+
+    pub fn new(outgoing: DirectionSet, resting: u8) -> Self {
+        let mut result = BitParticles::EMPTY;
+        result.set_outgoing(outgoing);
+        result.set_resting(resting);
+        result
+    }
+
     pub fn count(&self) -> u8 {
         self.0.count_ones() as u8
     }
@@ -25,7 +33,7 @@ impl BitParticles {
         (self.0 & 0b11000000).count_ones() as u8
     }
     pub fn collect_neighbours(nh: Neighbourhood<Self>) -> Self {
-        let incoming = DirectionSet::matching(|dir| nh[-dir].outgoing().contains(dir));
+        let incoming = DirectionSet::matching(|dir| nh[-dir].outgoing().has(dir));
         let resting = nh.center.0 & 0b11000000;
         Self(resting | incoming.bits())
     }

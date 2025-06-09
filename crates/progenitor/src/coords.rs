@@ -188,7 +188,7 @@ impl DirectionSet {
         assert_eq!(mask & 0b11000000, 0);
         Self { mask }
     }
-    pub fn bits(&self) -> u8 {
+    pub const fn bits(&self) -> u8 {
         self.mask
     }
     pub const fn single(dir: Direction) -> Self {
@@ -205,7 +205,7 @@ impl DirectionSet {
             .fold(0, |mask, i| mask | (1 << i));
         DirectionSet { mask }
     }
-    pub fn contains(&self, dir: Direction) -> bool {
+    pub fn has(&self, dir: Direction) -> bool {
         let dir_mask = 1 << (dir as u8);
         self.mask & dir_mask != 0
     }
@@ -221,16 +221,16 @@ impl DirectionSet {
     }
     #[must_use]
     pub fn mirrored(&self) -> Self {
-        DirectionSet::matching(|dir| self.contains(-dir))
+        DirectionSet::matching(|dir| self.has(-dir))
     }
     #[must_use]
     pub fn transmuted(&self, transmute: impl Fn(Direction) -> Direction) -> Self {
-        DirectionSet::matching(|dir| self.contains(transmute(dir)))
+        DirectionSet::matching(|dir| self.has(transmute(dir)))
     }
     #[must_use]
     pub fn swapped(&self, dir1: Direction, dir2: Direction) -> Self {
-        let has1 = self.contains(dir1);
-        let has2 = self.contains(dir2);
+        let has1 = self.has(dir1);
+        let has2 = self.has(dir2);
         self.with(dir1, has2).with(dir2, has1)
     }
     pub fn count(&self) -> u8 {

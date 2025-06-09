@@ -111,9 +111,9 @@ impl CellType {
         }
     }
     fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
-        let c1: usize = connections.contains(growth_dir + Angle::RightBack).into();
-        let c2: usize = connections.contains(growth_dir + Angle::Back).into();
-        let c3: usize = connections.contains(growth_dir + Angle::LeftBack).into();
+        let c1: usize = connections.has(growth_dir + Angle::RightBack).into();
+        let c2: usize = connections.has(growth_dir + Angle::Back).into();
+        let c3: usize = connections.has(growth_dir + Angle::LeftBack).into();
         let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
         self.growth[idx]
     }
@@ -123,14 +123,14 @@ impl CellType {
         let c2: usize;
         let c3: usize;
         if !swap {
-            c1 = connections.contains(flow_dir + Angle::RightBack).into();
-            c2 = connections.contains(flow_dir + Angle::Back).into();
-            c3 = connections.contains(flow_dir + Angle::LeftBack).into();
+            c1 = connections.has(flow_dir + Angle::RightBack).into();
+            c2 = connections.has(flow_dir + Angle::Back).into();
+            c3 = connections.has(flow_dir + Angle::LeftBack).into();
         } else {
             // More fun, harder to comprehend?:
-            c1 = connections.contains(flow_dir + Angle::Left).into();
-            c2 = connections.contains(flow_dir + Angle::Right).into();
-            c3 = connections.contains(flow_dir + Angle::Back).into();
+            c1 = connections.has(flow_dir + Angle::Left).into();
+            c2 = connections.has(flow_dir + Angle::Right).into();
+            c3 = connections.has(flow_dir + Angle::Back).into();
         }
         let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
         self.flow[idx]
