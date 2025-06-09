@@ -27,18 +27,25 @@ enum Cell {
     Plant(PlantCell),
 }
 
+impl Cell {
+    fn rule(&self) -> u8 {
+        match self {
+            Plant(p) => p.rule,
+            _ => 255,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 struct PlantCell {
     rule: u8,
-    connections: DirectionSet,
-    energy: u16,
+    mass: BitParticles,
 }
 
 impl PlantCell {
     const EMPTY: PlantCell = PlantCell {
         rule: 0,
-        energy: 0,
-        connections: DirectionSet::none(),
+        mass: BitParticles::EMPTY,
     };
 }
 
@@ -68,7 +75,6 @@ const GROWTH_REQURIEMENT: u16 = 32;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Configuration {
-    initial_energy: u16,
     cell_types: u8,
     max_flow: u8,
     flow_swap: bool,
@@ -77,7 +83,6 @@ pub struct Configuration {
 impl Default for Configuration {
     fn default() -> Self {
         Self {
-            initial_energy: 350,
             cell_types: 8,
             max_flow: 30,
             flow_swap: false,
@@ -222,157 +227,106 @@ impl RainfallSim {
 impl Simulation for RainfallSim {
     fn step(&mut self) {
         self.hexes = self.hexes.ca_step(BORDER, |nh| {
-            let mut hex = nh.center;
-            hex.vapour = vapour::step(nh.map(|h| h.vapour));
-            match hex.cell {
-                Border | Wall => hex.vapour.reflect_all(),
-                Plant(PlantCell { rule: 3, .. }) => hex.vapour.reflect_all(),
-                _ => vapour::apply_air_rules(&mut hex.vapour, &mut self.rng),
+            let mut next = nh.center;
+            next.vapour = vapour::step(nh.map(|h| h.vapour));
+            match next.cell {
+                Border | Wall => next.vapour.reflect_all(),
+                Plant(PlantCell { rule: 2, .. }) => next.vapour.reflect_all(),
+                _ => vapour::apply_air_rules(&mut next.vapour, &mut self.rng),
             }
 
-            if let Plant(center_p) = nh.center.cell {
-                // only energy flow, no transformations
-                //
-                // Energy transfer happens between two cells. It is based only
-                // on information that both cells can see. To keep things
-                // simple, we allow a cell to transfer energy away only if it
-                // could transfer the same amount to all 6 neighbours, so
-                // it cannot transfer more than it has.
-                //
-                let mut energy_transfer: i32 = 0;
-                let center_rule = &self.rules[center_p.rule as usize];
-                for (dir, neigh) in nh.iter_dirs() {
-                    let Plant(neigh_p) = neigh.cell else { continue };
-                    let neigh_rule = &self.rules[neigh_p.rule as usize];
-                    let flow = {
-                        let flow1 =
-                            center_rule.flow(center_p.connections, -dir, self.config.flow_swap);
-                        let flow2 =
-                            neigh_rule.flow(neigh_p.connections, dir, self.config.flow_swap);
-                        ((flow1 as i16 + flow2 as i16) - 7).clamp(0, 255) as u8
-                    };
-
-                    let energy1 = center_p.energy;
-                    let energy2 = neigh_p.energy;
-
-                    if energy1 > energy2 {
-                        if energy1 >= flow as u16 * 6 {
-                            energy_transfer -= flow as i32;
+            // check if a neighbour may grow here
+            let growth_rule_next = nh
+                .iter_dirs()
+                .fold(255, |rule, (dir, neigh)| {
+                    // neighbour must be a plant
+                    if let Plant(neigh_p) = neigh.cell {
+                        // neighbour must be pushing mass towards us
+                        if neigh_p.mass.outgoing().has(-dir) {
+                            // neighbour must have the lowest rule of all candidates
+                            rule.min(neigh_p.rule)
+                        } else {
+                            rule
                         }
-                    } else if energy2 > energy1 {
-                        if energy2 >= flow as u16 * 6 {
-                            energy_transfer += flow as i32;
+                    } else {
+                        rule
+                    }
+                });
+
+            next.cell = if let Plant(mut next_plant) = nh.center.cell {
+                // mass transfers to/from neighbouring plant cells
+                //
+                // (must use only information from the old cell-state of each pair)
+                // current rule: mass transfer always happens when possible
+                //
+                // (if a cell doesn't want to transfer mass out, it has to remove the mass from that direction)
+                // (if a cell received mass in that it doesn't want, it will just have to transfer it out again)
+                // (however, a transfer out also doubles as a "growth request", so... let's just try and see)
+
+                let next_outgoing = DirectionSet::matching(|dir| {
+                    let outgoing = next_plant.mass.outgoing().has(dir);
+                    match nh[dir].cell {
+                        Plant(p) => {
+                            // swap both cell's outgoing slots
+                            p.mass.outgoing().has(-dir)
                         }
+                        _ => outgoing,
+                    }
+                });
+                next_plant.mass.set_outgoing(next_outgoing);
+                // randomly distribute mass
+                next_plant.mass.shuffle8_cheap(&mut self.rng);
+
+                // cell death
+                // (note: we could allow this, if the cell wants to, with non-zero mass)
+                if next_plant.mass.count() == 0 {
+                    // same logic as for empty cells (rule_next may be 255 = Air)
+                    next_plant = PlantCell {
+                        rule: growth_rule_next,
+                        mass: BitParticles::EMPTY,
                     }
                 }
-                let mut energy: i32 = center_p.energy.into();
-                energy += energy_transfer;
-                assert!(energy >= 0);
 
-                // if self.rng.random::<u8>()< 20 {
-                if center_p.rule == 2 {
-                    energy += nh
+                // cell that can harvest vapour
+                if next_plant.rule == 2 {
+                    let vapour_available = nh
                         .neighbours
                         .iter()
                         .map(|n| n.vapour.outgoing().count() as i32)
                         .sum::<i32>();
-                    energy += hex.vapour.outgoing().count() as i32;
-                    if self.rng.random::<u8>() < 20 {
-                        hex.vapour.set_outgoing(DirectionSet::none());
+                    if vapour_available > 0 && next_plant.mass.resting() < 2 {
+                        next_plant.mass.set_resting(2);
+                        if self.rng.random::<u8>() < 20 {
+                            next.vapour.set_outgoing(DirectionSet::none());
+                        }
                     }
-                    // } else if hex.vapour.count() > 3 {
-                    energy -= 5;
-                } else if self.rng.random::<u8>() < 40 {
-                    energy -= 1;
                 }
 
-                if energy < 0 && self.rng.random::<u8>() < 10 {
-                    // xxx violates "no transformations" rule... okay?
-                    hex.cell = Air;
+                if next_plant.rule == 255 {
+                    Air
                 } else {
-                    let energy = energy.clamp(0, 0xFFFF) as u16;
-                    hex.cell = Plant(PlantCell { energy, ..center_p })
+                    Plant(next_plant)
                 }
             } else if matches!(nh.center.cell, Air) {
-                // no energy flow, but a neighbour may grow a cell here
-                let mut grow_into = 0;
-                let mut grow_from = DirectionSet::none();
-                let mut grow_allowed = false;
-                for (dir, neigh) in nh.iter_dirs() {
-                    let Plant(neigh_p) = neigh.cell else { continue };
-                    let growth_dir = -dir;
-                    let rule = &self.rules[neigh_p.rule as usize];
-                    let neigh_grow_into = rule.grow_type(neigh_p.connections, growth_dir);
-                    use Direction::*;
-                    let neigh_grow_allowed = match rule.gravity_bias % 16 {
-                        1 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && matches!(growth_dir, NorthWest | NorthEast)
-                        }
-                        2 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && matches!(growth_dir, SouthWest | SouthEast)
-                        }
-                        3 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && !matches!(growth_dir, NorthWest | NorthEast)
-                        }
-                        4 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].air(),
-                        5 => neigh_p.energy >= GROWTH_REQURIEMENT && nh[growth_dir].solid(),
-                        6 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && (nh[SouthEast].solid() || nh[SouthWest].solid())
-                        }
-                        7 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && !(nh[SouthEast].solid() || nh[SouthWest].solid())
-                        }
-                        8 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && (nh[NorthEast].solid() || nh[NorthWest].solid())
-                        }
-                        9 => {
-                            neigh_p.energy >= GROWTH_REQURIEMENT
-                                && !(nh[NorthEast].solid() || nh[NorthWest].solid())
-                        }
-                        _ => neigh_p.energy >= GROWTH_REQURIEMENT,
-                    };
-                    if neigh_grow_into > grow_into {
-                        // switch to higher priority rule
-                        grow_into = neigh_grow_into;
-                        grow_from = DirectionSet::none();
-                        grow_allowed = false;
-                    }
-                    if neigh_grow_into == grow_into {
-                        grow_from = grow_from.with(dir, true);
-                        grow_allowed = grow_allowed || neigh_grow_allowed;
-                    }
-                }
-                if grow_allowed && self.rules[grow_into as usize].grow_prob < 1.0 {
-                    if !self
-                        .rng
-                        .random_bool(self.rules[grow_into as usize].grow_prob.into())
-                    {
-                        grow_allowed = false
-                    }
-                }
-                if grow_allowed {
-                    hex.cell = Plant(PlantCell {
-                        rule: grow_into,
-                        energy: 0,
-                        connections: grow_from,
+                // no mass transfer, but a neighbour may grow an empty cell here
+                if growth_rule_next < 255 {
+                    Plant(PlantCell {
+                        rule: growth_rule_next,
+                        mass: BitParticles::EMPTY,
                     })
+                } else {
+                    Air
                 }
-            } else if matches!(hex.cell, Seed) {
-                hex.cell = Plant(PlantCell {
-                        rule: 3,
-                        energy: self.config.initial_energy,
-                        connections:
-                            // DirectionSet::single(Direction::West).with(Direction::NorthWest, true),
-                            DirectionSet::all()
-                    })
-            }
-            hex
+            } else if matches!(next.cell, Seed) {
+                Plant(PlantCell {
+                    rule: 3,
+                    // mass: BitParticles::new(DirectionSet::all(), 2),
+                    mass: BitParticles::FULL,
+                })
+            } else {
+                next.cell
+            };
+            next
         });
     }
 
@@ -405,7 +359,10 @@ impl HexgridView for RainfallSim {
         };
         let energy_vapour = hex.vapour.outgoing().count() * 2;
         let energy_plant = match hex.cell {
-            Plant(p) => (p.energy / 16).clamp(0, 200) as u8,
+            Plant(p) => match p.mass.count() {
+                0 => 16,
+                n => n,
+            },
             _ => 0,
         };
 
