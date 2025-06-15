@@ -76,16 +76,30 @@ const GROWTH_REQURIEMENT: u16 = 32;
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Configuration {
     cell_types: u8,
+    initial_type: u8,
     max_flow: u8,
     flow_swap: bool,
 }
 
-impl Default for Configuration {
-    fn default() -> Self {
+impl Configuration {
+    fn new_random(rng: &mut impl Rng) -> Self {
         Self {
-            cell_types: 8,
+            cell_types: rng.random_range(4..=8),
+            initial_type: rng.random_range(0..=4),
             max_flow: 30,
             flow_swap: false,
+        }
+    }
+
+    fn mutate(&mut self, rng: &mut impl Rng) {
+        if rng.random::<u8>() < 80 {
+            self.cell_types = (self.cell_types as i32 + rng.random_range(-1..=1))
+                .clamp(0, MAX_CELL_TYPES.into())
+                .try_into()
+                .unwrap()
+        }
+        if rng.random::<u8>() < 20 {
+            self.initial_type = rng.random_range(0..=4);
         }
     }
 }
@@ -183,7 +197,8 @@ impl RainfallSim {
             },
         });
 
-        let config = Configuration::default();
+        let mut config = Configuration::new_random(&mut rng);
+
         let mut rules = array::from_fn(|i| {
             if i == 0 {
                 CellType::new_inert()
@@ -195,6 +210,7 @@ impl RainfallSim {
         // mutations
         let mutation_prob = 0.5 / (rules.len() as f32);
         for &seed2 in &seeds[1..] {
+            config.mutate(&mut rng);
             let mut rng = SimRng::seed_from_u64(seed2);
             for rule in rules[1..].iter_mut() {
                 rule.grow_prob = sigmoid(logit(rule.grow_prob) + rng.random_range(-0.2..0.2));
@@ -236,22 +252,20 @@ impl Simulation for RainfallSim {
             }
 
             // check if a neighbour may grow here
-            let growth_rule_next = nh
-                .iter_dirs()
-                .fold(255, |rule, (dir, neigh)| {
-                    // neighbour must be a plant
-                    if let Plant(neigh_p) = neigh.cell {
-                        // neighbour must be pushing mass towards us
-                        if neigh_p.mass.outgoing().has(-dir) {
-                            // neighbour must have the lowest rule of all candidates
-                            rule.min(neigh_p.rule)
-                        } else {
-                            rule
-                        }
+            let growth_rule_next = nh.iter_dirs().fold(255, |rule, (dir, neigh)| {
+                // neighbour must be a plant
+                if let Plant(neigh_p) = neigh.cell {
+                    // neighbour must be pushing mass towards us
+                    if neigh_p.mass.outgoing().has(-dir) {
+                        // neighbour must have the lowest rule of all candidates
+                        rule.min(neigh_p.rule)
                     } else {
                         rule
                     }
-                });
+                } else {
+                    rule
+                }
+            });
 
             next.cell = if let Plant(mut next_plant) = nh.center.cell {
                 // mass transfers to/from neighbouring plant cells
@@ -319,7 +333,7 @@ impl Simulation for RainfallSim {
                 }
             } else if matches!(next.cell, Seed) {
                 Plant(PlantCell {
-                    rule: 3,
+                    rule: self.config.initial_type % self.config.cell_types,
                     // mass: BitParticles::new(DirectionSet::all(), 2),
                     mass: BitParticles::FULL,
                 })

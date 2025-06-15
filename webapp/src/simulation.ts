@@ -44,7 +44,12 @@ export const rules: Rule[] = [
     },
     {
         label: 'rainfall',
-        create: () => progenitor.demo_rainfall(new BigUint64Array([0n])),
+        create: () =>
+            progenitor.demo_rainfall(
+                new BigUint64Array([
+                    BigInt(Math.trunc(Math.random() * 1_000_000)),
+                ]),
+            ),
         map_elites: true,
         default: true,
     },
