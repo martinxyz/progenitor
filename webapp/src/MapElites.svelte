@@ -19,7 +19,7 @@ let population: Solution[] = []
 let offspring: Solution[] = []
 const offspring_size = 1000
 const population_size = offspring_size
-const batch_size = 50
+const batch_size = 10
 
 const stats_interval_ms = 5000
 
@@ -44,8 +44,12 @@ function mutated(genotype: Genotype): Genotype {
     return [...genotype, BigInt(Math.floor(Math.random() * 2 ** 32))]
 }
 
-let resumed = Promise.resolve()
-let paused = $state(false)
+let resume: () => void
+let resumed = new Promise<void>((resolve) => (resume = resolve))
+let paused = $state(true)
+
+let started = $state(false)
+resumed.then(() => (started = true))
 
 let total_evals = $state(0)
 async function onWorkerMessage(
@@ -123,7 +127,6 @@ async function onWorkerMessage(
     }
 }
 
-let resume: () => void
 function onPause() {
     if (paused) return
     paused = true
@@ -154,6 +157,7 @@ onMount(() => {
 
     let intervalTimer = setInterval(updateStats, stats_interval_ms)
     onDestroy(() => clearInterval(intervalTimer))
+    if (!paused) resume()
 })
 
 let evals_per_second: number | null = $state(null)
@@ -180,16 +184,20 @@ function loadbin(bin: Genotype | null) {
 
 <div style="display: flex; justify-content: space-between">
     <div>
-        Total evals: {total_evals.toLocaleString()} |
-        {#if paused}
-            paused |
+        {#if !started}
+            Start a diversity search for plants that collect rain?<br />
         {:else}
-            {workers.length} threads |
+            Total evals: {total_evals.toLocaleString()} |
+            {#if paused}
+                paused |
+            {:else}
+                {workers.length} threads |
+            {/if}
+            {#if evals_per_second}
+                {evals_per_second.toFixed(0)?.toLocaleString()} evals/s |
+            {/if}
+            coverage: {map_bins.filter((bin) => bin != null).length}
         {/if}
-        {#if evals_per_second}
-            {evals_per_second.toFixed(0)?.toLocaleString()} evals/s |
-        {/if}
-        coverage: {map_bins.filter((bin) => bin != null).length}
     </div>
     {#if paused}
         <button onclick={onResume} title="Resume">
@@ -202,34 +210,47 @@ function loadbin(bin: Genotype | null) {
     {/if}
 </div>
 
-<ArchivePlot data={plotData}></ArchivePlot>
+{#if started}
+    <ArchivePlot data={plotData}></ArchivePlot>
 
-<div class="table">
-    {#each { length: archive_rows } as _, row}
-        <div class="row">
-            {#each { length: archive_cols } as _, col}
-                {@const bin = map_bins[col * archive_rows + row]}
-                <div
-                    class="cell"
-                    class:full={bin != null}
-                    onclick={() => {
-                        if (bin) loadbin(bin.seeds)
-                    }}
-                >
-                    <div
-                        title={bin
-                            ? bin.measures_raw[0].toFixed(3) +
-                              ' / ' +
-                              bin.measures_raw[1].toFixed(3) +
-                              ` (gen ${bin.generation})`
-                            : 'empty'}
-                        class="inner"
-                    ></div>
+    <details open>
+        <summary class="button-like">
+            Grid-Archive (click on a black cell for playback)
+        </summary>
+
+        <div class="table">
+            {#each { length: archive_rows } as _, row}
+                <div class="row">
+                    {#each { length: archive_cols } as _, col}
+                        {@const bin = map_bins[col * archive_rows + row]}
+                        <div
+                            class="cell"
+                            class:full={bin != null}
+                            onclick={() => {
+                                if (bin) loadbin(bin.seeds)
+                            }}
+                        >
+                            <div
+                                title={bin
+                                    ? bin.measures_raw[0].toFixed(3) +
+                                      ' / ' +
+                                      bin.measures_raw[1].toFixed(3) +
+                                      ` (gen ${bin.generation})`
+                                    : 'empty'}
+                                class="inner"
+                            ></div>
+                        </div>
+                    {/each}
                 </div>
             {/each}
         </div>
-    {/each}
-</div>
+    </details>
+
+    <div>
+        <b>X-Axis</b>: growth volume (bc1) &nbsp&nbsp;&nbsp;<b>Y-Axis</b>: edges
+        per volume (bc2)
+    </div>
+{/if}
 
 <style lang="scss">
 .table {
@@ -260,5 +281,14 @@ function loadbin(bin: Genotype | null) {
     & > .inner {
         background-color: #055;
     }
+}
+summary {
+    cursor: pointer;
+    user-select: none;
+    border-radius: 5px;
+    padding-left: 0.5em;
+}
+summary:hover {
+    background-color: #ddd;
 }
 </style>
