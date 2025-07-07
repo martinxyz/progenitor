@@ -157,19 +157,19 @@ impl std::ops::Neg for Direction {
 /// use progenitor::{DirectionSet, Direction};
 ///
 /// let all = DirectionSet::all();
-/// assert!(all.contains(Direction::NorthEast));
+/// assert!(all.has(Direction::NorthEast));
 ///
 /// let none = DirectionSet::none();
-/// assert!(!none.contains(Direction::NorthEast));
+/// assert!(!none.has(Direction::NorthEast));
 ///
 /// let single = DirectionSet::single(Direction::NorthEast);
-/// assert!(single.contains(Direction::NorthEast));
-/// assert!(!single.contains(Direction::East));
+/// assert!(single.has(Direction::NorthEast));
+/// assert!(!single.has(Direction::East));
 ///
 /// let some = DirectionSet::matching(|d| d == Direction::East || d == Direction::NorthWest);
-/// assert!(some.contains(Direction::East));
-/// assert!(some.contains(Direction::NorthWest));
-/// assert!(!some.contains(Direction::NorthEast));
+/// assert!(some.has(Direction::East));
+/// assert!(some.has(Direction::NorthWest));
+/// assert!(!some.has(Direction::NorthEast));
 /// ```
 #[derive(Copy, Clone, Eq, PartialEq, Debug, Default, Serialize, Deserialize)]
 // #[serde(transparent)]
@@ -196,12 +196,12 @@ impl DirectionSet {
             mask: 1 << (dir as u8),
         }
     }
-    pub fn matching<F>(mut contains: F) -> Self
+    pub fn matching<F>(mut has: F) -> Self
     where
         F: FnMut(Direction) -> bool,
     {
         let mask = (0..6)
-            .filter(|i| contains(Direction::from_int(*i)))
+            .filter(|i| has(Direction::from_int(*i)))
             .fold(0, |mask, i| mask | (1 << i));
         DirectionSet { mask }
     }

@@ -3,7 +3,7 @@ use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
 
 use indicatif::ParallelProgressIterator;
-use progenitor::pairs;
+use progenitor::{pairs, SimRng};
 use rand::prelude::*;
 use rayon::prelude::*;
 
@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .into_par_iter()
         .progress_count(POPULATION.try_into().unwrap())
         .map(|_| {
-            let mut rng = SimRng::from_rng(rand::rng()).unwrap();
+            let mut rng = SimRng::from_rng(&mut rand::rng());
             let params = pairs::random_params(&mut rng);
             let mut score = 0f32;
             for _ in 0..EVALUATIONS {
