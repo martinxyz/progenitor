@@ -97,7 +97,7 @@ pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
             let mut m2 = 0.0;
             let n = 50;
             for ss in 0..n {
-                sim.steps(40);
+                sim.steps(80);
                 let size = sim.measure_size();
                 // let weight = 1.0f32;
                 let weight = ss as f32;

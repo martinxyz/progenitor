@@ -17,9 +17,9 @@ import type { WorkItem, WorkResult } from './worker'
 let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
 let population: Solution[] = []
 let offspring: Solution[] = []
-const offspring_size = 1000
+const offspring_size = 500
 const population_size = offspring_size
-const batch_size = 10
+const batch_size = 20
 
 const stats_interval_ms = 5000
 
