@@ -17,9 +17,9 @@ import type { WorkItem, WorkResult } from './worker'
 let map_bins: Archive = $state(Array(archive_rows * archive_cols).fill(null))
 let population: Solution[] = []
 let offspring: Solution[] = []
-const offspring_size = 500
+const offspring_size = 1500
 const population_size = offspring_size
-const batch_size = 20
+const batch_size = 50
 
 const stats_interval_ms = 5000
 
@@ -185,7 +185,7 @@ function loadbin(bin: Genotype | null) {
 <div style="display: flex; justify-content: space-between">
     <div>
         {#if !started}
-            Start a diversity search for plants that collect rain?<br />
+            Start diversity search for plants that collect rain?<br />
         {:else}
             Total evals: {total_evals.toLocaleString()} |
             {#if paused}

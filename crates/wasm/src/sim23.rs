@@ -83,7 +83,7 @@ pub fn demo_rainfall(seeds: &[u64]) -> JsSimulation {
 #[wasm_bindgen]
 pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
     const M: usize = 2;
-    const EVALS: usize = 2;
+    const EVALS: usize = 1;
     let mut measures = SVector::<f32, M>::zeros();
     for eval in 0..EVALS {
         let m: SVector<f32, M> = {
@@ -91,13 +91,13 @@ pub fn measure_rainfall(seeds: &[u64]) -> Vec<f32> {
             if eval != 0 {
                 sim.re_seed(eval as u64);
             }
-            // sim.steps(4000);
+            sim.steps(600);
             let mut weights: f32 = 0.0;
             let mut m1 = 0.0;
             let mut m2 = 0.0;
             let n = 50;
             for ss in 0..n {
-                sim.steps(80);
+                sim.steps(16);
                 let size = sim.measure_size();
                 // let weight = 1.0f32;
                 let weight = ss as f32;
