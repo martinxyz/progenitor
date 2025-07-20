@@ -7,6 +7,7 @@ pub use coords::{Direction, DirectionSet, Neighbourhood};
 mod bit_particles;
 use bit_particles::BitParticles;
 mod hexgrid_view;
+mod probabilities;
 mod simulation;
 mod tiled;
 pub use hexgrid_view::{CellView, HexgridView};

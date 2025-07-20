@@ -114,7 +114,7 @@ const spec2: VisualizationSpec = {
 }
 </script>
 
-<details open>
+<details>
     <summary class="button-like">Archive (raw BCs) with fitness</summary>
     <div class="graph-container" id="vis1"></div>
 </details>

@@ -29,8 +29,8 @@ export const archive_rows = 20
 export const archive_cols = 42
 
 const limits = [
-    { min: 10, max: 200 },
-    { min: 1.3, max: 3.0 },
+    { min: 20, max: 150 },
+    { min: 1.0, max: 4.5 },
 ]
 
 export function measures_normalized(measures: Float32Array) {

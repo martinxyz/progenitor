@@ -1,9 +1,10 @@
+use super::symmetric_rule::SymmetricRule;
 use super::vapour;
 use crate::{
-    coords, tiled::load_axial_tile_from_json, AxialTile, BitParticles, CellView, Direction,
-    DirectionSet, HexgridView, SimRng, Simulation,
+    coords, tiled::load_axial_tile_from_json, AxialTile, BitParticles, CellView, HexgridView,
+    SimRng, Simulation,
 };
-use hex2d::Angle;
+use crate::{DirectionSet, Neighbourhood};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{array, fmt::Debug};
@@ -70,99 +71,36 @@ pub struct RainfallSim {
     config: Configuration,
     rules: [CellType; MAX_CELL_TYPES as usize],
 }
-const MAX_CELL_TYPES: u8 = 8;
-const GROWTH_REQURIEMENT: u16 = 32;
+const MAX_CELL_TYPES: u8 = 4;
 
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub struct Configuration {
-    cell_types: u8,
-    initial_type: u8,
-    max_flow: u8,
     flow_swap: bool,
 }
 
 impl Configuration {
-    fn new_random(rng: &mut impl Rng) -> Self {
-        Self {
-            cell_types: rng.random_range(4..=8),
-            initial_type: rng.random_range(0..=4),
-            max_flow: 30,
-            flow_swap: false,
-        }
+    fn new_random(_rng: &mut impl Rng) -> Self {
+        Self { flow_swap: false }
     }
 
     fn mutate(&mut self, rng: &mut impl Rng) {
-        if rng.random::<u8>() < 80 {
-            self.cell_types = (self.cell_types as i32 + rng.random_range(-1..=1))
-                .clamp(0, MAX_CELL_TYPES.into())
-                .try_into()
-                .unwrap()
-        }
         if rng.random::<u8>() < 20 {
-            self.initial_type = rng.random_range(0..=4);
+            self.flow_swap = rng.random_bool(0.5);
         }
     }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct CellType {
-    flow: [u8; 8],
-    growth: [u8; 8],
-    gravity_bias: u8,
-    grow_prob: f32,
+    sr: SymmetricRule,
 }
 
 impl CellType {
-    fn new_inert() -> Self {
+    fn new_random(rng: &mut impl Rng, _config: &Configuration) -> Self {
         Self {
-            flow: [0; 8],
-            growth: [0; 8],
-            gravity_bias: 0,
-            grow_prob: 0.0,
+            sr: SymmetricRule::sample(rng), // grow_prob: sigmoid(rng.random_range(-3.0..3.0f32)),
         }
     }
-    fn new_random(rng: &mut impl Rng, config: &Configuration) -> Self {
-        Self {
-            flow: array::from_fn(|_| rng.random_range(0..=config.max_flow)),
-            growth: array::from_fn(|_| rng.random_range(0..config.cell_types)),
-            gravity_bias: rng.random(),
-            grow_prob: sigmoid(rng.random_range(-3.0..3.0f32)),
-        }
-    }
-    fn grow_type(&self, connections: DirectionSet, growth_dir: Direction) -> u8 {
-        let c1: usize = connections.has(growth_dir + Angle::RightBack).into();
-        let c2: usize = connections.has(growth_dir + Angle::Back).into();
-        let c3: usize = connections.has(growth_dir + Angle::LeftBack).into();
-        let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
-        self.growth[idx]
-    }
-
-    fn flow(&self, connections: DirectionSet, flow_dir: Direction, swap: bool) -> u8 {
-        let c1: usize;
-        let c2: usize;
-        let c3: usize;
-        if !swap {
-            c1 = connections.has(flow_dir + Angle::RightBack).into();
-            c2 = connections.has(flow_dir + Angle::Back).into();
-            c3 = connections.has(flow_dir + Angle::LeftBack).into();
-        } else {
-            // More fun, harder to comprehend?:
-            c1 = connections.has(flow_dir + Angle::Left).into();
-            c2 = connections.has(flow_dir + Angle::Right).into();
-            c3 = connections.has(flow_dir + Angle::Back).into();
-        }
-        let idx = (c1 << 2) | (c2 << 1) | (c3 << 0);
-        self.flow[idx]
-    }
-}
-
-fn logit(p: f32) -> f32 {
-    let p = p.clamp(0.00001, 0.99999);
-    (p / (1.0 - p)).ln()
-}
-
-fn sigmoid(x: f32) -> f32 {
-    1.0 / (1.0 + (-x).exp())
 }
 
 impl RainfallSim {
@@ -199,13 +137,7 @@ impl RainfallSim {
 
         let mut config = Configuration::new_random(&mut rng);
 
-        let mut rules = array::from_fn(|i| {
-            if i == 0 {
-                CellType::new_inert()
-            } else {
-                CellType::new_random(&mut rng, &config)
-            }
-        });
+        let mut rules = array::from_fn(|_| CellType::new_random(&mut rng, &config));
 
         // mutations
         let mutation_prob = 0.5 / (rules.len() as f32);
@@ -213,20 +145,8 @@ impl RainfallSim {
             config.mutate(&mut rng);
             let mut rng = SimRng::seed_from_u64(seed2);
             for rule in rules[1..].iter_mut() {
-                rule.grow_prob = sigmoid(logit(rule.grow_prob) + rng.random_range(-0.2..0.2));
                 if rng.random_bool(mutation_prob.into()) {
                     *rule = CellType::new_random(&mut rng, &config)
-                } else {
-                    for j in 0..8 {
-                        if rng.random_bool(mutation_prob.into()) {
-                            rule.flow[j] = (rule.flow[j] as i32 + rng.random_range(-2..=2))
-                                .clamp(0, config.max_flow as i32)
-                                as u8
-                        }
-                    }
-                    if rng.random_bool(mutation_prob.into()) {
-                        rule.gravity_bias = rng.random();
-                    }
                 }
             }
         }
@@ -277,19 +197,35 @@ impl Simulation for RainfallSim {
                 // (if a cell received mass in that it doesn't want, it will just have to transfer it out again)
                 // (however, a transfer out also doubles as a "growth request", so... let's just try and see)
 
-                let next_outgoing = DirectionSet::matching(|dir| {
-                    let outgoing = next_plant.mass.outgoing().has(dir);
-                    match nh[dir].cell {
-                        Plant(p) => {
-                            // swap both cell's outgoing slots
-                            p.mass.outgoing().has(-dir)
+                let nh_view: Neighbourhood<Option<BitParticles>> =
+                    nh.map(|neigh| match neigh.cell {
+                        Plant(neigh_plant) => {
+                            if neigh_plant.rule == next_plant.rule {
+                                Some(neigh_plant.mass)
+                            } else {
+                                None
+                            }
                         }
-                        _ => outgoing,
-                    }
-                });
-                next_plant.mass.set_outgoing(next_outgoing);
-                // randomly distribute mass
-                next_plant.mass.shuffle8_cheap(&mut self.rng);
+                        _ => None,
+                    });
+
+                let rule = &self.rules[next_plant.rule as usize];
+                next_plant.mass = rule.sr.step1_transfer(nh_view);
+                rule.sr.step2_shuffle(&mut next_plant.mass, &mut self.rng);
+
+                // let next_outgoing = DirectionSet::matching(|dir| {
+                //     let outgoing = next_plant.mass.outgoing().has(dir);
+                //     match nh[dir].cell {
+                //         Plant(p) => {
+                //             // swap both cell's outgoing slots
+                //             p.mass.outgoing().has(-dir)
+                //         }
+                //         _ => outgoing,
+                //     }
+                // });
+                // next_plant.mass.set_outgoing(next_outgoing);
+                // // randomly distribute mass
+                // next_plant.mass.shuffle8_cheap(&mut self.rng);
 
                 // cell death
                 // (note: we could allow this, if the cell wants to, with non-zero mass)
@@ -315,7 +251,6 @@ impl Simulation for RainfallSim {
                         }
                     }
                 }
-
                 if next_plant.rule == 255 {
                     Air
                 } else {
@@ -333,7 +268,8 @@ impl Simulation for RainfallSim {
                 }
             } else if matches!(next.cell, Seed) {
                 Plant(PlantCell {
-                    rule: self.config.initial_type % self.config.cell_types,
+                    // rule: 2,
+                    rule: 1,
                     // mass: BitParticles::new(DirectionSet::all(), 2),
                     mass: BitParticles::FULL,
                 })
