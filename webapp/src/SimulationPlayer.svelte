@@ -29,6 +29,8 @@ let myGrid: Grid<HexType>
 let viewportCol = 0
 let viewportRow = 0
 
+let step = $state(-1)
+
 let canvas: HTMLCanvasElement
 let overlayCanvas: HTMLCanvasElement
 let cursorHover: HexType | null = $state(null)
@@ -36,7 +38,7 @@ let cursorSelected: HexType | null = $state(null)
 $effect(() => renderCursors(cursorSelected, cursorHover))
 let cursor = $derived<HexType | null>(cursorSelected || cursorHover)
 let cellText = $derived(
-    sim && cursor
+    sim && step !== null && cursor
         ? sim.get_cell_text(
               // FIXME: this leads to correct behaviour, but should be solved elsewhere
               cursor.col +
@@ -75,7 +77,6 @@ onMount(() => {
     overlayCtx = overlayCanvas.getContext('2d')!
 })
 
-let step = $state(-1)
 let intervalId: number | null = $state(null)
 let playSpeed = $state(3)
 
