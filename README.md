@@ -37,7 +37,6 @@ Install [wasm-pack](https://rustwasm.github.io/wasm-pack/), e.g. `cargo install 
 
 ```bash
 cd crates/wasm
-export RUSTFLAGS='--cfg getrandom_backend="wasm_js"'
 wasm-pack build
 ```
 
