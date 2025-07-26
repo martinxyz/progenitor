@@ -344,7 +344,7 @@ pub struct Neighbourhood<T: Copy> {
 }
 
 impl<T: Copy> Neighbourhood<T> {
-    pub fn iter_dirs(&self) -> impl Iterator<Item = (Direction, T)> + use<T> {
+    pub fn iter_dirs(&self) -> impl Iterator<Item = (Direction, T)> {
         Direction::all().into_iter().zip(self.neighbours)
     }
 
