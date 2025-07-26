@@ -1,14 +1,14 @@
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::Direction;
 use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
+use crate::coords;
+use crate::hexmap;
 
 const RADIUS: i32 = 27;
 

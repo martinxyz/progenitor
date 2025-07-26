@@ -18,7 +18,7 @@ mod axial_tile;
 mod hexmap;
 mod torus_tile;
 pub use axial_tile::AxialTile;
-pub use torus_tile::{NeighbourIter as TorusNeighbourIter, TorusTile, SIZE, VIEWPORT};
+pub use torus_tile::{NeighbourIter as TorusNeighbourIter, SIZE, TorusTile, VIEWPORT};
 
 // shared simulation behaviour
 mod ca;

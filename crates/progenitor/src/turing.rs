@@ -1,14 +1,14 @@
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
 use crate::VIEWPORT;
+use crate::coords;
+use crate::coords::Direction;
 
 /* Based on the original "turing drawings":
 https://github.com/maximecb/Turing-Drawings/blob/master/programs.js#L44-L48

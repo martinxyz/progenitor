@@ -4,8 +4,8 @@ use wasm_bindgen::prelude::*;
 use crate::JsSimulation;
 
 use progenitor::{
-    builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers, turing,
-    Simulation,
+    Simulation, builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers,
+    turing,
 };
 
 #[wasm_bindgen]

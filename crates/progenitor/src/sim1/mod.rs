@@ -1,7 +1,6 @@
 mod cell;
 mod rules;
 
-use crate::coords;
 use crate::CellView;
 use crate::HexgridView;
 use crate::SimRng;
@@ -9,6 +8,7 @@ use crate::Simulation;
 use crate::TorusNeighbourIter;
 use crate::TorusTile;
 use crate::VIEWPORT;
+use crate::coords;
 use rand::prelude::*;
 use std::io::prelude::*;
 

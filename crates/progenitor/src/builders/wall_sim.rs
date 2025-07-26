@@ -6,14 +6,14 @@ use rand_distr::Distribution;
 use rand_distr::Normal;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::coords::Direction;
-use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
+use crate::coords;
+use crate::coords::Direction;
+use crate::hexmap;
 
 use super::nn;
 use super::optimized_params;

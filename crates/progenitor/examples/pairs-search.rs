@@ -1,9 +1,9 @@
 use std::error::Error;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::{BufWriter, Write};
 
 use indicatif::ParallelProgressIterator;
-use progenitor::{pairs, SimRng};
+use progenitor::{SimRng, pairs};
 use rand::prelude::*;
 use rayon::prelude::*;
 

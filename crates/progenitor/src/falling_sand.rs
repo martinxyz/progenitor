@@ -1,15 +1,15 @@
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::ca;
-use crate::coords;
-use crate::coords::Direction;
 use crate::CellView;
 use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
 use crate::TorusTile;
+use crate::ca;
+use crate::coords;
+use crate::coords::Direction;
 use crate::{SIZE, VIEWPORT};
 
 #[derive(Serialize, Deserialize)]

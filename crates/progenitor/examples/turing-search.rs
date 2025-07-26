@@ -1,12 +1,12 @@
 use progenitor::turing::Turing;
-use progenitor::{Simulation, SIZE};
+use progenitor::{SIZE, Simulation};
 use rand::prelude::*;
 
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 
-use utils::{run_taskstream, FeatureAccumulator};
+use utils::{FeatureAccumulator, run_taskstream};
 
 pub const FEATURE_COUNT: usize = 2;
 

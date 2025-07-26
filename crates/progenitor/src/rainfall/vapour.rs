@@ -1,6 +1,6 @@
 use rand::Rng;
 
-use crate::{bit_particles::BitParticles, Direction, Neighbourhood};
+use crate::{Direction, Neighbourhood, bit_particles::BitParticles};
 use Direction::*;
 
 pub(crate) fn step(nh: Neighbourhood<BitParticles>) -> BitParticles {

@@ -1,6 +1,6 @@
 use crate::{
-    coords::{self, Cube, Direction},
     Neighbourhood,
+    coords::{self, Cube, Direction},
 };
 use rand::Rng;
 use serde::{Deserialize, Serialize};

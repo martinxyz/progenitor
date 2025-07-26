@@ -1,23 +1,19 @@
-use progenitor::world1::{rules, Cell, CellTypeRef, Params, World};
 use progenitor::Simulation;
+use progenitor::world1::{Cell, CellTypeRef, Params, World, rules};
 use rand::prelude::*;
 
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
+use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 
-use utils::{run_taskstream, FeatureAccumulator};
+use utils::{FeatureAccumulator, run_taskstream};
 
 pub const FEATURE_COUNT: usize = 2;
 
 fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
     const EMPTY: CellTypeRef = CellTypeRef(1);
     fn cell2int(c: Cell) -> i32 {
-        if c.cell_type == EMPTY {
-            0
-        } else {
-            1
-        }
+        if c.cell_type == EMPTY { 0 } else { 1 }
     }
     let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
     for nh in world.iter_cells_with_neighbours() {

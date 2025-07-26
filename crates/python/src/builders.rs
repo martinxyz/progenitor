@@ -1,7 +1,7 @@
 use bincode::{DefaultOptions, Options};
 use progenitor::{
-    builders::{Builders as BuildersImpl, Hyperparams as HyperparamsImpl, Params as ParamsImpl},
     Simulation,
+    builders::{Builders as BuildersImpl, Hyperparams as HyperparamsImpl, Params as ParamsImpl},
 };
 use pyo3::{exceptions::PyValueError, prelude::*, types::PyBytes};
 

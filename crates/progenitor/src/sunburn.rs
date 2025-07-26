@@ -1,11 +1,6 @@
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::coords::Direction;
-use crate::coords::Direction::*;
-use crate::hexmap;
-use crate::independent_pairs;
 use crate::AxialTile;
 use crate::CellView;
 use crate::DirectionSet;
@@ -13,6 +8,11 @@ use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
+use crate::coords;
+use crate::coords::Direction;
+use crate::coords::Direction::*;
+use crate::hexmap;
+use crate::independent_pairs;
 
 const RADIUS: i32 = 15;
 

@@ -3,7 +3,7 @@ use wasm_bindgen::prelude::*;
 
 use crate::JsSimulation;
 use progenitor::sim1;
-use progenitor::{coords, SIZE};
+use progenitor::{SIZE, coords};
 use sim1::{CellType, CellTypeRef, GrowDirection};
 
 fn progenitor_world_empty() -> sim1::World {

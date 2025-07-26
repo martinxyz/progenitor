@@ -1,14 +1,14 @@
 use super::symmetric_rule::SymmetricRule;
 use super::vapour;
 use crate::{
-    coords, tiled::load_axial_tile_from_json, AxialTile, BitParticles, CellView, HexgridView,
-    SimRng, Simulation,
+    AxialTile, BitParticles, CellView, HexgridView, SimRng, Simulation, coords,
+    tiled::load_axial_tile_from_json,
 };
 use crate::{DirectionSet, Neighbourhood};
+use Cell::*;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::{array, fmt::Debug};
-use Cell::*;
 
 #[derive(Clone, Copy, Serialize, Deserialize, Debug)]
 struct Hex {

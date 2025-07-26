@@ -4,9 +4,9 @@ use rand_distr::{Beta, Distribution};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    bit_particles::BitParticles,
-    probabilities::{sigmoid, Prob15},
     Direction, DirectionSet, Neighbourhood,
+    bit_particles::BitParticles,
+    probabilities::{Prob15, sigmoid},
 };
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -4,15 +4,15 @@ use nalgebra::SVector;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::coords::Direction;
-use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::HexgridView;
 use crate::Neighbourhood;
 use crate::SimRng;
 use crate::Simulation;
+use crate::coords;
+use crate::coords::Direction;
+use crate::hexmap;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 enum CellType {

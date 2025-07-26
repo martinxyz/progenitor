@@ -1,6 +1,6 @@
 use progenitor::{
+    HexgridView, SIZE, Simulation,
     coords::{self, Rectangle},
-    HexgridView, Simulation, SIZE,
 };
 use wasm_bindgen::prelude::*;
 

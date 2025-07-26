@@ -1,6 +1,6 @@
 use serde::Deserialize;
 
-use crate::{coords, AxialTile};
+use crate::{AxialTile, coords};
 
 #[derive(Debug, Deserialize)]
 struct TiledMap {

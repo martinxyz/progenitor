@@ -4,8 +4,6 @@ use hex2d::Angle;
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::coords;
-use crate::hexmap;
 use crate::AxialTile;
 use crate::CellView;
 use crate::Direction;
@@ -13,6 +11,8 @@ use crate::DirectionSet;
 use crate::HexgridView;
 use crate::SimRng;
 use crate::Simulation;
+use crate::coords;
+use crate::hexmap;
 
 const RADIUS: i32 = 21;
 const MAX_CELL_TYPES: u8 = 8;
@@ -265,8 +265,8 @@ impl Simulation for GrowthSim {
                         // ((flow1 as u16 + flow2 as u16) / 2) as u8  // okay
                         // ((flow1 as i16 + flow2 as i16) - 4).clamp(0, 255) as u8  // interesting!
                         ((flow1 as i16 + flow2 as i16) - 7).clamp(0, 255) as u8 // interesting! (some pretty cool ones) (kind-of ReLU?)
-                                                                                // u8::saturating_sub(flow1, flow2) // wrong (has to be symmetric)
-                                                                                // 2  // very boring (circles only)
+                        // u8::saturating_sub(flow1, flow2) // wrong (has to be symmetric)
+                        // 2  // very boring (circles only)
                     };
 
                     let energy1 = center.energy;

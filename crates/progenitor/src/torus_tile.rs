@@ -1,4 +1,4 @@
-use crate::{coords, Neighbourhood};
+use crate::{Neighbourhood, coords};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::iter::FromIterator;

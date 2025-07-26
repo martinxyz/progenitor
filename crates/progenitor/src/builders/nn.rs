@@ -3,7 +3,7 @@
 // later, maybe: (and especially in case the NNs get larger: enable blas)
 // use ndarray::prelude::*;
 use nalgebra::{SMatrix, SVector};
-use rand::distr::{weighted::WeightedIndex, Distribution};
+use rand::distr::{Distribution, weighted::WeightedIndex};
 use rand::prelude::*;
 use serde::{Deserialize, Serialize};
 

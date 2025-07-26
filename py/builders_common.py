@@ -2,7 +2,7 @@ import blosc
 import gzip
 import pickle
 import progenitor
-version_check = 17
+version_check = 20
 assert progenitor.mod.version_check == version_check, progenitor.__file__
 
 # We cannot import progenitor.mod.Builders and then use it in the @ray.remote,

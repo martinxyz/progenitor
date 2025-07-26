@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::{coords, AxialTile};
+use crate::{AxialTile, coords};
 
 pub struct Location {
     from_center: coords::Cube,

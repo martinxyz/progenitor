@@ -1,6 +1,6 @@
 use crate::{
-    coords::{Direction, DirectionSet},
     CellView,
+    coords::{Direction, DirectionSet},
 };
 use serde::{Deserialize, Serialize};
 use std::ops::{Index, IndexMut};

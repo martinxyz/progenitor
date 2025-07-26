@@ -1,6 +1,6 @@
+use progenitor::Simulation;
 use progenitor::coords::Cube;
 use progenitor::sim1::{Cell, CellType, CellTypeRef, World};
-use progenitor::Simulation;
 
 #[test]
 fn initialization_should_be_inert() {

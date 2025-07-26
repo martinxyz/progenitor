@@ -15,6 +15,6 @@ fn my_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<builders::Builders>()?;
     m.add_class::<builders::Hyperparams>()?;
     m.add_class::<builders::Params>()?;
-    m.add("version_check", 18)?;
+    m.add("version_check", 20)?;
     Ok(())
 }

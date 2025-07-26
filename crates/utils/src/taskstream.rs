@@ -36,15 +36,18 @@ pub fn run_stream<T, R, FT, FR>(
             while !results.contains_key(&result_i) {
                 // spawn tasks
                 while tasks_spawned < tasks_spawned_max {
-                    if let Some(task) = tasks.pop_front() {
-                        let channel_s = channel_s.clone();
-                        s.spawn(move |_| {
-                            channel_s.send((task_i, process_task(task))).unwrap();
-                        });
-                        tasks_spawned += 1;
-                        task_i += 1;
-                    } else {
-                        break;
+                    match tasks.pop_front() {
+                        Some(task) => {
+                            let channel_s = channel_s.clone();
+                            s.spawn(move |_| {
+                                channel_s.send((task_i, process_task(task))).unwrap();
+                            });
+                            tasks_spawned += 1;
+                            task_i += 1;
+                        }
+                        _ => {
+                            break;
+                        }
                     }
                 }
                 // wait for a result

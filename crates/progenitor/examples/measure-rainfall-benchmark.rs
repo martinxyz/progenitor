@@ -1,4 +1,4 @@
-use progenitor::{rainfall::RainfallSim, Simulation};
+use progenitor::{Simulation, rainfall::RainfallSim};
 // use rayon::prelude::*;
 use std::time::Instant;
 

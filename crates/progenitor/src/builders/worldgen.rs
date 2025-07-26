@@ -1,5 +1,5 @@
 use super::wall_sim::Cell;
-use crate::{hexmap, AxialTile};
+use crate::{AxialTile, hexmap};
 use crate::{Direction, Neighbourhood};
 use hex2d::Coordinate;
 use rand::prelude::*;

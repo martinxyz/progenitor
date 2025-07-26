@@ -1,4 +1,4 @@
-use progenitor::{builders::Builders, Simulation};
+use progenitor::{Simulation, builders::Builders};
 
 fn main() {
     #[cfg(debug_assertions)]
