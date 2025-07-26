@@ -42,7 +42,7 @@ impl<const N: usize> Default for RangeTracker<N> {
 impl<const N: usize> Debug for RangeTracker<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.count == 0 {
-            write!(f, "[no samples collected; {} neurons]", N)
+            write!(f, "[no samples collected; {N} neurons]")
         } else {
             let means = self.means();
             let stds = self.stds();

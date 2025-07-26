@@ -197,7 +197,7 @@ impl GrowthSim {
     fn count_cells(&self) -> i32 {
         self.state
             .iter_cells()
-            .filter(|c| c.map_or(false, |c| c.rule != 0))
+            .filter(|c| c.is_some_and(|c| c.rule != 0))
             .count() as i32
     }
 }

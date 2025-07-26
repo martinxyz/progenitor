@@ -33,9 +33,9 @@ fn simple_self_transformation() {
     assert_eq!(w.cell(pos2).cell_type, persistent_cell);
     for i in 0..10 {
         w.step();
-        assert_eq!(w.cell(pos0), Cell::default(), "at step {}", i);
-        assert_eq!(w.cell(pos1), Cell::default(), "at step {}", i);
-        assert_eq!(w.cell(pos2).cell_type, persistent_cell, "at step {}", i);
+        assert_eq!(w.cell(pos0), Cell::default(), "at step {i}");
+        assert_eq!(w.cell(pos1), Cell::default(), "at step {i}");
+        assert_eq!(w.cell(pos2).cell_type, persistent_cell, "at step {i}");
     }
 }
 

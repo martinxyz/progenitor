@@ -45,10 +45,7 @@ fn calculate_features(sim: Turing) -> [FeatureAccumulator; FEATURE_COUNT] {
     sim.grid.iter_cells().for_each(|&c| {
         histogram[c as usize] += 1;
     });
-    let mut sorted: Vec<_> = (0..Turing::SYMBOLS as u8)
-        .into_iter()
-        .zip(histogram)
-        .collect();
+    let mut sorted: Vec<_> = (0..Turing::SYMBOLS as u8).zip(histogram).collect();
     sorted.sort_by_key(|&(_idx, cnt)| -cnt);
 
     // features[0] measures "how much a single color dominates"

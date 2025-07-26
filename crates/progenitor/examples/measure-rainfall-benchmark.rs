@@ -23,7 +23,6 @@ fn main() {
     let n = 1000;
     let results: Vec<_> = (0..n)
         // .into_par_iter()
-        .into_iter()
         .map(|_| measure_rainfall(&[0]))
         .collect();
     let mut result = (0.0, 0.0);

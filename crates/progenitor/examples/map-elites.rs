@@ -22,7 +22,7 @@ fn calculate_features(world: World) -> [FeatureAccumulator; FEATURE_COUNT] {
     let mut features = [FeatureAccumulator::default(); FEATURE_COUNT];
     for nh in world.iter_cells_with_neighbours() {
         let center = cell2int(nh.center);
-        let neighbours: i32 = nh.neighbours.into_iter().map(|c| cell2int(c)).sum();
+        let neighbours: i32 = nh.neighbours.into_iter().map(cell2int).sum();
         features[0].push(center);
         features[1].push_weighted((neighbours - 6 * center).abs(), 6);
     }

@@ -48,7 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         )?;
     }
     stream.flush()?;
-    println!("Result written to {}", filename);
+    println!("Result written to {filename}");
 
     Ok(())
 }

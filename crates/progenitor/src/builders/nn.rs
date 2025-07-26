@@ -112,13 +112,13 @@ impl Hyperparams {
     pub fn validate(&self) -> Result<(), String> {
         if self.n_hidden > N_HIDDEN {
             Err(format!(
-                "n_hidden {} too large, nn was compiled for at most {}",
-                self.n_hidden, N_HIDDEN
+                "n_hidden {} too large, nn was compiled for at most {N_HIDDEN}",
+                self.n_hidden
             ))
         } else if self.n_hidden2 > N_HIDDEN2 {
             Err(format!(
-                "n_hidden2 {} too large, nn was compiled for at most {}",
-                self.n_hidden2, N_HIDDEN2
+                "n_hidden2 {} too large, nn was compiled for at most {N_HIDDEN2}",
+                self.n_hidden2
             ))
         } else {
             Ok(())
@@ -163,7 +163,7 @@ impl Network {
 #[allow(clippy::useless_conversion)]
 pub fn softmax_choice<const N: usize>(outputs: SVector<f32, N>, rng: &mut impl Rng) -> usize {
     for v in outputs.iter() {
-        assert!(v.is_finite(), "output[_] = {}", v);
+        assert!(v.is_finite(), "output[_] = {v}");
     }
     let mut x = outputs;
     let max = x.max();

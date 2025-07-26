@@ -28,7 +28,7 @@ pub trait HexgridView {
         let mut lines = Vec::with_capacity(3);
         lines.push(format!("Type: {}", cv.cell_type));
         if let Some(e) = cv.energy {
-            lines.push(format!("Energy: {}", e));
+            lines.push(format!("Energy: {e}"));
         }
         if let Some(dir) = cv.direction {
             lines.push(format!("Direction: {}", dir.name_long()));

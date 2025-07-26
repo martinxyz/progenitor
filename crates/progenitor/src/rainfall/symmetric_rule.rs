@@ -77,10 +77,10 @@ impl SymmetricRule {
                 let has_incoming = neigh.outgoing().has(-dir);
                 if has_outgoing && !has_incoming {
                     // we keep the mass-particle if outgoing is not allowed
-                    self.outgoing_allowed(center.resting(), neigh.resting()) == false
+                    !self.outgoing_allowed(center.resting(), neigh.resting())
                 } else if !has_outgoing && has_incoming {
                     // we gain the mass-particle if incoming is allowed
-                    self.outgoing_allowed(neigh.resting(), center.resting()) == true
+                    self.outgoing_allowed(neigh.resting(), center.resting())
                 } else {
                     // no transfer (copy old state)
                     has_outgoing
