@@ -107,6 +107,10 @@ impl Direction {
         ALL_DIRECTIONS
     }
 
+    pub fn iter_all() -> impl ExactSizeIterator<Item = Direction> {
+        ALL_DIRECTIONS.into_iter()
+    }
+
     pub fn name_short(&self) -> &str {
         match self {
             Direction::NorthWest => "NW",
@@ -219,6 +223,9 @@ impl DirectionSet {
             },
         }
     }
+    pub fn set(&mut self, dir: Direction, present: bool) {
+        *self = self.with(dir, present);
+    }
     #[must_use]
     pub fn mirrored(&self) -> Self {
         DirectionSet::matching(|dir| self.has(-dir))
@@ -232,6 +239,17 @@ impl DirectionSet {
         let has1 = self.has(dir1);
         let has2 = self.has(dir2);
         self.with(dir1, has2).with(dir2, has1)
+    }
+    #[must_use]
+    pub fn rotated(&self, amount: i8) -> Self {
+        let amount = amount.rem_euclid(6);
+        let word: u16 = ((self.mask as u16) << 6) | self.mask as u16;
+        DirectionSet {
+            mask: (word >> amount) as u8 & 0b00111111,
+        }
+    }
+    pub fn swap(&mut self, dir1: Direction, dir2: Direction) {
+        *self = self.swapped(dir1, dir2);
     }
     pub fn count(&self) -> u8 {
         self.mask.count_ones() as u8

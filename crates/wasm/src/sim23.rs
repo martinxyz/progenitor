@@ -4,13 +4,19 @@ use wasm_bindgen::prelude::*;
 use crate::JsSimulation;
 
 use progenitor::{
-    Simulation, builders, falling_sand, growth, pairs, rainfall::RainfallSim, sunburn, tumblers,
-    turing,
+    Simulation, builders, falling_sand, falling_sand_v2, growth, pairs, rainfall::RainfallSim,
+    sunburn, tumblers, turing,
 };
 
 #[wasm_bindgen]
 pub fn demo_falling_sand() -> JsSimulation {
     let sim = falling_sand::World::new();
+    sim.into()
+}
+
+#[wasm_bindgen]
+pub fn demo_falling_sand_v2() -> JsSimulation {
+    let sim = falling_sand_v2::World::new();
     sim.into()
 }
 

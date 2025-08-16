@@ -300,17 +300,23 @@ impl HexgridView for RainfallSim {
             Worker => 0,
             Object1 => 3,
             Object2 => 1,
-            Plant(p) => match p.rule {
-                0 => 3,
-                2 => 5,
-                3 => 4,
-                _ => 1,
-            },
+            Plant(p) => {
+                if p.mass.count() == 0 {
+                    2 // show as air
+                } else {
+                    match p.rule {
+                        0 => 3,
+                        2 => 5,
+                        3 => 4,
+                        _ => 1,
+                    }
+                }
+            }
         };
         let energy_vapour = hex.vapour.outgoing().count() * 2;
         let energy_plant = match hex.cell {
             Plant(p) => match p.mass.count() {
-                0 => 16,
+                0 => 0,
                 n => n,
             },
             _ => 0,

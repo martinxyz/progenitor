@@ -4,7 +4,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
-use crate::{DirectionSet, Neighbourhood};
+use crate::{Direction, DirectionSet, Neighbourhood};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct BitParticles(u8);
@@ -12,6 +12,7 @@ pub struct BitParticles(u8);
 impl BitParticles {
     pub const EMPTY: Self = BitParticles(0b00000000);
     pub const FULL: Self = BitParticles(0b11111111);
+    pub const TWO_RESTING: Self = BitParticles(0b11000000);
     // pub fn random50(rng: &mut impl Rng) -> Self {
     //     Self(rng.random())
     // }
@@ -53,6 +54,9 @@ impl BitParticles {
     pub fn reflect_all(&mut self) {
         self.set_outgoing(self.outgoing().mirrored());
     }
+    pub fn rotate(&mut self, amount: i8) {
+        self.set_outgoing(self.outgoing().rotated(amount));
+    }
     pub fn shuffle8_cheap(&mut self, rng: &mut impl Rng) {
         let mut rnd: u8 = rng.random();
         let idx1 = rnd & 0b111;
@@ -89,6 +93,9 @@ impl BitParticles {
         if bit1 != bit2 {
             self.0 ^= (1 << idx1) | (1 << idx2);
         }
+    }
+    pub fn swap_directions(&mut self, dir1: Direction, dir2: Direction) {
+        self.set_outgoing(self.outgoing().swapped(dir1, dir2));
     }
 }
 

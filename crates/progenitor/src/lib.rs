@@ -27,6 +27,7 @@ mod independent_pairs;
 // simulations
 pub mod builders;
 pub mod falling_sand;
+pub mod falling_sand_v2;
 pub mod growth;
 pub mod pairs;
 pub mod rainfall;

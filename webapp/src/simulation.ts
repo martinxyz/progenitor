@@ -34,6 +34,11 @@ export const rules: Rule[] = [
         create: () => progenitor.demo_falling_sand(),
     },
     {
+        label: 'falling sand v2 (CA)',
+        create: () => progenitor.demo_falling_sand_v2(),
+        default: true,
+    },
+    {
         label: 'turing drawings (select from map)',
         create: () => progenitor.demo_turing(),
         load_map: turing_bins_url,
@@ -49,7 +54,6 @@ export const rules: Rule[] = [
                 new BigUint64Array([BigInt(Math.trunc(Math.random() * 1_000_000))]),
             ),
         map_elites: true,
-        default: true,
     },
     {
         label: 'builders (optimized nn)',
