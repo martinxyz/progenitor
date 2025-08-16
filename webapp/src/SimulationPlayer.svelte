@@ -88,23 +88,36 @@ function onRestart() {
     // if already playing, restart the timer
     if (!playing) play()
 }
+
 function onPlay() {
     play()
 }
+
 function onPause() {
     stop()
 }
+
+function onTogglePlaying() {
+    if (playing) {
+        onPause()
+    } else {
+        onPlay()
+    }
+}
+
 function onStep() {
     stop()
     sim.steps(1)
     simUpdated()
 }
+
 function onUndoStep() {
     stop()
     sim.step_undo()
     simUpdated()
 }
-function onPlaySpeed() {
+
+function onPlaySpeedNext() {
     if (playSpeed == 1) {
         playSpeed = 3
     } else if (playSpeed < 10_000) {
@@ -114,12 +127,19 @@ function onPlaySpeed() {
     }
     if (playing) play()
 }
+
+function onPlaySpeed(speed: number) {
+    playSpeed = speed
+    play()
+}
+
 function stop() {
     if (intervalId) {
         clearInterval(intervalId)
         intervalId = null
     }
 }
+
 function play() {
     stop()
     intervalId = setInterval(intervalCallback, playSpeed == 1 ? 300 : 100)
@@ -143,7 +163,14 @@ function onKey(ev: KeyboardEvent) {
         h: onStep,
         l: onUndoStep,
         Backspace: onRestart,
+        ' ': onTogglePlaying,
+        '0': onPause,
+        '1': () => onPlaySpeed(1),
+        '2': () => onPlaySpeed(3),
+        '3': () => onPlaySpeed(30),
+        '4': () => onPlaySpeed(3000),
     }[ev.key]
+
     if (fn) {
         fn()
         ev.preventDefault()
@@ -351,7 +378,7 @@ function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
 }
 </script>
 
-<div class="host" onkeydown={onKey}>
+<div class="host" onkeydown={onKey} tabindex="0" autofocus>
     <div>
         <div class="canvasDiv">
             <canvas class="mainCanvas" bind:this={canvas}> </canvas>
@@ -373,16 +400,17 @@ function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
             <button onclick={onStep} title="Single Step (Arrow Right)">
                 <i class="fas fa-step-forward"></i>
             </button>
-            {#if playing}
-                <button onclick={onPause} title="Pause">
+            <button
+                onclick={() => (playing ? onPause() : onPlay())}
+                title={playing ? 'Pause (Spacebar)' : 'Play (Spacebar)'}
+            >
+                {#if playing}
                     <i class="fas fa-pause"></i>
-                </button>
-            {:else}
-                <button onclick={onPlay} title="Play">
+                {:else}
                     <i class="fas fa-play"></i>
-                </button>
-            {/if}
-            <button onclick={onPlaySpeed} title="Play Speed">
+                {/if}
+            </button>
+            <button onclick={onPlaySpeedNext} title="Play Speed (0-4)">
                 {#if playSpeed < 2000}
                     x{playSpeed}
                 {:else}
@@ -404,6 +432,9 @@ function renderCursorHex(ctx: CanvasRenderingContext2D, hex: HexType) {
 .host {
     display: inline-flex;
     flex-direction: row;
+    &:focus {
+        outline: none;
+    }
 }
 .canvasDiv {
     position: relative;
