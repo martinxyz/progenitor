@@ -41,9 +41,7 @@ let cellText = $derived(
     sim && step !== null && cursor
         ? sim.get_cell_text(
               // FIXME: this leads to correct behaviour, but should be solved elsewhere
-              cursor.col +
-                  viewportCol +
-                  (viewportRow % 2 == 0 ? 0 : cursor.row % 2),
+              cursor.col + viewportCol + (viewportRow % 2 == 0 ? 0 : cursor.row % 2),
               cursor.row + viewportRow,
           )
         : null,
@@ -272,12 +270,7 @@ function renderSim() {
 let lastHexgridInputs = [0, 0, 0, 0]
 function updateHexgrid(viewport: Viewport, canvas: HTMLCanvasElement) {
     // ugh, change detection
-    let hexgridInputs = [
-        viewport.width,
-        viewport.height,
-        canvas.width,
-        canvas.height,
-    ]
+    let hexgridInputs = [viewport.width, viewport.height, canvas.width, canvas.height]
     if (lastHexgridInputs.every((value, idx) => value === hexgridInputs[idx])) {
         return
     }
@@ -350,10 +343,7 @@ function onClick(event: MouseEvent) {
     }
 }
 
-function renderCursors(
-    selected: HexCoordinates | null,
-    hover: HexCoordinates | null,
-) {
+function renderCursors(selected: HexCoordinates | null, hover: HexCoordinates | null) {
     if (!overlayCtx) return
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height)
     if (selected) {

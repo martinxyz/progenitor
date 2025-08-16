@@ -2,14 +2,7 @@
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Rule } from './simulation'
 import { renderSim } from './render'
-import {
-    Application,
-    Sprite,
-    RenderTexture,
-    Matrix,
-    Rectangle,
-    Container,
-} from 'pixi.js'
+import { Application, Sprite, RenderTexture, Matrix, Rectangle, Container } from 'pixi.js'
 import { onMount, onDestroy } from 'svelte'
 
 let { rule }: { rule: Rule } = $props()
@@ -179,12 +172,7 @@ async function restart() {
             sprite.anchor = 0.5
             sprite.eventMode = 'static'
             // sprite.cursor = 'pointer'
-            sprite.hitArea = new Rectangle(
-                -tileSize / 2,
-                -tileSize / 2,
-                tileSize,
-                tileSize,
-            )
+            sprite.hitArea = new Rectangle(-tileSize / 2, -tileSize / 2, tileSize, tileSize)
             sprite.on('pointerenter', () => {
                 sprite.alpha = 1.0
                 sprite.zIndex = 1
@@ -209,14 +197,7 @@ async function restart() {
     <span>
         param1: {param1.toFixed(2)}
     </span>
-    <input
-        type="range"
-        bind:value={param1}
-        name="volume"
-        min="0"
-        max="1"
-        step="0.05"
-    />
+    <input type="range" bind:value={param1} name="volume" min="0" max="1" step="0.05" />
 </label>
 
 {#if rule.default_config}
@@ -241,14 +222,7 @@ async function restart() {
         </label>
         <label>
             <span>steps:</span>
-            <input
-                type="number"
-                bind:value={steps}
-                name="steps"
-                min="0"
-                max="10000"
-                step="1"
-            />
+            <input type="number" bind:value={steps} name="steps" min="0" max="10000" step="1" />
         </label>
         <label>
             <input type="checkbox" bind:checked={filtering} />

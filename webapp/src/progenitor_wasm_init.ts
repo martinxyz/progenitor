@@ -5,7 +5,5 @@ import * as progenitor from 'progenitor'
 progenitor.set_panic_hook()
 
 if (progenitor.is_debug_build()) {
-    console.warn(
-        'the rust wasm module was built in debug mode and will run ~100x slower',
-    )
+    console.warn('the rust wasm module was built in debug mode and will run ~100x slower')
 }

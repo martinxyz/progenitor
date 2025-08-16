@@ -48,10 +48,7 @@ let resumed = Promise.resolve()
 let paused = $state(false)
 
 let total_evals = $state(0)
-async function onWorkerMessage(
-    this: Worker,
-    ev: MessageEvent<WorkResult[] | null>,
-) {
+async function onWorkerMessage(this: Worker, ev: MessageEvent<WorkResult[] | null>) {
     await resumed
     if (ev.data) {
         for (const result of ev.data) {
@@ -64,10 +61,7 @@ async function onWorkerMessage(
             if (offspring.length >= offspring_size) {
                 // generation complete!
                 let old_population = new Set(population)
-                population = novelty_search_reduce(
-                    [...population, ...offspring],
-                    population_size,
-                )
+                population = novelty_search_reduce([...population, ...offspring], population_size)
 
                 plotData = population.map((s) => ({
                     bc1: s.measures_raw[0],
@@ -95,17 +89,11 @@ async function onWorkerMessage(
                 generation = 0
             } else {
                 // bias towards parents with high score (tournament?)
-                let parent =
-                    population[Math.floor(Math.random() * population.length)]
+                let parent = population[Math.floor(Math.random() * population.length)]
                 for (let j = 0; j < 3; j++) {
-                    let parent2 =
-                        population[
-                            Math.floor(Math.random() * population.length)
-                        ]
+                    let parent2 = population[Math.floor(Math.random() * population.length)]
                     parent =
-                        parent.competitionFitness! > parent2.competitionFitness!
-                            ? parent
-                            : parent2
+                        parent.competitionFitness! > parent2.competitionFitness! ? parent : parent2
                 }
                 if (parent.generation === 0 && Math.random() < 0.25) {
                     // generation 0 has not been out-competed yet, so the initial distribution may still find something
@@ -160,8 +148,7 @@ let evals_per_second: number | null = $state(null)
 let total_evals_old: number | null = null
 function updateStats() {
     if (total_evals_old != null && total_evals != null) {
-        evals_per_second =
-            ((total_evals - total_evals_old) / stats_interval_ms) * 1000
+        evals_per_second = ((total_evals - total_evals_old) / stats_interval_ms) * 1000
     }
     total_evals_old = total_evals
 }

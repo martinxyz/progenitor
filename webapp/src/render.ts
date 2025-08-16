@@ -2,20 +2,10 @@ import * as progenitor from 'progenitor'
 import type { Simulation as ProgenitorSimulation } from 'progenitor'
 import type { Viewport } from 'progenitor'
 import Color from 'colorjs.io'
-import {
-    Application,
-    GraphicsContext,
-    Graphics,
-    Container,
-    Sprite,
-} from 'pixi.js'
+import { Application, GraphicsContext, Graphics, Container, Sprite } from 'pixi.js'
 const TAU = 2 * Math.PI
 
-export function renderSim(
-    sim: ProgenitorSimulation,
-    app: Application,
-    size: number,
-) {
+export function renderSim(sim: ProgenitorSimulation, app: Application, size: number) {
     let grid = new Container()
 
     let viewport = sim.viewport_hint()
@@ -48,9 +38,7 @@ export function renderSim(
     } else {
         hexSizeInner = hexSize
     }
-    let hexagonContext = new GraphicsContext()
-        .regularPoly(0, 0, hexSizeInner, 6)
-        .fill('white')
+    let hexagonContext = new GraphicsContext().regularPoly(0, 0, hexSizeInner, 6).fill('white')
 
     let data_cell_type = get_data(0)
     let data_energy = get_data(1)

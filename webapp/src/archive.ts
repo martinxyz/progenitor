@@ -34,10 +34,8 @@ const limits = [
 ]
 
 export function measures_normalized(measures: Float32Array) {
-    let m0_norm =
-        (measures[0] - limits[0].min) / (limits[0].max - limits[0].min)
-    let m1_norm =
-        (measures[1] - limits[1].min) / (limits[1].max - limits[1].min)
+    let m0_norm = (measures[0] - limits[0].min) / (limits[0].max - limits[0].min)
+    let m1_norm = (measures[1] - limits[1].min) / (limits[1].max - limits[1].min)
     m0_norm = clamp(m0_norm, 0, 1)
     m1_norm = clamp(m1_norm, 0, 1)
     return new Float32Array([m0_norm, m1_norm])
@@ -78,9 +76,7 @@ function calculate_dominated_novelty_scores(solutions: Solution[]) {
         for (let j = i + 1; j < N; j++) {
             let dist2 = 0
             for (let m = 0; m < M; m++) {
-                let diff =
-                    solutions[i].measures_norm[m] -
-                    solutions[j].measures_norm[m]
+                let diff = solutions[i].measures_norm[m] - solutions[j].measures_norm[m]
                 dist2 += diff * diff
             }
             distances2[j * N + i] = dist2
@@ -116,10 +112,7 @@ function reevaluate_fitness(solutions: Solution[]) {
     }
 }
 
-export function novelty_search_reduce(
-    solutions: Solution[],
-    N: number,
-): Solution[] {
+export function novelty_search_reduce(solutions: Solution[], N: number): Solution[] {
     console.log('evaluating distances for', solutions.length)
     // let solutions = solutions.slice()
     reevaluate_fitness(solutions)

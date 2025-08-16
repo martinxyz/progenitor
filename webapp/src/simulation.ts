@@ -46,9 +46,7 @@ export const rules: Rule[] = [
         label: 'rainfall',
         create: () =>
             progenitor.demo_rainfall(
-                new BigUint64Array([
-                    BigInt(Math.trunc(Math.random() * 1_000_000)),
-                ]),
+                new BigUint64Array([BigInt(Math.trunc(Math.random() * 1_000_000))]),
             ),
         map_elites: true,
         default: true,
@@ -104,10 +102,7 @@ export default class Simulation {
         count = Math.round(count)
         this.sim.steps(count)
         this.step_no += count
-        if (
-            this.step_no >=
-            this.snapshot2[0] + count * steps_between_snapshots
-        ) {
+        if (this.step_no >= this.snapshot2[0] + count * steps_between_snapshots) {
             this.snapshot1 = this.snapshot2
             this.snapshot2 = [this.step_no, this.sim.export_snapshot()]
         }
