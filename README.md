@@ -1,3 +1,5 @@
+Repository moved to [codeberg](https://codeberg.org/maxy/progenitor)
+
 # Progenitor
 
 This project is:
